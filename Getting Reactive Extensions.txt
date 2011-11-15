@@ -1,0 +1,4 @@
+The latest (stable) version of Reactive Extensions does not contain the System.Threading backport
+for .NET 3.5.
+
+You will need to download Rx v1.0.2856.0 from http://www.microsoft.com/download/en/details.aspx?id=24940.

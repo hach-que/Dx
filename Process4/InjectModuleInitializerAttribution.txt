@@ -1,0 +1,1 @@
+InjectModuleInitializer is from: http://einaregilsson.com/2009/12/16/module-initializers-in-csharp/

@@ -1,0 +1,172 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
+using Mono.Collections.Generic;
+using System.CodeDom.Compiler;
+using Microsoft.CSharp;
+using System.CodeDom;
+using System.IO;
+using Process4.Task.Wrappers;
+using Mono.Cecil.Pdb;
+
+namespace Process4.Task
+{
+    public class Process4Assembler : ITask
+    {
+        [Required]
+        public string AssemblyFile { get; set; }
+
+        /// <summary>
+        /// The log file to write to.
+        /// </summary>
+        public StreamWriter Log { get; set; }
+
+        static void Main(string[] args)
+        {
+            Process4Assembler p = new Process4Assembler();
+            p.AssemblyFile = args[0];
+            p.Execute();
+        }
+
+        /// <summary>
+        /// Called when the MSBuild task executes.  Also invoked by Program.Main
+        /// when run from the command-line.
+        /// </summary>
+        /// <returns>Whether the build task succeeded.</returns>
+        public bool Execute()
+        {
+            Directory.SetCurrentDirectory(Path.GetDirectoryName(this.AssemblyFile));
+
+            this.Log = new StreamWriter("./Process4.Task.Output.txt", true);
+            this.Log.WriteLine("== BEGIN (" + DateTime.Now.ToString() + ") ==");
+
+            try
+            {
+                // Get the assembly based on the path.
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(this.AssemblyFile, new ReaderParameters { ReadSymbols = true });
+
+                // Get all of the types in the assembly.
+                TypeDefinition[] types = assembly.MainModule.Types.ToArray();
+                foreach (TypeDefinition type in types)
+                {
+                    // Skip the module and Program classes.
+                    if (type.Name == "<Module>" || type.Name == "Program")
+                    {
+                        this.Log.WriteLine("- " + type.Name);
+                        continue;
+                    }
+
+                    // Check to see whether this type has a DistributedAttribute
+                    // attached to it.
+                    if (!this.HasAttribute(type, "DistributedAttribute"))
+                    {
+                        this.Log.WriteLine("- " + type.Name);
+                        continue;
+                    }
+
+                    // Check to see whether this type has a ProcessedAttribute
+                    // attached to it.
+                    if (this.HasAttribute(type, "ProcessedAttribute"))
+                    {
+                        this.Log.WriteLine("+ " + type.Name + " (already processed)");
+                        continue;
+                    }
+
+                    // This type is marked as distributed, so we need to perform
+                    // wrapping on it.
+                    this.Log.WriteLine("+ " + type.Name);
+                    TypeWrapper wrapper = new TypeWrapper(type);
+                    wrapper.Log = this.Log;
+                    wrapper.Wrap();
+                }
+
+                assembly.Write(this.AssemblyFile, new WriterParameters { WriteSymbols = true });
+                this.Log.WriteLine("== SUCCESS ==");
+                this.Log.Close();
+
+                return true;
+            }
+            catch (PostProcessingException e)
+            {
+                this.Log.WriteLine("Post Processing Exception Occurred!");
+                this.Log.WriteLine(e.OffendingMember + " in " + e.OffendingType + " caused:");
+                this.Log.WriteLine(e.GetType().FullName);
+                this.Log.WriteLine(e.Message);
+                this.Log.WriteLine(e.StackTrace);
+                this.Log.WriteLine("== ERRORR: EXIT ==");
+                if (this.BuildEngine != null)
+                    this.BuildEngine.LogErrorEvent(new BuildErrorEventArgs("Post Processing", "E0002", e.OffendingType + "." + e.OffendingMember, 0, 0, 0, 0, e.Message, "", ""));
+                this.Log.Close();
+                return false;
+            }
+            catch (Exception e)
+            {
+                this.Log.WriteLine("Exception Occurred!");
+                this.Log.WriteLine(e.GetType().FullName);
+                this.Log.WriteLine(e.Message);
+                this.Log.WriteLine(e.StackTrace);
+                this.Log.WriteLine("== FATAL: EXIT ==");
+                if (this.BuildEngine != null)
+                    this.BuildEngine.LogErrorEvent(new BuildErrorEventArgs("General", "E0001", "", 0, 0, 0, 0, e.Message, "", ""));
+                this.Log.Close();
+                return false;
+            }
+        }
+
+        #region Wrapping Functions
+
+        /// <summary>
+        /// Modifies the specified method in the specified type so that it contains the
+        /// appropriate calls to the Process4 library.
+        /// </summary>
+        /// <param name="t">The type in which the method is located.</param>
+        /// <param name="m">The method to modify.</param>
+        private void WrapMethod(TypeDefinition t, MethodDefinition m)
+        {
+            
+
+            
+
+            return;
+        }
+
+        #endregion
+
+        #region Utility Functions
+
+        private bool HasAttribute(TypeDefinition type, string name)
+        {
+            CustomAttribute distributedAttribute = null;
+            foreach (CustomAttribute ca in type.CustomAttributes)
+                if (ca.AttributeType.Name == name)
+                    distributedAttribute = ca;
+            if (distributedAttribute == null)
+                return false;
+            else
+                return true;
+        }
+
+        #endregion
+
+        #region ITask Members
+
+        public IBuildEngine BuildEngine
+        {
+            get;
+            set;
+        }
+
+        public ITaskHost HostObject
+        {
+            get;
+            set;
+        }
+
+        #endregion
+    }
+}
