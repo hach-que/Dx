@@ -68,7 +68,7 @@ namespace Process4
             // Get the assembly Guid.
             object[] o = this.m_Target.GetCustomAttributes(typeof(GuidAttribute), false);
             Guid g = Guid.Empty;
-            if (o.Length >= 0)
+            if (o.Length > 0)
                 g = new Guid((o[0] as GuidAttribute).Value);
             this.m_DefaultNetworkID = new ID(g, g, g, g);
 
@@ -115,17 +115,16 @@ namespace Process4
         /// </summary>
         public void Join()
         {
-            if (this.Contacts.StorageStartRequired)
-            {
-                this.Storage.Start();
-                this.Network.Join(this.m_DefaultNetworkID);
-            }
-            else
-            {
-                this.Network.Join(this.m_DefaultNetworkID);
-                this.Storage.Start();
-            }
-            this.Processor.Start();
+            this.Join(this.m_DefaultNetworkID);
+        }
+
+        /// <summary>
+        /// Joins the specified network.
+        /// </summary>
+        /// <param name="network">The network ID.</param>
+        public void Join(Guid network)
+        {
+            this.Join(new ID(network, network, network, network));
         }
 
         /// <summary>

@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\AsynchronousAttribute.cs" />
+    <Compile Include="Attributes\ClientCallableAttribute.cs" />
     <Compile Include="Collections\Distributed.cs" />
     <Compile Include="Asynchronous\DEvent.cs" />
     <Compile Include="Attributes\DistributedAttribute.cs" />

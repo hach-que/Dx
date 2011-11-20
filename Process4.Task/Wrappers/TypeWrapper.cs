@@ -56,9 +56,9 @@ namespace Process4.Task.Wrappers
                 (new PropertyWrapper(p) { Log = this.Log }).Wrap();
             foreach (PropertyDefinition p in this.m_Type.Properties.Where(value => exclusions.Contains(value.Name)).ToList())
                 this.Log.WriteLine("  - p " + p.Name + " (excluded)");
-            foreach (MethodDefinition m in this.m_Type.Methods.Where(value => !exclusions.Contains(value.Name) && value.Name != ".ctor").ToList())
+            foreach (MethodDefinition m in this.m_Type.Methods.Where(value => !exclusions.Contains(value.Name) && !value.IsStatic && value.Name != ".ctor").ToList())
                 (new MethodWrapper(m) { Log = this.Log }).Wrap();
-            foreach (MethodDefinition m in this.m_Type.Methods.Where(value => exclusions.Contains(value.Name) && value.Name != ".ctor").ToList())
+            foreach (MethodDefinition m in this.m_Type.Methods.Where(value => (exclusions.Contains(value.Name) || value.IsStatic) && value.Name != ".ctor").ToList())
                 this.Log.WriteLine("  - m " + m.Name + " (excluded)");
             foreach (MethodDefinition m in this.m_Type.Methods.Where(value => value.Name == ".ctor").ToList())
                 (new ConstructorWrapper(m) { Log = this.Log }).Wrap();
