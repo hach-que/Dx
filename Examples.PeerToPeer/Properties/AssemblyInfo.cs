@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Application.PeerToPeer")]
+[assembly: AssemblyTitle("Examples.PeerToPeer")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Redpoint Software")]
-[assembly: AssemblyProduct("Application.PeerToPeer")]
+[assembly: AssemblyProduct("Examples.PeerToPeer")]
 [assembly: AssemblyCopyright("Copyright © Redpoint Software 2011")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

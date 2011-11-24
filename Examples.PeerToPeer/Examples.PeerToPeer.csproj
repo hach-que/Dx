@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!--<UsingTask TaskName="Process4Assembler" AssemblyFile="..\Process4.Task\bin\x86\Debug\Process4.Task.exe" />-->
+  <UsingTask TaskName="Process4Assembler" AssemblyFile="..\Process4.Task\bin\x86\Debug\Process4.Task.exe" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -9,8 +9,8 @@
     <ProjectGuid>{B4FFEF16-476B-4C68-A649-F7F2EDB00333}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Application.PeerToPeer</RootNamespace>
-    <AssemblyName>Application.PeerToPeer</AssemblyName>
+    <RootNamespace>Examples.PeerToPeer</RootNamespace>
+    <AssemblyName>Examples.PeerToPeer</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <RunPostBuildEvent>Always</RunPostBuildEvent>
@@ -34,6 +34,14 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Data4, Version=1.0.4344.17889, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Process4.Task\bin\x86\Debug\Data4.dll</HintPath>
+    </Reference>
+    <Reference Include="Process4, Version=1.0.0.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Process4.Task\bin\x86\Debug\Process4.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -62,6 +70,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -74,20 +83,14 @@
     </Compile>
     <Compile Include="Universe.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Process4\Process4.csproj">
-      <Project>{484C8A01-0F2F-4A9D-94A0-9B05FD08B409}</Project>
-      <Name>Process4</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="BeforeBuild">
   </Target>
-  <!--<Target Name="AfterBuild">
+  <Target Name="AfterBuild">
     <Process4Assembler AssemblyFile="$(TargetPath)" />
-  </Target>-->
-  <PropertyGroup>
+  </Target>
+  <!--<PropertyGroup>
     <PostBuildEvent>cd "$(TargetDir)"
 "C:\Server Storage\Projects\University\Y1_S2\OOP\Experience.Project\Process4.Task\bin\x86\Debug\Process4.Task.exe" "$(TargetPath)"</PostBuildEvent>
-  </PropertyGroup>
+  </PropertyGroup>-->
 </Project>

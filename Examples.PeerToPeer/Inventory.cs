@@ -6,7 +6,7 @@ using Process4.Attributes;
 using Process4.Collections;
 using System.Collections;
 
-namespace Application.PeerToPeer
+namespace Examples.PeerToPeer
 {
     [Distributed]
     public class Item

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Process4.Attributes;
 
-namespace Application.PeerToPeer
+namespace Examples.PeerToPeer
 {
     [Distributed]
     public class Universe
