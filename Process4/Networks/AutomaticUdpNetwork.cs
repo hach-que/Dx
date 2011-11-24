@@ -166,7 +166,7 @@ namespace Process4.Networks
 
                                 // Add the contact so that each node knows each other.
                                 Data4.Contact contact = new Data4.Contact(
-                                    Data4.ID.FromString(data[0]),
+                                    Data4.ID.FromString(data[2]),
                                     new IPEndPoint(other.Address, this.MessagingPort)
                                     );
                                 this.Node.Contacts.Add(contact);

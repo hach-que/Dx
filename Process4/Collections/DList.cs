@@ -21,6 +21,20 @@ namespace Process4.Collections
             Process4.Providers.DpmEntrypoint.Construct(this);
         }
 
+        public DList(int capacity)
+        {
+            Process4.Providers.DpmEntrypoint.Construct(this);
+
+            this.m_List = new List<T>(capacity);
+        }
+
+        public DList(IEnumerable<T> collection)
+        {
+            Process4.Providers.DpmEntrypoint.Construct(this);
+
+            this.m_List = new List<T>(collection);
+        }
+
         /// <summary>
         /// Asks the local node to synchronise the list.
         /// </summary>
@@ -33,11 +47,13 @@ namespace Process4.Collections
         {
             get
             {
-                ID ownerid = LocalNode.Singleton.Storage.FetchOwner(this.NetworkName).Identifier;
-                if (LocalNode.Singleton.ID == ownerid)
+                Contact owner = LocalNode.Singleton.Storage.FetchOwner(this.NetworkName);
+                while (owner == null)
+                    owner = LocalNode.Singleton.Storage.FetchOwner(this.NetworkName);
+                if (LocalNode.Singleton.ID == owner.Identifier)
                     return LocalNode.Singleton;
                 else
-                    return new RemoteNode(LocalNode.Singleton.Contacts.First(value => value.Identifier == ownerid));
+                    return new RemoteNode(LocalNode.Singleton.Contacts.First(value => value.Identifier == owner.Identifier));
             }
         }
 

@@ -115,6 +115,15 @@ namespace Data4
             //       work that way.
             //
 
+            // Yield any entries that we already have
+            // first.
+            Entry[] el = this.p_OwnedEntries.ToArray();
+            foreach (Entry e in el)
+            {
+                if (e.Key == key)
+                    yield return e;
+            }
+
             // Define the event handler.
             ConcurrentBag<Contact> respondants = new ConcurrentBag<Contact>();
             ConcurrentBag<Entry> entries = new ConcurrentBag<Entry>();
@@ -133,14 +142,6 @@ namespace Data4
                 FetchMessage fm = new FetchMessage(this, c, key);
                 fm.ResultReceived += ev;
                 fm.Send();
-            }
-
-            // Yield any entries that we already have
-            // first.
-            foreach (Entry e in this.p_OwnedEntries)
-            {
-                if (e.Key == key)
-                    yield return e;
             }
 
             // Wait a little bit for the first entry to

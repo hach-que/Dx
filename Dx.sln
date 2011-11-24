@@ -9,10 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Process4.Task", "Process4.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application.PeerToPeer", "Application.PeerToPeer\Application.PeerToPeer.csproj", "{B4FFEF16-476B-4C68-A649-F7F2EDB00333}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profiling.PrimeNumberSolver", "Profiling.PrimeNumberSolver\Profiling.PrimeNumberSolver.csproj", "{8DAC7189-932B-45A6-86F9-0EF9D9A589A7}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profiling.PrimeNumberSolver.Singular", "Profiling.PrimeNumberSolver.Singular\Profiling.PrimeNumberSolver.Singular.csproj", "{7C2776DE-C163-4E22-A040-F63199EF6D69}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -35,14 +31,6 @@ Global
 		{B4FFEF16-476B-4C68-A649-F7F2EDB00333}.Debug|x86.Build.0 = Debug|x86
 		{B4FFEF16-476B-4C68-A649-F7F2EDB00333}.Release|x86.ActiveCfg = Release|x86
 		{B4FFEF16-476B-4C68-A649-F7F2EDB00333}.Release|x86.Build.0 = Release|x86
-		{8DAC7189-932B-45A6-86F9-0EF9D9A589A7}.Debug|x86.ActiveCfg = Debug|x86
-		{8DAC7189-932B-45A6-86F9-0EF9D9A589A7}.Debug|x86.Build.0 = Debug|x86
-		{8DAC7189-932B-45A6-86F9-0EF9D9A589A7}.Release|x86.ActiveCfg = Release|x86
-		{8DAC7189-932B-45A6-86F9-0EF9D9A589A7}.Release|x86.Build.0 = Release|x86
-		{7C2776DE-C163-4E22-A040-F63199EF6D69}.Debug|x86.ActiveCfg = Debug|x86
-		{7C2776DE-C163-4E22-A040-F63199EF6D69}.Debug|x86.Build.0 = Debug|x86
-		{7C2776DE-C163-4E22-A040-F63199EF6D69}.Release|x86.ActiveCfg = Release|x86
-		{7C2776DE-C163-4E22-A040-F63199EF6D69}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
