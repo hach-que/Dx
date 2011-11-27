@@ -33,6 +33,16 @@ namespace Process4.Providers
         }
 
         /// <summary>
+        /// A list of "agreed references"; that is IDs set for external or
+        /// non-distributed objects.  Used by the event system.
+        /// </summary>
+        public Dictionary<ID, object> AgreedReferences
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Creates a new Distributed Processing Module associated with the
         /// specified node.
         /// </summary>
@@ -40,6 +50,7 @@ namespace Process4.Providers
         public Dpm(LocalNode node)
         {            
             this.m_Node = node;
+            this.AgreedReferences = new Dictionary<ID, object>();
         }
 
         /// <summary>
@@ -57,6 +68,94 @@ namespace Process4.Providers
         }
 
         #region IProcessorProvider Members
+
+        public void AddEvent(EventTransport transport)
+        {
+            // Fetch the entry that would be returned by Storage.Fetch (since we
+            // need the contact information).
+            Entry o = this.Dht.Get(ID.NewHash(transport.SourceObjectNetworkName)).DefaultIfEmpty(null).First();
+            if (o == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+
+            // Check to see if we own the property.
+            if (o.Owner.Identifier == this.m_Node.ID)
+            {
+                // Get object that the event handler resides on.
+                ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
+                if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+
+                // Get a reference to the event adder.
+                MethodInfo mi = obj.GetType().GetMethod("add_" + transport.SourceEventName + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (mi == null)
+                    throw new MissingMethodException(obj.GetType().FullName, transport.SourceEventName);
+
+                // Create an EventHandler that will automatically remote the event callback
+                // across the network to the node that originally registered it.
+                EventHandler handler = transport.CreateRemotedDelegate();
+
+                // Invoke the event adder.
+                mi.Invoke(obj, new object[] { handler });
+
+                // Now also synchronise the object with the DHT.
+                LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+            }
+            else
+            {
+                // Invoke the event adder remotely.
+                RemoteNode rnode = new RemoteNode(o.Owner);
+                rnode.AddEvent(transport);
+            }
+        }
+
+        public void RemoveEvent(EventTransport transport)
+        {
+            // Fetch the entry that would be returned by Storage.Fetch (since we
+            // need the contact information).
+            Entry o = this.Dht.Get(ID.NewHash(transport.SourceObjectNetworkName)).DefaultIfEmpty(null).First();
+            if (o == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+
+            // Check to see if we own the property.
+            if (o.Owner.Identifier == this.m_Node.ID)
+            {
+                // Get object that the event handler resides on.
+                ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
+                if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+
+                // Get a reference to the event adder.
+                MethodInfo mi = obj.GetType().GetMethod("remove_" + transport.SourceEventName + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (mi == null)
+                    throw new MissingMethodException(obj.GetType().FullName, transport.SourceEventName);
+
+                // Create an EventHandler that will automatically remote the event callback
+                // across the network to the node that originally registered it.
+                EventHandler handler = transport.CreateRemotedDelegate();
+
+                // Invoke the event adder.
+                mi.Invoke(obj, new object[] { handler });
+
+                // Now also synchronise the object with the DHT.
+                LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+            }
+            else
+            {
+                // Invoke the event adder remotely.
+                RemoteNode rnode = new RemoteNode(o.Owner);
+                rnode.RemoveEvent(transport);
+            }
+        }
+
+        public void InvokeEvent(EventTransport transport, object sender, EventArgs e)
+        {
+            // Get the object based on the agreed reference.
+            KeyValuePair<ID, object> kv = this.AgreedReferences.FirstOrDefault(value => value.Key == transport.ListenerAgreedReference);
+            object obj = (object.ReferenceEquals(kv, null)) ? null : kv.Value;
+            if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+
+            // Invoke the target method.
+            MethodInfo mi = obj.GetType().GetMethod(transport.ListenerMethod, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            if (mi == null)
+                throw new MissingMethodException(obj.GetType().FullName, transport.ListenerMethod);
+            mi.Invoke(obj, new object[] { sender, e });
+        }
 
         public object Invoke(string id, string method, object[] args)
         {
@@ -102,7 +201,7 @@ namespace Process4.Providers
     {
         public static object SetProperty(Delegate d, object[] args)
         {
-            // Get the network name of the object and the name of the method.
+            // Get the network name of the object.
             string objectName = (d.Target as ITransparent).NetworkName;
 
             // We need to get rid of the set_ prefix and Distributed suffix.
@@ -116,7 +215,7 @@ namespace Process4.Providers
 
         public static object GetProperty(Delegate d, object[] args)
         {
-            // Get the network name of the object and the name of the method.
+            // Get the network name of the object.
             string objectName = (d.Target as ITransparent).NetworkName;
 
             // We need to get rid of the get_ prefix and Distributed suffix.
@@ -124,6 +223,66 @@ namespace Process4.Providers
 
             // Get our local node and invoke the get property.
             return LocalNode.Singleton.GetProperty(objectName, propertyName);
+        }
+
+        public static object AddEvent(Delegate d, object[] args)
+        {
+            // Get the network name of the object.
+            string objectName = (d.Target as ITransparent).NetworkName;
+
+            // We need to get rid of the add_ prefix and Distributed suffix.
+            string eventName = d.Method.Name.Substring(4, d.Method.Name.LastIndexOf("__Distributed") - 4);
+            Delegate handler = args[0] as Delegate;
+            ID agreedref = null;
+            if (handler.Target != null)
+                agreedref = EventTransport.GetAgreedReference(LocalNode.Singleton.Processor.AgreedReferences, handler.Target);
+
+            // Construct the event transport information.
+            EventTransport ev = new EventTransport
+            {
+                SourceObjectNetworkName = objectName,
+                SourceEventName = eventName,
+                SourceEventType = handler.Method.GetParameters()[1].ParameterType.FullName,
+                ListenerAgreedReference = agreedref,
+                ListenerNodeID = LocalNode.Singleton.ID,
+                ListenerType = handler.Method.DeclaringType.FullName,
+                ListenerMethod = handler.Method.Name
+            };
+
+            // Get our local node and invoke the add event.
+            LocalNode.Singleton.AddEvent(ev);
+
+            return null;
+        }
+
+        public static object RemoveEvent(Delegate d, object[] args)
+        {
+            // Get the network name of the object and the name of the method.
+            string objectName = (d.Target as ITransparent).NetworkName;
+
+            // We need to get rid of the remove_ prefix and Distributed suffix.
+            string eventName = d.Method.Name.Substring(7, d.Method.Name.LastIndexOf("__Distributed") - 7);
+            Delegate handler = args[0] as Delegate;
+            ID agreedref = null;
+            if (handler.Target != null)
+                agreedref = EventTransport.GetAgreedReference(LocalNode.Singleton.Processor.AgreedReferences, handler);
+
+            // Construct the event transport information.
+            EventTransport ev = new EventTransport
+            {
+                SourceObjectNetworkName = objectName,
+                SourceEventName = eventName,
+                SourceEventType = handler.Method.GetParameters()[1].ParameterType.FullName,
+                ListenerAgreedReference = agreedref,
+                ListenerNodeID = LocalNode.Singleton.ID,
+                ListenerType = handler.Method.DeclaringType.FullName,
+                ListenerMethod = handler.Method.Name
+            };
+
+            // Get our local node and invoke the remove event.
+            LocalNode.Singleton.RemoveEvent(ev);
+
+            return null;
         }
 
         public static object Invoke(Delegate d, object[] args)

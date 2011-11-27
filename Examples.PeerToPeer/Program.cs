@@ -19,10 +19,17 @@ namespace Examples.PeerToPeer
 
             // Get the universe and increase it's counter.
             Universe universe = new Distributed<Universe>("universe");
+            universe.Entered += (sender, e) =>
+            {
+                // Output the counter whenever a node enters the network.
+                Console.WriteLine("The universe counter is now at: " + universe.Counter);
+            };
+            universe.Left += (sender, e) =>
+            {
+                // Output the counter whenever a node leaves the network.
+                Console.WriteLine("The universe counter is now at: " + universe.Counter);
+            };
             universe.Enter();
-
-            // Output the counter.
-            Console.WriteLine("The universe counter is now at: " + universe.Counter);
 
             // Add some random items.
             Program.AddRandomItems(universe);

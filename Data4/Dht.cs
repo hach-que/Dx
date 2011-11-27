@@ -61,7 +61,12 @@ namespace Data4
                     {
                         byte[] result = this.m_UdpClient.Receive(ref from);
                         this.LogI(LogType.DEBUG, "Received a message from " + from.ToString());
-                        this.OnReceive(from, result);
+                        Thread handler = new Thread(() =>
+                            {
+                                this.OnReceive(from, result);
+                            });
+                        handler.Name = "Message Handling Thread";
+                        handler.Start();
                     }
                 }
                 catch (Exception e)

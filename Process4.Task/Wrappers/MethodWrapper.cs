@@ -88,6 +88,16 @@ namespace Process4.Task.Wrappers
             invoke.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             invoke.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
 
+            // Create the Process4.Providers.DpmEntrypoint::AddEvent method reference.
+            MethodReference addevent = new MethodReference("AddEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            addevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
+            addevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
+
+            // Create the Process4.Providers.DpmEntrypoint::RemoveEvent method reference.
+            MethodReference removeevent = new MethodReference("RemoveEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
+            removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
+
             // Extract the base generic DTask type.
             GenericInstanceType generic = new GenericInstanceType((this.m_Type.Module.Import(typeof(Process4.DTask<bool>)) as GenericInstanceType).ElementType);
             generic.GenericParameters.Add(new GenericParameter("!0", generic));
@@ -139,6 +149,10 @@ namespace Process4.Task.Wrappers
                 processor.Add(new CallStatement(setproperty, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
             else if (this.m_Method.IsGetter)
                 processor.Add(new CallStatement(getproperty, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
+            else if (this.m_Method.IsAddOn)
+                processor.Add(new CallStatement(addevent, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
+            else if (this.m_Method.IsRemoveOn)
+                processor.Add(new CallStatement(removeevent, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
             else
                 processor.Add(new CallStatement(invoke, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Data4;
+using Process4.Remoting;
 
 namespace Process4
 {
@@ -15,7 +16,7 @@ namespace Process4
         /// would set "PropertyToSet" to 5, on the abc object.
         /// </summary>
         /// <param name="id">The network ID of the object.</param>
-        /// <param name="flds">The property to store the value in.</param>
+        /// <param name="property">The property to store the value in.</param>
         /// <param name="value">The value to set the property to.</param>
         internal abstract void SetProperty(string id, string property, object value);
 
@@ -26,8 +27,26 @@ namespace Process4
         /// would get the value of "PropertyToGet", on the abc object.
         /// </summary>
         /// <param name="id">The network ID of the object.</param>
-        /// <param name="flds">The property to fetch.</param>
+        /// <param name="property">The property to fetch.</param>
         internal abstract object GetProperty(string id, string property);
+
+        /// <summary>
+        /// Adds the event based on the event transport information.
+        /// </summary>
+        /// <param name="transport">The event transport information.</param>
+        internal abstract void AddEvent(EventTransport transport);
+
+        /// <summary>
+        /// Removes the event based on the event transport information.
+        /// </summary>
+        /// <param name="transport">The event transport information.</param>
+        internal abstract void RemoveEvent(EventTransport transport);
+
+        /// <summary>
+        /// Invokes the event based on the event transport information.
+        /// </summary>
+        /// <param name="transport">The event transport information.</param>
+        internal abstract void InvokeEvent(EventTransport transport, object sender, EventArgs e);
 
         /// <summary>
         /// Invokes a method on the object with ID, descending through fields / properties

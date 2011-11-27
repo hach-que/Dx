@@ -80,6 +80,10 @@
     <Compile Include="Interfaces\IStorageProvider.cs" />
     <Compile Include="Interfaces\ITransparent.cs" />
     <Compile Include="LocalNode.cs" />
+    <Compile Include="Remoting\AddEventMessage.cs" />
+    <Compile Include="Remoting\RemoveEventMessage.cs" />
+    <Compile Include="Remoting\InvokeEventMessage.cs" />
+    <Compile Include="Remoting\EventTransport.cs" />
     <Compile Include="Remoting\GetPropertyConfirmationMessage.cs" />
     <Compile Include="Remoting\GetPropertyMessage.cs" />
     <Compile Include="Remoting\ObjectVanishedException.cs" />

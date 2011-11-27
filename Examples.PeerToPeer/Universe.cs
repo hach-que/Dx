@@ -9,6 +9,9 @@ namespace Examples.PeerToPeer
     [Distributed]
     public class Universe
     {
+        public event EventHandler Entered;
+        public event EventHandler Left;
+
         /// <summary>
         /// The universe's counter.
         /// </summary>
@@ -27,11 +30,15 @@ namespace Examples.PeerToPeer
         public void Enter()
         {
             this.Counter += 1;
+            if (this.Entered != null)
+                this.Entered(this, new EventArgs());
         }
 
         public void Leave()
         {
             this.Counter -= 1;
+            if (this.Left != null)
+                this.Left(this, new EventArgs());
         }
     }
 }

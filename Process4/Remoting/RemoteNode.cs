@@ -26,34 +26,31 @@ namespace Process4.Remoting
         {
             bool received = false;
 
-            //while (!received)
+            DateTime start = DateTime.Now;
+
+            // Create the message.
+            SetPropertyMessage spm = new SetPropertyMessage(this.m_LocalDht, this.m_Target, id, property, value);
+
+            // Register the event handler.
+            EventHandler<MessageEventArgs> ev = null;
+            ev = (sender, e) =>
             {
-                DateTime start = DateTime.Now;
+                // Mark as received so the thread will continue.
+                received = true;
+                spm.ConfirmationReceived -= ev;
+            };
+            spm.ConfirmationReceived += ev;
 
-                // Create the message.
-                SetPropertyMessage spm = new SetPropertyMessage(this.m_LocalDht, this.m_Target, id, property, value);
+            // Send the message.
+            spm.Send();
 
-                // Register the event handler.
-                EventHandler<MessageEventArgs> ev = null;
-                ev = (sender, e) =>
-                {
-                    // Mark as received so the thread will continue.
-                    received = true;
-                    spm.ConfirmationReceived -= ev;
-                };
-                spm.ConfirmationReceived += ev;
+            // Wait until we have received it.
+            while (!received) Thread.Sleep(0);
 
-                // Send the message.
-                spm.Send();
-
-                // Wait until we have received it.
-                while (!received && DateTime.Now.Subtract(start).Seconds < 10) Thread.Sleep(0);
-
-                // We have nothing to return (but it was still important to wait
-                // until confirmation).
-                if (!received)
-                    spm.ConfirmationReceived -= ev;
-            }
+            // We have nothing to return (but it was still important to wait
+            // until confirmation).
+            if (!received)
+                spm.ConfirmationReceived -= ev;
         }
 
         internal override object GetProperty(string id, string property)
@@ -61,35 +58,94 @@ namespace Process4.Remoting
             bool received = false;
             GetPropertyMessage gpm = null;
 
-            //while (!received)
+            DateTime start = DateTime.Now;
+
+            // Create the message.
+            gpm = new GetPropertyMessage(this.m_LocalDht, this.m_Target, id, property);
+
+            // Register the event handler.
+            EventHandler ev = null;
+            ev = (sender, e) =>
             {
-                DateTime start = DateTime.Now;
+                // Mark as received so the thread will continue.
+                received = true;
+                gpm.ResultReceived -= ev;
+            };
+            gpm.ResultReceived += ev;
 
-                // Create the message.
-                gpm = new GetPropertyMessage(this.m_LocalDht, this.m_Target, id, property);
+            // Send the message.
+            gpm.Send();
 
-                // Register the event handler.
-                EventHandler ev = null;
-                ev = (sender, e) =>
-                {
-                    // Mark as received so the thread will continue.
-                    received = true;
-                    gpm.ResultReceived -= ev;
-                };
-                gpm.ResultReceived += ev;
+            // Wait until we have received it.
+            while (!received) Thread.Sleep(0);
 
-                // Send the message.
-                gpm.Send();
-
-                // Wait until we have received it.
-                while (!received/* && DateTime.Now.Subtract(start).Seconds < 10*/) Thread.Sleep(0);
-
-                if (!received)
-                    gpm.ResultReceived -= ev;
-            }
+            if (!received)
+                gpm.ResultReceived -= ev;
 
             // Return the result.
             return gpm.Result;
+        }
+
+        internal override void AddEvent(EventTransport transport)
+        {
+            bool received = false;
+
+            DateTime start = DateTime.Now;
+
+            // Create the message.
+            AddEventMessage aem = new AddEventMessage(this.m_LocalDht, this.m_Target, transport);
+
+            // Register the event handler.
+            EventHandler<MessageEventArgs> ev = null;
+            ev = (sender, e) =>
+            {
+                // Mark as received so the thread will continue.
+                received = true;
+                aem.ConfirmationReceived -= ev;
+            };
+            aem.ConfirmationReceived += ev;
+
+            // Send the message.
+            aem.Send();
+
+            // Wait until we have received it.
+            while (!received) Thread.Sleep(0);
+
+            // We have nothing to return (but it was still important to wait
+            // until confirmation).
+            if (!received)
+                aem.ConfirmationReceived -= ev;
+        }
+
+        internal override void RemoveEvent(EventTransport transport)
+        {
+            bool received = false;
+
+            DateTime start = DateTime.Now;
+
+            // Create the message.
+            RemoveEventMessage aem = new RemoveEventMessage(this.m_LocalDht, this.m_Target, transport);
+
+            // Register the event handler.
+            EventHandler<MessageEventArgs> ev = null;
+            ev = (sender, e) =>
+            {
+                // Mark as received so the thread will continue.
+                received = true;
+                aem.ConfirmationReceived -= ev;
+            };
+            aem.ConfirmationReceived += ev;
+
+            // Send the message.
+            aem.Send();
+
+            // Wait until we have received it.
+            while (!received) Thread.Sleep(0);
+
+            // We have nothing to return (but it was still important to wait
+            // until confirmation).
+            if (!received)
+                aem.ConfirmationReceived -= ev;
         }
 
         internal override object Invoke(string id, string method, object[] args)
@@ -97,35 +153,64 @@ namespace Process4.Remoting
             bool received = false;
             InvokeMessage fm = null;
 
-            //while (!received)
+            DateTime start = DateTime.Now;
+
+            // Create the message.
+            fm = new InvokeMessage(this.m_LocalDht, this.m_Target, id, method, args, false);
+
+            // Register the event handler.
+            EventHandler ev = null;
+            ev = (sender, e) =>
             {
-                DateTime start = DateTime.Now;
+                // Mark as received so the thread will continue.
+                received = true;
+                fm.ResultReceived -= ev;
+            };
+            fm.ResultReceived += ev;
 
-                // Create the message.
-                fm = new InvokeMessage(this.m_LocalDht, this.m_Target, id, method, args, false);
+            // Send the message.
+            fm.Send();
 
-                // Register the event handler.
-                EventHandler ev = null;
-                ev = (sender, e) =>
-                {
-                    // Mark as received so the thread will continue.
-                    received = true;
-                    fm.ResultReceived -= ev;
-                };
-                fm.ResultReceived += ev;
+            // Wait until we have received it.
+            while (!received) Thread.Sleep(0);
 
-                // Send the message.
-                fm.Send();
-
-                // Wait until we have received it.
-                while (!received && DateTime.Now.Subtract(start).Seconds < 10) Thread.Sleep(0);
-
-                if (!received)
-                    fm.ResultReceived -= ev;
-            }
+            if (!received)
+                fm.ResultReceived -= ev;
 
             // Return the result.
             return fm.Result;
+        }
+
+        internal override void InvokeEvent(EventTransport transport, object sender, EventArgs e)
+        {
+            bool received = false;
+            InvokeEventMessage fm = null;
+
+            DateTime start = DateTime.Now;
+
+            // Create the message.
+            fm = new InvokeEventMessage(this.m_LocalDht, this.m_Target, transport, sender, e);
+
+            // Register the event handler.
+            EventHandler<MessageEventArgs> ev = null;
+            ev = (s, ee) =>
+            {
+                // Mark as received so the thread will continue.
+                received = true;
+                fm.ConfirmationReceived -= ev;
+            };
+            fm.ConfirmationReceived += ev;
+
+            // Send the message.
+            fm.Send();
+
+            // Wait until we have received it.
+            while (!received) Thread.Sleep(0);
+
+            // We have nothing to return (but it was still important to wait
+            // until confirmation).
+            if (!received)
+                fm.ConfirmationReceived -= ev;
         }
 
         internal override DTask<object> InvokeAsync(string id, string method, object[] args, Delegate callback)

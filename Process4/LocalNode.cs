@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using Data4;
 using Process4.Providers;
 using Process4.Networks;
+using Process4.Remoting;
 
 namespace Process4
 {
@@ -176,6 +177,21 @@ namespace Process4
         internal override object GetProperty(string id, string property)
         {
             return this.Storage.GetProperty(id, property);
+        }
+
+        internal override void AddEvent(EventTransport transport)
+        {
+            this.Processor.AddEvent(transport);
+        }
+
+        internal override void RemoveEvent(EventTransport transport)
+        {
+            this.Processor.RemoveEvent(transport);
+        }
+
+        internal override void InvokeEvent(EventTransport transport, object sender, EventArgs e)
+        {
+            this.Processor.InvokeEvent(transport, sender, e);
         }
 
         internal override object Invoke(string id, string method, object[] args)

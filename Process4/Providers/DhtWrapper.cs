@@ -53,7 +53,10 @@ namespace Process4.Providers
         {
             if (e.Message is InvokeMessage ||
                 e.Message is SetPropertyMessage ||
-                e.Message is GetPropertyMessage)
+                e.Message is GetPropertyMessage ||
+                e.Message is AddEventMessage ||
+                e.Message is RemoveEventMessage ||
+                e.Message is InvokeEventMessage)
             {
                 // Tell the DHT to not automatically send a confirmation message (we
                 // will do this ourselves as we need to attach data to it).
@@ -84,6 +87,33 @@ namespace Process4.Providers
                     object r = this.m_Node.GetProperty(i.ObjectID, i.ObjectProperty);
                     GetPropertyConfirmationMessage gpcm = new GetPropertyConfirmationMessage(this.p_Dht, i, r);
                     gpcm.Send();
+                }
+                else if (e.Message is AddEventMessage)
+                {
+                    // Tell the node to add the event.
+                    AddEventMessage i = (e.Message as AddEventMessage);
+                    this.m_Node.AddEvent(i.EventTransport);
+
+                    // We get the DHT to send a generic confirmation message for this.
+                    e.SendConfirmation = true;
+                }
+                else if (e.Message is RemoveEventMessage)
+                {
+                    // Tell the node to remove the event.
+                    RemoveEventMessage i = (e.Message as RemoveEventMessage);
+                    this.m_Node.RemoveEvent(i.EventTransport);
+
+                    // We get the DHT to send a generic confirmation message for this.
+                    e.SendConfirmation = true;
+                }
+                else if (e.Message is InvokeEventMessage)
+                {
+                    // Tell the node to invoke the event.
+                    InvokeEventMessage i = (e.Message as InvokeEventMessage);
+                    this.m_Node.InvokeEvent(i.EventTransport, i.EventSender, i.EventArgs);
+
+                    // We get the DHT to send a generic confirmation message for this.
+                    e.SendConfirmation = true;
                 }
             }
         }
