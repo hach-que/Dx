@@ -74,7 +74,7 @@ namespace Data4
         /// Converts the entry to the specified .NET type.
         /// </summary>
         /// <typeparam name="T">The type to convert this entry to.</typeparam>
-        public T As<T>()
+        private T As<T>()
         {
             StreamingContext old = this.m_Dht.Formatter.Context;
             this.m_Dht.Formatter.Context = new StreamingContext(this.m_Dht.Formatter.Context.State, new SerializationData { Dht = this.m_Dht, Entry = this });

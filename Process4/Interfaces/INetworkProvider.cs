@@ -26,6 +26,12 @@ namespace Process4.Interfaces
         IPAddress IPAddress { get; }
 
         /// <summary>
+        /// Whether this node was the first node to join the network.  This should return
+        /// the same value regardless of new nodes joining the network.
+        /// </summary>
+        bool IsFirst { get; }
+
+        /// <summary>
         /// Joins the network with the specified ID.
         /// </summary>
         /// <param name="id">The network ID.</param>

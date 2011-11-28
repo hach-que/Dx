@@ -14,8 +14,6 @@ namespace Process4.Collections
         private string m_Name = null;
         private T m_Data = default(T);
 
-        public event ItemEventHandler<T> ItemUpdated;
-
         /// <summary>
         /// Constructs a Distributed&lt;&gt; generic with the specified name.  If the name is the same
         /// as a Distributed&lt;&gt; already in the network, it will point to the existing
@@ -89,24 +87,5 @@ namespace Process4.Collections
         {
             return (T)this;
         }
-
-        #region Event Handlers and Event Arguments
-
-        public delegate void ItemEventHandler<TT>(object sender, ItemEventArgs<TT> e);
-
-        public class ItemEventArgs<TT> : EventArgs
-        {
-            /// <summary>
-            /// The item that was added or removed from the DistributedList.
-            /// </summary>
-            public TT Item { get; private set; }
-
-            private ItemEventArgs(TT item)
-            {
-                this.Item = item;
-            }
-        }
-
-        #endregion
     }
 }

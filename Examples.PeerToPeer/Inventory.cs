@@ -39,7 +39,6 @@ namespace Examples.PeerToPeer
         public Inventory()
         {
             this.m_Items = new DList<Item>();
-            Console.WriteLine(this.m_Items.NetworkName);
         }
 
         /// <summary>

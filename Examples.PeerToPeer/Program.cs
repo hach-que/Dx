@@ -8,7 +8,7 @@ using Process4.Remoting;
 
 namespace Examples.PeerToPeer
 {
-    [Distributed(Mode.PeerToPeer)]
+    [Distributed(Architecture.PeerToPeer)]
     class Program
     {
         public static void Main(string[] args)

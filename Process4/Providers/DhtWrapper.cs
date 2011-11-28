@@ -9,6 +9,7 @@ using Process4.Remoting;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
+using Process4.Attributes;
 
 namespace Process4.Providers
 {
@@ -16,6 +17,7 @@ namespace Process4.Providers
     {
         private Dht p_Dht = null;
         private LocalNode m_Node = null;
+        private List<Entry> p_CachedEntries = new List<Entry>();
 
         internal DhtWrapper(LocalNode node)
         {
@@ -73,12 +75,51 @@ namespace Process4.Providers
                 }
                 else if (e.Message is SetPropertyMessage)
                 {
-                    // Tell the node to set the property.
                     SetPropertyMessage i = (e.Message as SetPropertyMessage);
-                    this.m_Node.SetProperty(i.ObjectID, i.ObjectProperty, i.NewValue);
 
-                    // We get the DHT to send a generic confirmation message for this.
-                    e.SendConfirmation = true;
+                    // Check to see what network architecture we are using.  We need to see
+                    // if we are a client in the server-client architecture receiving this
+                    // message, and if so, handle it differently.
+                    if (this.m_Node.Architecture == Architecture.ServerClient &&
+                        this.m_Node.Caching == Caching.PushOnChange &&
+                        !this.m_Node.IsServer)
+                    {
+                        // Get our cached copy of the object.
+                        IEnumerable<Entry> results = this.p_CachedEntries.Where(value => value.Key == ID.NewHash(i.ObjectID));
+                        if (results.Count() == 0)
+                        {
+                            // We don't yet have a cached copy of this object.  Request a complete
+                            // copy of the data that the server has.
+                            Entry entry = this.Dht.Get(ID.NewHash(i.ObjectID)).DefaultIfEmpty(null).First();
+                            if (entry == null) return;
+                            this.p_CachedEntries.Add(entry);
+
+                            // We don't need to call the setter since the cached value we just got
+                            // will contain the new value anyway.
+                        }
+                        else
+                        {
+                            // Call the setter on the cached object.
+                            ITransparent obj = this.FetchCached(i.ObjectID) as ITransparent;
+
+                            // Invoke the setter.
+                            MethodInfo mi = obj.GetType().GetMethod("set_" + i.ObjectProperty + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                            if (mi == null)
+                                throw new MissingMethodException(obj.GetType().FullName, "set_" + i.ObjectProperty + "__Distributed0");
+                            mi.Invoke(obj, new object[] { i.NewValue });
+                        }
+
+                        // The server doesn't care whether we got the message.
+                        e.SendConfirmation = false;
+                    }
+                    else
+                    {
+                        // Tell the node to set the property.
+                        this.m_Node.SetProperty(i.ObjectID, i.ObjectProperty, i.NewValue);
+
+                        // We get the DHT to send a generic confirmation message for this.
+                        e.SendConfirmation = true;
+                    }
                 }
                 else if (e.Message is GetPropertyMessage)
                 {
@@ -164,61 +205,160 @@ namespace Process4.Providers
 
         public void SetProperty(string id, string property, object value)
         {
-            // Fetch the entry that would be returned by Storage.Fetch (since we
-            // need the contact information).
-            Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
-            if (o == null) throw new ObjectVanishedException(id);
-
-            // Check to see if we own the property.
-            if (o.Owner.Identifier == this.m_Node.ID)
+            if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
-                // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
-                ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
-                if (obj == null) throw new ObjectVanishedException(id);
+                // Fetch the entry that would be returned by Storage.Fetch (since we
+                // need the contact information).
+                Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
+                if (o == null) throw new ObjectVanishedException(id);
 
+                // Check to see if we own the property.
+                if (o.Owner.Identifier == this.m_Node.ID)
+                {
+                    // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
+                    ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
+                    if (obj == null) throw new ObjectVanishedException(id);
+
+                    MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (mi == null)
+                        throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
+                    mi.Invoke(obj, new object[] { value });
+
+                    // Now also synchronise the object with the DHT.
+                    if (obj.GetType().GetMethod("set_" + property, BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                        LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                }
+                else
+                {
+                    // Invoke the property setter remotely.
+                    RemoteNode rnode = new RemoteNode(o.Owner);
+                    rnode.SetProperty(id, property, value);
+                }
+            }
+            else if (this.m_Node.Architecture == Architecture.ServerClient)
+            {
+                // Only the server is permitted to set properties.
+                if (!this.m_Node.IsServer)
+                    throw new MemberAccessException("Only servers may set the '" + property + "' property.");
+
+                // Get the object directly from the owned entries (this is much
+                // faster than asking the entire network).
+                ITransparent obj = this.FetchLocal(id) as ITransparent;
+                if (obj == null) throw new ObjectVanishedException(id);
+                
+                // Invoke the setter.
                 MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
                 mi.Invoke(obj, new object[] { value });
 
-                // Now also synchronise the object with the DHT.
-                LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                // Now also synchronise the object with the DHT if it's an auto-generated property.
+                if (obj.GetType().GetMethod("set_" + property, BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                    LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+
+                // Check to see if we need to alert all of the clients of the new
+                // value.
+                if (this.m_Node.Caching == Caching.PushOnChange)
+                {
+                    // Send a SetProperty message to every client in the network.
+                    foreach (Contact c in this.m_Node.Contacts)
+                    {
+                        if (c.Identifier != this.m_Node.ID)
+                        {
+                            SetPropertyMessage spm = new SetPropertyMessage(this.Dht, c, id, property, value);
+                            spm.Send();
+                        }
+                    }
+                }
             }
             else
-            {
-                // Invoke the property setter remotely.
-                RemoteNode rnode = new RemoteNode(o.Owner);
-                rnode.SetProperty(id, property, value);
-            }
+                throw new NotSupportedException("Unsupported network architecture detected.");
         }
 
         public object GetProperty(string id, string property)
         {
-            // Fetch the entry that would be returned by Storage.Fetch (since we
-            // need the contact information).
-            Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
-            if (o == null) throw new ObjectVanishedException(id);
-
-            // Check to see if we own the property.
-            if (o.Owner.Identifier == this.m_Node.ID)
+            if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
-                // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
-                ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
-                if (obj == null) throw new ObjectVanishedException(id);
+                // Fetch the entry that would be returned by Storage.Fetch (since we
+                // need the contact information).
+                Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
+                if (o == null) throw new ObjectVanishedException(id);
 
-                MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (mi == null)
-                    throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
-                object r = mi.Invoke(obj, new object[] { });
-                return r;
+                // Check to see if we own the property.
+                if (o.Owner.Identifier == this.m_Node.ID)
+                {
+                    // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
+                    ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
+                    if (obj == null) throw new ObjectVanishedException(id);
+
+                    MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (mi == null)
+                        throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
+                    object r = mi.Invoke(obj, new object[] { });
+                    return r;
+                }
+                else
+                {
+                    // Invoke the property getter remotely.
+                    RemoteNode rnode = new RemoteNode(o.Owner);
+                    object r = rnode.GetProperty(id, property);
+                    return r;
+                }
+            }
+            else if (this.m_Node.Architecture == Architecture.ServerClient)
+            {
+                // The server will always call the getter directly.
+                if (this.m_Node.IsServer)
+                {
+                    // Get the object directly from the owned entries (this is much
+                    // faster than asking the entire network).
+                    ITransparent obj = this.FetchLocal(id) as ITransparent;
+                    if (obj == null) throw new ObjectVanishedException(id);
+
+                    // Invoke the getter.
+                    MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (mi == null)
+                        throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
+                    object r = mi.Invoke(obj, new object[] { });
+                    return r;
+                }
+                else
+                {
+                    // If we are using PushOnChange then the client can also use the
+                    // getter directly (since the field will have the correct cached
+                    // value in it).
+                    if (this.m_Node.Caching == Caching.PushOnChange)
+                    {
+                        // Get the object directly from the owned entries (this is much
+                        // faster than asking the entire network).
+                        ITransparent obj = this.FetchLocal(id) as ITransparent;
+                        if (obj == null) throw new ObjectVanishedException(id);
+
+                        // Invoke the getter.
+                        MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (mi == null)
+                            throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
+                        object r = mi.Invoke(obj, new object[] { });
+                        return r;
+                    }
+                    else if (this.m_Node.Caching == Caching.PullOnDemand)
+                    {
+                        // Fetch the entry that would be returned by Storage.Fetch (since we
+                        // need the contact information).
+                        Contact owner = this.FetchOwner(id);
+                        if (owner == null) throw new ObjectVanishedException(id);
+
+                        // Invoke the property getter remotely.
+                        RemoteNode rnode = new RemoteNode(owner);
+                        object r = rnode.GetProperty(id, property);
+                        return r;
+                    }
+                    else
+                        throw new NotSupportedException("Unsupported caching mode detected.");
+                }
             }
             else
-            {
-                // Invoke the property setter remotely.
-                RemoteNode rnode = new RemoteNode(o.Owner);
-                object r = rnode.GetProperty(id, property);
-                return r;
-            }
+                throw new NotSupportedException("Unsupported network architecture detected.");
         }
 
         public void Store(string id, object o)
@@ -242,6 +382,40 @@ namespace Process4.Providers
             using (MemoryStream stream = new MemoryStream())
             {
                 Entry e = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
+                if (e == null) return null;
+                byte[] b = Convert.FromBase64String(e.Value);
+                stream.Write(b, 0, b.Length);
+                stream.Position = 0;
+                StreamingContext old = this.Dht.Formatter.Context;
+                this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Storage = this, Entry = e });
+                object r = this.Dht.Formatter.Deserialize(stream);
+                this.Dht.Formatter.Context = old;
+                return r;
+            }
+        }
+
+        public object FetchLocal(string id)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                Entry e = this.Dht.OwnedEntries.Where(value => value.Key == ID.NewHash(id)).DefaultIfEmpty(null).First();
+                if (e == null) return null;
+                byte[] b = Convert.FromBase64String(e.Value);
+                stream.Write(b, 0, b.Length);
+                stream.Position = 0;
+                StreamingContext old = this.Dht.Formatter.Context;
+                this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Storage = this, Entry = e });
+                object r = this.Dht.Formatter.Deserialize(stream);
+                this.Dht.Formatter.Context = old;
+                return r;
+            }
+        }
+
+        public object FetchCached(string id)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                Entry e = this.p_CachedEntries.Where(value => value.Key == ID.NewHash(id)).DefaultIfEmpty(null).First();
                 if (e == null) return null;
                 byte[] b = Convert.FromBase64String(e.Value);
                 stream.Write(b, 0, b.Length);

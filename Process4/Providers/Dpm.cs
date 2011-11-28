@@ -11,6 +11,7 @@ using System.Threading;
 using System.Runtime.Serialization;
 using Process4.Collections;
 using Process4.Remoting;
+using Process4.Attributes;
 
 namespace Process4.Providers
 {
@@ -96,7 +97,8 @@ namespace Process4.Providers
                 mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
-                LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                if (obj.GetType().GetMethod("add_" + transport.SourceEventName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                    LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
             }
             else
             {
@@ -133,7 +135,8 @@ namespace Process4.Providers
                 mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
-                LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                if (obj.GetType().GetMethod("remove_" + transport.SourceEventName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                    LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
             }
             else
             {
@@ -159,35 +162,70 @@ namespace Process4.Providers
 
         public object Invoke(string id, string method, object[] args)
         {
-            // TODO: Check to see whether this module should be invoked on this machine
-            //       or whether we should pass it off to another machine.
             ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
             if (obj == null) throw new ObjectVanishedException(id);
 
-            MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
-            if (mi == null)
-                throw new MissingMethodException(obj.GetType().FullName, method);
-            return mi.Invoke(obj, args);
+            if (this.m_Node.Architecture == Architecture.PeerToPeer)
+            {
+                // In peer-to-peer modes, methods are always invoked locally.
+                MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+                if (mi == null)
+                    throw new MissingMethodException(obj.GetType().FullName, method);
+                return mi.Invoke(obj, args);
+            }
+            else if (this.m_Node.Architecture == Architecture.ServerClient)
+            {
+                if (this.m_Node.IsServer)
+                {
+                    // The server is always permitted to call methods.
+                    MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (mi == null)
+                        throw new MissingMethodException(obj.GetType().FullName, method);
+                    return mi.Invoke(obj, args);
+                }
+                else
+                {
+                    // We must see if the client is permitted to call the specified method.
+                    MethodInfo mi = obj.GetType().GetMethod(method.Substring(0, method.IndexOf("__Distributed0")), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (mi == null)
+                        throw new MissingMethodException(obj.GetType().FullName, method);
+                    if (mi.GetCustomAttributes(typeof(ClientCallableAttribute), false).Count() == 0)
+                        throw new MemberAccessException("The method '" + method + "' is not accessible to client machines.");
+
+                    // If we get to here, then we're permitted to call the method, but we still need
+                    // to remote it to the server.
+                    Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
+                    if (o == null) throw new ObjectVanishedException(id);
+                    RemoteNode rnode = new RemoteNode(o.Owner);
+                    object r = rnode.Invoke(id, method, args);
+                    return r;
+                }
+            }
+            else
+                throw new NotSupportedException("Unsupported network architecture detected.");
         }
 
         public DTask<object> InvokeAsync(string id, string method, object[] args, Delegate callback)
         {
-            // TODO: Check to see whether this module should be invoked on this machine
-            //       or whether we should pass it off to another machine.
-            DTask<object> task = new DTask<object>();
-            ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
-            if (obj == null) throw new ObjectVanishedException(id);
-
-            MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
-            if (mi == null)
-                throw new MissingMethodException(obj.GetType().FullName, method);
-            new Thread(() =>
+            if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
-                task.Value = mi.Invoke(obj, args);
-                task.Completed = true;
-                callback.DynamicInvoke(null);
-            }).Start();
-            return task;
+                DTask<object> task = new DTask<object>();
+                ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
+                if (obj == null) throw new ObjectVanishedException(id);
+
+                MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+                if (mi == null)
+                    throw new MissingMethodException(obj.GetType().FullName, method);
+                new Thread(() =>
+                {
+                    task.Value = mi.Invoke(obj, args);
+                    task.Completed = true;
+                    callback.DynamicInvoke(null);
+                }).Start();
+                return task;
+            }
+            else
+                throw new NotSupportedException("Asynchronous invocation of methods is not supported in network architectures other than peer-to-peer.");
         }
 
         #endregion
@@ -345,14 +383,6 @@ namespace Process4.Providers
                     {
                         object v = FormatterServices.GetUninitializedObject(fi.FieldType);
                         (v as ITransparent).NetworkName = info.GetString(fi.Name);
-
-                        /*object v = typeof(Distributed<>)
-                                        .MakeGenericType(new Type[] { fi.FieldType })
-                                        .GetConstructor(new Type[] { typeof(string) })
-                                        .Invoke(new object[] { info.GetString(fi.Name) });
-                        object o = v.GetType()
-                                        .GetMethod("ManualDistributedErasure", BindingFlags.NonPublic | BindingFlags.Instance)
-                                        .Invoke(v, null);*/
                         fi.SetValue(obj, v);
                     }
                     else

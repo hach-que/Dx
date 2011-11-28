@@ -35,6 +35,11 @@ namespace Process4.Networks
         public int MessagingPort { get; private set; }
 
         /// <summary>
+        /// Whether this is the first node to join the network.
+        /// </summary>
+        public bool IsFirst { get; private set; }
+
+        /// <summary>
         /// The local, external IP address of the machine.
         /// </summary>
         public IPAddress IPAddress
@@ -115,6 +120,7 @@ namespace Process4.Networks
             // to function correctly whileever this node doesn't have peers.  So we just sleep here for half
             // a second to give nodes time to respond..
             Thread.Sleep(500);
+            this.IsFirst = this.Node.Contacts.Count() == 0;
         }
 
         /// <summary>

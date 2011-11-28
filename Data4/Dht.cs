@@ -22,6 +22,7 @@ using System.Net.Sockets;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
+using System.Collections.ObjectModel;
 
 namespace Data4
 {
@@ -282,6 +283,11 @@ namespace Data4
         public List<Contact> Contacts
         {
             get { return this.p_Contacts; }
+        }
+
+        public ReadOnlyCollection<Entry> OwnedEntries
+        {
+            get { return this.p_OwnedEntries.AsReadOnly(); }
         }
 
         public enum LogType

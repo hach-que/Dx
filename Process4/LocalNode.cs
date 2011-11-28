@@ -9,6 +9,7 @@ using Data4;
 using Process4.Providers;
 using Process4.Networks;
 using Process4.Remoting;
+using Process4.Attributes;
 
 namespace Process4
 {
@@ -43,6 +44,16 @@ namespace Process4
         public IProcessorProvider Processor { get; private set; }
 
         /// <summary>
+        /// The network architecture.
+        /// </summary>
+        public Architecture Architecture { get; private set; }
+
+        /// <summary>
+        /// The caching mode currently in use.
+        /// </summary>
+        public Caching Caching { get; private set; }
+
+        /// <summary>
         /// Creates a new reference to the local processing node, targetting the entry
         /// assembly.
         /// </summary>
@@ -73,17 +84,48 @@ namespace Process4
                 g = new Guid((o[0] as GuidAttribute).Value);
             this.m_DefaultNetworkID = new ID(g, g, g, g);
 
+            // Get the architecture and caching modes of the program.
+            o = this.m_Target.EntryPoint.DeclaringType.GetCustomAttributes(typeof(DistributedAttribute), false);
+            if (o.Length == 1)
+            {
+                this.Architecture = (o[0] as DistributedAttribute).Architecture;
+                this.Caching = (o[0] as DistributedAttribute).Caching;
+            }
+            else
+            {
+                LocalNode.Singleton = null;
+                throw new InvalidOperationException("The entry point class of the program must contain a Distributed attribute in order to initialize an instance of LocalNode.");
+            }
+
             // Set defaults for properties.
             this.Network = new AutomaticUdpNetwork(this);
             this.Storage = new DhtWrapper(this);
             this.Contacts = (this.Storage as DhtWrapper); // Cast because the DHT provides contacts as well.
             this.Processor = new Dpm(this);
-
-            // TODO: Use reflection to get the mode of the
-            //       program.
         }
 
+        #region Functionality for Server-Client Mode
+
+        /// <summary>
+        /// Returns whether this DPM is the server node in the network.  Only applicable
+        /// to applications running in server-client mode.
+        /// </summary>
+        public bool IsServer
+        {
+            get
+            {
+                if (this.Architecture == Architecture.ServerClient)
+                    return this.Network.IsFirst;
+                else
+                    throw new InvalidOperationException("The IsServer property is only supported on server-client architectures.");
+            }
+        }
+
+        #endregion
+
         #region Functionality for Master-Slave Mode
+
+#if false
 
         /// <summary>
         /// Returns whether this DPM is a slave node in the network.  Only applicable
@@ -93,7 +135,10 @@ namespace Process4
         {
             get
             {
-                throw new NotImplementedException();
+                if (this.Architecture == Architecture.MasterSlave)
+                    return !this.Network.IsFirst;
+                else
+                    throw new InvalidOperationException("The IsSlave property is only supported on master-slave architectures.");
             }
         }
 
@@ -103,13 +148,24 @@ namespace Process4
         /// </summary>
         public void Cycle()
         {
+            if (this.Architecture == Architecture.MasterSlave)
+                throw new InvalidOperationException("The Cycle method is only supported on master-slave architectures.");
             if (!this.IsSlave)
                 return; // Prevent slave cycling if the node isn't actually a slave.
         }
 
+#endif
+
         #endregion
 
         #region Functionality for Peer-to-Peer Mode
+
+        // There is no specified peer-to-peer functionality
+        // required.
+
+        #endregion
+
+        #region General Network Management
 
         /// <summary>
         /// Joins the network based on the assembly GUID.

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Process4.Task", "Process4.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples.PeerToPeer", "Examples.PeerToPeer\Examples.PeerToPeer.csproj", "{B4FFEF16-476B-4C68-A649-F7F2EDB00333}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples.ServerClient", "Examples.ServerClient\Examples.ServerClient.csproj", "{EC10311F-4AD5-427C-91D0-100516A01A94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -31,6 +33,10 @@ Global
 		{B4FFEF16-476B-4C68-A649-F7F2EDB00333}.Debug|x86.Build.0 = Debug|x86
 		{B4FFEF16-476B-4C68-A649-F7F2EDB00333}.Release|x86.ActiveCfg = Release|x86
 		{B4FFEF16-476B-4C68-A649-F7F2EDB00333}.Release|x86.Build.0 = Release|x86
+		{EC10311F-4AD5-427C-91D0-100516A01A94}.Debug|x86.ActiveCfg = Debug|x86
+		{EC10311F-4AD5-427C-91D0-100516A01A94}.Debug|x86.Build.0 = Debug|x86
+		{EC10311F-4AD5-427C-91D0-100516A01A94}.Release|x86.ActiveCfg = Release|x86
+		{EC10311F-4AD5-427C-91D0-100516A01A94}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
