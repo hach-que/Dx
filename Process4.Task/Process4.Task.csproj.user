@@ -1,9 +1,9 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <StartAction>Project</StartAction>
-    <StartArguments>"C:\Server Storage\Projects\University\Y1_S2\OOP\Experience.Project\Application\bin\Debug\Application.exe"</StartArguments>
-  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <StartArguments>"C:\Server Storage\Projects\University\Y1_S2\OOP\Experience.Project\Application.PeerToPeer\bin\x86\Debug\Application.PeerToPeer.exe"</StartArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Hudson|x86' ">
+    <StartArguments>
+    </StartArguments>
   </PropertyGroup>
 </Project>
