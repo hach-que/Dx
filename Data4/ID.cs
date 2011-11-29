@@ -204,6 +204,22 @@ namespace Data4
         {
             return this.m_Bytes;
         }
+
+        public override bool Equals(object other)
+        {
+            if (other is ID)
+                return (this == (other as ID));
+            else
+                return false;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return this.GetBytes().Sum(value => Convert.ToInt32(value));
+            }
+        }
     }
 
     public static class EnumerableExtensions

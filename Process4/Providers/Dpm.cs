@@ -85,7 +85,7 @@ namespace Process4.Providers
                 if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
 
                 // Get a reference to the event adder.
-                MethodInfo mi = obj.GetType().GetMethod("add_" + transport.SourceEventName + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                MethodInfo mi = obj.GetType().GetMethod("add_" + transport.SourceEventName + "__Distributed0", BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, transport.SourceEventName);
 
@@ -97,7 +97,7 @@ namespace Process4.Providers
                 mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
-                if (obj.GetType().GetMethod("add_" + transport.SourceEventName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                if (obj.GetType().GetMethod("add_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
                     LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
             }
             else
@@ -123,7 +123,7 @@ namespace Process4.Providers
                 if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
 
                 // Get a reference to the event adder.
-                MethodInfo mi = obj.GetType().GetMethod("remove_" + transport.SourceEventName + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                MethodInfo mi = obj.GetType().GetMethod("remove_" + transport.SourceEventName + "__Distributed0", BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, transport.SourceEventName);
 
@@ -135,7 +135,7 @@ namespace Process4.Providers
                 mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
-                if (obj.GetType().GetMethod("remove_" + transport.SourceEventName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                if (obj.GetType().GetMethod("remove_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
                     LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
             }
             else
@@ -154,7 +154,7 @@ namespace Process4.Providers
             if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
 
             // Invoke the target method.
-            MethodInfo mi = obj.GetType().GetMethod(transport.ListenerMethod, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            MethodInfo mi = obj.GetType().GetMethod(transport.ListenerMethod, BindingFlagsCombined.All);
             if (mi == null)
                 throw new MissingMethodException(obj.GetType().FullName, transport.ListenerMethod);
             mi.Invoke(obj, new object[] { sender, e });
@@ -168,7 +168,7 @@ namespace Process4.Providers
             if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
                 // In peer-to-peer modes, methods are always invoked locally.
-                MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+                MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, method);
                 return mi.Invoke(obj, args);
@@ -178,7 +178,7 @@ namespace Process4.Providers
                 if (this.m_Node.IsServer)
                 {
                     // The server is always permitted to call methods.
-                    MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+                    MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, method);
                     return mi.Invoke(obj, args);
@@ -186,7 +186,7 @@ namespace Process4.Providers
                 else
                 {
                     // We must see if the client is permitted to call the specified method.
-                    MethodInfo mi = obj.GetType().GetMethod(method.Substring(0, method.IndexOf("__Distributed0")), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    MethodInfo mi = obj.GetType().GetMethod(method.Substring(0, method.IndexOf("__Distributed0")), BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, method);
                     if (mi.GetCustomAttributes(typeof(ClientCallableAttribute), false).Count() == 0)
@@ -213,7 +213,7 @@ namespace Process4.Providers
                 ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
                 if (obj == null) throw new ObjectVanishedException(id);
 
-                MethodInfo mi = obj.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+                MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, method);
                 new Thread(() =>
@@ -352,7 +352,7 @@ namespace Process4.Providers
         {
             // Loop through all of the private, internal fields in the object and
             // serialize all of their values.
-            foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+            foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlagsCombined.All))
             {
                 if (fi.FieldType.GetInterface("ITransparent") != null)
                 {
@@ -374,7 +374,7 @@ namespace Process4.Providers
         {
             // Loop through all of the private, internal fields in the object and
             // set their values based on the deserialized information.
-            foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+            foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlagsCombined.All))
             {
                 if (fi.FieldType.GetInterface("ITransparent") != null)
                 {

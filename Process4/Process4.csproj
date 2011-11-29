@@ -72,6 +72,7 @@
     <Compile Include="Interfaces\ITransparent.cs" />
     <Compile Include="LocalNode.cs" />
     <Compile Include="Remoting\AddEventMessage.cs" />
+    <Compile Include="Remoting\BindingFlagsCombined.cs" />
     <Compile Include="Remoting\RemoveEventMessage.cs" />
     <Compile Include="Remoting\InvokeEventMessage.cs" />
     <Compile Include="Remoting\EventTransport.cs" />

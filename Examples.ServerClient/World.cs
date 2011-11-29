@@ -33,6 +33,20 @@ namespace Examples.PeerToPeer
         /// </summary>
         public event EventHandler PopulationChanged;
 
+        public event EventHandler SomeMagicHandler
+        {
+            add
+            {
+                Console.WriteLine("Magic handler has been assigned.");
+                this.PopulationChanged += value;
+            }
+            remove
+            {
+                Console.WriteLine("Magic handler has been deassigned.");
+                this.PopulationChanged -= value;
+            }
+        }
+
         public World()
         {
             this.Population = 6000000;

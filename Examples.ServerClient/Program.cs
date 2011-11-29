@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace Examples.PeerToPeer
 {
-    [Distributed(Architecture.ServerClient)]
+    [Distributed(Architecture.ServerClient, Caching.PushOnChange)]
     class Program
     {
         public static void Main(string[] args)

@@ -10,6 +10,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Process4.Attributes;
+using System.Runtime.CompilerServices;
 
 namespace Process4.Providers
 {
@@ -17,7 +18,7 @@ namespace Process4.Providers
     {
         private Dht p_Dht = null;
         private LocalNode m_Node = null;
-        private List<Entry> p_CachedEntries = new List<Entry>();
+        private Dictionary<ID, object> p_CachedEntries = new Dictionary<ID, object>();
 
         internal DhtWrapper(LocalNode node)
         {
@@ -85,14 +86,13 @@ namespace Process4.Providers
                         !this.m_Node.IsServer)
                     {
                         // Get our cached copy of the object.
-                        IEnumerable<Entry> results = this.p_CachedEntries.Where(value => value.Key == ID.NewHash(i.ObjectID));
-                        if (results.Count() == 0)
+                        if (this.p_CachedEntries.Where(value => value.Key == ID.NewHash(i.ObjectID)).Count() == 0)
                         {
                             // We don't yet have a cached copy of this object.  Request a complete
                             // copy of the data that the server has.
                             Entry entry = this.Dht.Get(ID.NewHash(i.ObjectID)).DefaultIfEmpty(null).First();
                             if (entry == null) return;
-                            this.p_CachedEntries.Add(entry);
+                            this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), entry.Value);
 
                             // We don't need to call the setter since the cached value we just got
                             // will contain the new value anyway.
@@ -103,7 +103,7 @@ namespace Process4.Providers
                             ITransparent obj = this.FetchCached(i.ObjectID) as ITransparent;
 
                             // Invoke the setter.
-                            MethodInfo mi = obj.GetType().GetMethod("set_" + i.ObjectProperty + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                            MethodInfo mi = obj.GetType().GetMethod("set_" + i.ObjectProperty + "__Distributed0", BindingFlagsCombined.All);
                             if (mi == null)
                                 throw new MissingMethodException(obj.GetType().FullName, "set_" + i.ObjectProperty + "__Distributed0");
                             mi.Invoke(obj, new object[] { i.NewValue });
@@ -219,13 +219,13 @@ namespace Process4.Providers
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
                     if (obj == null) throw new ObjectVanishedException(id);
 
-                    MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                    MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
                     mi.Invoke(obj, new object[] { value });
 
                     // Now also synchronise the object with the DHT.
-                    if (obj.GetType().GetMethod("set_" + property, BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                    if (obj.GetType().GetMethod("set_" + property, BindingFlagsCombined.All).GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() != 0)
                         LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
                 }
                 else
@@ -247,26 +247,30 @@ namespace Process4.Providers
                 if (obj == null) throw new ObjectVanishedException(id);
                 
                 // Invoke the setter.
-                MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
                 mi.Invoke(obj, new object[] { value });
 
-                // Now also synchronise the object with the DHT if it's an auto-generated property.
-                if (obj.GetType().GetMethod("set_" + property, BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                // If this is an auto-generated property we need to synchronise the DHT and
+                // then tell all of the clients the new value.
+                if (obj.GetType().GetMethod("set_" + property, BindingFlagsCombined.All).GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() != 0)
+                {
+                    // Synchronise the object with the DHT.
                     LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
 
-                // Check to see if we need to alert all of the clients of the new
-                // value.
-                if (this.m_Node.Caching == Caching.PushOnChange)
-                {
-                    // Send a SetProperty message to every client in the network.
-                    foreach (Contact c in this.m_Node.Contacts)
+                    // Check to see if we need to alert all of the clients of the new
+                    // value.
+                    if (this.m_Node.Caching == Caching.PushOnChange)
                     {
-                        if (c.Identifier != this.m_Node.ID)
+                        // Send a SetProperty message to every client in the network.
+                        foreach (Contact c in this.m_Node.Contacts)
                         {
-                            SetPropertyMessage spm = new SetPropertyMessage(this.Dht, c, id, property, value);
-                            spm.Send();
+                            if (c.Identifier != this.m_Node.ID)
+                            {
+                                SetPropertyMessage spm = new SetPropertyMessage(this.Dht, c, id, property, value);
+                                spm.Send();
+                            }
                         }
                     }
                 }
@@ -291,7 +295,7 @@ namespace Process4.Providers
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
                     if (obj == null) throw new ObjectVanishedException(id);
 
-                    MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                    MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
                     object r = mi.Invoke(obj, new object[] { });
@@ -316,7 +320,7 @@ namespace Process4.Providers
                     if (obj == null) throw new ObjectVanishedException(id);
 
                     // Invoke the getter.
-                    MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                    MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
                     object r = mi.Invoke(obj, new object[] { });
@@ -331,11 +335,16 @@ namespace Process4.Providers
                     {
                         // Get the object directly from the owned entries (this is much
                         // faster than asking the entire network).
-                        ITransparent obj = this.FetchLocal(id) as ITransparent;
-                        if (obj == null) throw new ObjectVanishedException(id);
+                        ITransparent obj = this.FetchCached(id) as ITransparent;
+                        if (obj == null)
+                        {
+                            obj = this.Fetch(id) as ITransparent;
+                            if (obj == null) throw new ObjectVanishedException(id);
+                            this.p_CachedEntries.Add(ID.NewHash(id), obj);
+                        } 
 
                         // Invoke the getter.
-                        MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlags.NonPublic | BindingFlags.Instance);
+                        MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                         if (mi == null)
                             throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
                         object r = mi.Invoke(obj, new object[] { });
@@ -413,19 +422,10 @@ namespace Process4.Providers
 
         public object FetchCached(string id)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                Entry e = this.p_CachedEntries.Where(value => value.Key == ID.NewHash(id)).DefaultIfEmpty(null).First();
-                if (e == null) return null;
-                byte[] b = Convert.FromBase64String(e.Value);
-                stream.Write(b, 0, b.Length);
-                stream.Position = 0;
-                StreamingContext old = this.Dht.Formatter.Context;
-                this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Storage = this, Entry = e });
-                object r = this.Dht.Formatter.Deserialize(stream);
-                this.Dht.Formatter.Context = old;
-                return r;
-            }
+            foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
+                if (kv.Key == ID.NewHash(id))
+                    return kv.Value;
+            return null;
         }
 
         public Contact FetchOwner(string id)
