@@ -24,7 +24,8 @@ namespace Data4
     {
         public List<Entry> p_Values = null;
 
-        public FetchConfirmationMessage(Dht dht, Message original, List<Entry> values) : base(dht, original, "")
+        public FetchConfirmationMessage(Dht dht, Message original, List<Entry> values)
+            : base(dht, original, "")
         {
             this.p_Values = values;
         }

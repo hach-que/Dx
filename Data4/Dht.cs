@@ -89,7 +89,7 @@ namespace Data4
         /// <summary>
         /// Adds a key-value entry to the DHT, storing the key-value pair on this node.
         /// </summary>
-        public void Put(ID key, string value)
+        public void Put(ID key, object value)
         {
             this.p_OwnedEntries.Add(new Entry(this, this.p_Self, key, value));
         }
@@ -168,7 +168,6 @@ namespace Data4
                     {
                         // Still nothing, request the data from the nodes again.
                         Contact[] cc = respondants.ToArray();
-                        int totalsent = 0;
                         foreach (Contact c in this.p_Contacts)
                         {
                             // No idea why .Contains isn't working here...
@@ -185,13 +184,8 @@ namespace Data4
                                 FetchMessage fm = new FetchMessage(this, c, key);
                                 fm.ResultReceived += ev;
                                 fm.Send();
-                                totalsent += 1;
                             }
                         }
-
-                        // Check to see if there's no more contacts to send to.
-                        if (totalsent == 0)
-                            break;
                     }
                 }
             }

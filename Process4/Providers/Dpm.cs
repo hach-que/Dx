@@ -74,11 +74,11 @@ namespace Process4.Providers
         {
             // Fetch the entry that would be returned by Storage.Fetch (since we
             // need the contact information).
-            Entry o = this.Dht.Get(ID.NewHash(transport.SourceObjectNetworkName)).DefaultIfEmpty(null).First();
-            if (o == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            Contact owner = this.m_Node.Storage.FetchOwner(transport.SourceObjectNetworkName);
+            if (owner == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
 
             // Check to see if we own the property.
-            if (o.Owner.Identifier == this.m_Node.ID)
+            if (owner.Identifier == this.m_Node.ID)
             {
                 // Get object that the event handler resides on.
                 ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
@@ -103,7 +103,7 @@ namespace Process4.Providers
             else
             {
                 // Invoke the event adder remotely.
-                RemoteNode rnode = new RemoteNode(o.Owner);
+                RemoteNode rnode = new RemoteNode(owner);
                 rnode.AddEvent(transport);
             }
         }
@@ -112,11 +112,11 @@ namespace Process4.Providers
         {
             // Fetch the entry that would be returned by Storage.Fetch (since we
             // need the contact information).
-            Entry o = this.Dht.Get(ID.NewHash(transport.SourceObjectNetworkName)).DefaultIfEmpty(null).First();
-            if (o == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            Contact owner = this.m_Node.Storage.FetchOwner(transport.SourceObjectNetworkName);
+            if (owner == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
 
             // Check to see if we own the property.
-            if (o.Owner.Identifier == this.m_Node.ID)
+            if (owner.Identifier == this.m_Node.ID)
             {
                 // Get object that the event handler resides on.
                 ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
@@ -141,7 +141,7 @@ namespace Process4.Providers
             else
             {
                 // Invoke the event adder remotely.
-                RemoteNode rnode = new RemoteNode(o.Owner);
+                RemoteNode rnode = new RemoteNode(owner);
                 rnode.RemoveEvent(transport);
             }
         }
@@ -194,9 +194,9 @@ namespace Process4.Providers
 
                     // If we get to here, then we're permitted to call the method, but we still need
                     // to remote it to the server.
-                    Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
-                    if (o == null) throw new ObjectVanishedException(id);
-                    RemoteNode rnode = new RemoteNode(o.Owner);
+                    Contact owner = this.m_Node.Storage.FetchOwner(id);
+                    if (owner == null) throw new ObjectVanishedException(id);
+                    RemoteNode rnode = new RemoteNode(owner);
                     object r = rnode.Invoke(id, method, args);
                     return r;
                 }

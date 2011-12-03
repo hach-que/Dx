@@ -7,7 +7,7 @@ using Process4.Attributes;
 using Process4.Remoting;
 using System.Threading;
 
-namespace Examples.PeerToPeer
+namespace Examples.ServerClient
 {
     [Distributed(Architecture.ServerClient, Caching.PushOnChange)]
     class Program

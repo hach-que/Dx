@@ -35,12 +35,15 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Threading, Version=1.0.2787.102, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>.\System.Threading.dll</HintPath>
     </Reference>
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Entry.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Dht.cs" />
     <Compile Include="Contact.cs" />
@@ -49,7 +52,6 @@
     <Compile Include="Messages\BroadcastMessage.cs" />
     <Compile Include="Messages\DirectMessage.cs" />
     <Compile Include="Messages\ConfirmationMessage.cs" />
-    <Compile Include="Entry.cs" />
     <Compile Include="ID.cs" />
     <Compile Include="Messages\FetchMessage.cs" />
     <Compile Include="Messages\FetchConfirmationMessage.cs" />

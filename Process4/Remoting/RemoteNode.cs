@@ -19,6 +19,8 @@ namespace Process4.Remoting
         /// <param name="target">The target contact.</param>
         internal RemoteNode(Contact target)
         {
+            if (target == null)
+                throw new ArgumentException("The remote node's target can not be null.", "target");
             this.m_Target = target;
         }
 

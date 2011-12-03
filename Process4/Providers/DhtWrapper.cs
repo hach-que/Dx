@@ -85,23 +85,27 @@ namespace Process4.Providers
                         this.m_Node.Caching == Caching.PushOnChange &&
                         !this.m_Node.IsServer)
                     {
+                        // Get a reference to the cached object.
+                        ITransparent obj = this.FetchCached(i.ObjectID) as ITransparent;
+
                         // Get our cached copy of the object.
-                        if (this.p_CachedEntries.Where(value => value.Key == ID.NewHash(i.ObjectID)).Count() == 0)
+                        if (obj == null)
                         {
                             // We don't yet have a cached copy of this object.  Request a complete
                             // copy of the data that the server has.
-                            Entry entry = this.Dht.Get(ID.NewHash(i.ObjectID)).DefaultIfEmpty(null).First();
-                            if (entry == null) return;
-                            this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), entry.Value);
+                            obj = this.Fetch(i.ObjectID) as ITransparent;
+                            if (obj == null) return;
+                            try
+                            {
+                                this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
+                            }
+                            catch (ArgumentException) { }
 
                             // We don't need to call the setter since the cached value we just got
                             // will contain the new value anyway.
                         }
                         else
                         {
-                            // Call the setter on the cached object.
-                            ITransparent obj = this.FetchCached(i.ObjectID) as ITransparent;
-
                             // Invoke the setter.
                             MethodInfo mi = obj.GetType().GetMethod("set_" + i.ObjectProperty + "__Distributed0", BindingFlagsCombined.All);
                             if (mi == null)
@@ -207,13 +211,12 @@ namespace Process4.Providers
         {
             if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
-                // Fetch the entry that would be returned by Storage.Fetch (since we
-                // need the contact information).
-                Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
-                if (o == null) throw new ObjectVanishedException(id);
+                // Fetch the owner of the specified entry.
+                Contact owner = this.FetchOwner(id);
+                if (owner == null) throw new ObjectVanishedException(id);
 
                 // Check to see if we own the property.
-                if (o.Owner.Identifier == this.m_Node.ID)
+                if (owner.Identifier == this.m_Node.ID)
                 {
                     // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
@@ -231,7 +234,7 @@ namespace Process4.Providers
                 else
                 {
                     // Invoke the property setter remotely.
-                    RemoteNode rnode = new RemoteNode(o.Owner);
+                    RemoteNode rnode = new RemoteNode(owner);
                     rnode.SetProperty(id, property, value);
                 }
             }
@@ -283,13 +286,12 @@ namespace Process4.Providers
         {
             if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
-                // Fetch the entry that would be returned by Storage.Fetch (since we
-                // need the contact information).
-                Entry o = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
-                if (o == null) throw new ObjectVanishedException(id);
+                // Fetch the owner of the specified entry.
+                Contact owner = this.FetchOwner(id);
+                if (owner == null) throw new ObjectVanishedException(id);
 
                 // Check to see if we own the property.
-                if (o.Owner.Identifier == this.m_Node.ID)
+                if (owner.Identifier == this.m_Node.ID)
                 {
                     // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
@@ -304,7 +306,7 @@ namespace Process4.Providers
                 else
                 {
                     // Invoke the property getter remotely.
-                    RemoteNode rnode = new RemoteNode(o.Owner);
+                    RemoteNode rnode = new RemoteNode(owner);
                     object r = rnode.GetProperty(id, property);
                     return r;
                 }
@@ -372,52 +374,21 @@ namespace Process4.Providers
 
         public void Store(string id, object o)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                StreamingContext old = this.Dht.Formatter.Context;
-                this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Storage = this, Root = o });
-                this.Dht.Formatter.Serialize(stream, o);
-                this.Dht.Formatter.Context = old;
-                byte[] bytes = new byte[stream.Length];
-                stream.Position = 0;
-                stream.Read(bytes, 0, bytes.Length);
-                this.Dht.Remove(ID.NewHash(id));
-                this.Dht.Put(ID.NewHash(id), Convert.ToBase64String(bytes));
-            }
+            this.Dht.Put(ID.NewHash(id), o);
         }
 
         public object Fetch(string id)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                Entry e = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
-                if (e == null) return null;
-                byte[] b = Convert.FromBase64String(e.Value);
-                stream.Write(b, 0, b.Length);
-                stream.Position = 0;
-                StreamingContext old = this.Dht.Formatter.Context;
-                this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Storage = this, Entry = e });
-                object r = this.Dht.Formatter.Deserialize(stream);
-                this.Dht.Formatter.Context = old;
-                return r;
-            }
+            Entry e = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
+            if (e == null) return null;
+            return e.Value;
         }
 
         public object FetchLocal(string id)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                Entry e = this.Dht.OwnedEntries.Where(value => value.Key == ID.NewHash(id)).DefaultIfEmpty(null).First();
-                if (e == null) return null;
-                byte[] b = Convert.FromBase64String(e.Value);
-                stream.Write(b, 0, b.Length);
-                stream.Position = 0;
-                StreamingContext old = this.Dht.Formatter.Context;
-                this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Storage = this, Entry = e });
-                object r = this.Dht.Formatter.Deserialize(stream);
-                this.Dht.Formatter.Context = old;
-                return r;
-            }
+            Entry e = this.Dht.OwnedEntries.Where(value => value.Key == ID.NewHash(id)).DefaultIfEmpty(null).First();
+            if (e == null) return null;
+            return e.Value;
         }
 
         public object FetchCached(string id)
@@ -430,12 +401,9 @@ namespace Process4.Providers
 
         public Contact FetchOwner(string id)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                Entry e = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
-                if (e == null) return null;
-                return e.Owner;
-            }
+            Entry e = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
+            if (e == null) return null;
+            return e.Owner;
         }
 
         #endregion
