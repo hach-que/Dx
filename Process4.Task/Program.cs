@@ -71,7 +71,7 @@ namespace Process4.Task
 
                     // Check to see whether this type has a ProcessedAttribute
                     // attached to it.
-                    if (Process4Assembler.HasAttribute(type, "ProcessedAttribute"))
+                    if (Process4Assembler.HasAttributeSpecific(type, "ProcessedAttribute"))
                     {
                         this.Log.WriteLine("+ " + type.Name + " (already processed)");
                         continue;
@@ -121,6 +121,20 @@ namespace Process4.Task
         #region Utility Functions
 
         internal static bool HasAttribute(TypeDefinition type, string name)
+        {
+            while (type != null)
+            {
+                if (Process4Assembler.HasAttributeSpecific(type, name))
+                    return true;
+                if (type.BaseType != null)
+                    type = type.BaseType.Resolve();
+                else
+                    type = null;
+            }
+            return false;
+        }
+
+        private static bool HasAttributeSpecific(TypeDefinition type, string name)
         {
             foreach (CustomAttribute ca in type.CustomAttributes)
             {
