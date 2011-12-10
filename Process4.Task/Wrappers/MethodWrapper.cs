@@ -32,12 +32,138 @@ namespace Process4.Task.Wrappers
             this.m_Module = method.Module;
         }
 
+        private TypeDefinition GenerateDirectInvokeClass()
+        {
+            // Create a new type.
+            TypeDefinition idc = new TypeDefinition(
+                this.m_Type.Namespace + "." + this.m_Type.Name,
+                this.m_Method.Name + "__InvokeDirect" + this.m_Type.NestedTypes.Count,
+                TypeAttributes.Public | TypeAttributes.NestedPublic | TypeAttributes.BeforeFieldInit);
+            idc.BaseType = this.m_Module.Import(typeof(object));
+            idc.DeclaringType = this.m_Type;
+            this.m_Type.NestedTypes.Add(idc);
+
+            // Add the IDirectInvoke interface.
+            idc.Interfaces.Add(this.m_Module.Import(typeof(Process4.Interfaces.IDirectInvoke)));
+
+            // Create the System.Object::.ctor method reference.
+            MethodReference objctor = new MethodReference(".ctor", this.m_Type.Module.Import(typeof(void)), this.m_Type.Module.Import(typeof(object)));
+            objctor.HasThis = true;
+
+            // Add the constructor.
+            MethodDefinition ctor = new MethodDefinition(
+                ".ctor",
+                MethodAttributes.Public | MethodAttributes.CompilerControlled |
+                    MethodAttributes.SpecialName | MethodAttributes.HideBySig |
+                    MethodAttributes.RTSpecialName,
+                this.m_Module.Import(typeof(void))
+                );
+            ILProcessor p = ctor.Body.GetILProcessor();
+            p.Append(Instruction.Create(OpCodes.Ldarg_0));
+            p.Append(Instruction.Create(OpCodes.Call, objctor));
+            p.Append(Instruction.Create(OpCodes.Ret));
+            idc.Methods.Add(ctor);
+
+            return idc;
+        }
+
+        private void ImplementDirectInvokeClass(TypeDefinition idc, TypeDefinition dg, Collection<ParameterDefinition> ps, TypeReference ret)
+        {
+            // Add the parameters and variables.
+            MethodDefinition invoke = new MethodDefinition(
+                "Invoke",
+                MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot,
+                this.m_Module.Import(typeof(object))
+                );
+            invoke.Parameters.Add(new ParameterDefinition("method", ParameterAttributes.None, this.m_Module.Import(typeof(System.Reflection.MethodInfo))));
+            invoke.Parameters.Add(new ParameterDefinition("instance", ParameterAttributes.None, this.m_Module.Import(typeof(object))));
+            invoke.Parameters.Add(new ParameterDefinition("parameters", ParameterAttributes.None, this.m_Module.Import(typeof(object[]))));
+            invoke.Body.Variables.Add(new VariableDefinition("d", dg));
+            if (ret.FullName == this.m_Module.Import(typeof(void)).FullName)
+                invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(typeof(object))));
+            else
+                invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(ret)));
+            idc.Methods.Add(invoke);
+
+            // Get the ILProcessor and create variables to store the delegate variable.
+            ILProcessor il = invoke.Body.GetILProcessor();
+            VariableDefinition v_0 = invoke.Body.Variables[0];
+            VariableDefinition v_1 = invoke.Body.Variables.Count == 1 ? null : invoke.Body.Variables[1];
+
+            // Create the System.Type::GetTypeFromHandle method reference.
+            MethodReference gettypefromhandle = new MethodReference("GetTypeFromHandle", this.m_Type.Module.Import(typeof(Type)), this.m_Type.Module.Import(typeof(Type)));
+            gettypefromhandle.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(RuntimeTypeHandle))));
+
+            // Create the System.Delegate::CreateDelegate method reference.
+            MethodReference createdelegate = new MethodReference("CreateDelegate", this.m_Type.Module.Import(typeof(Delegate)), this.m_Type.Module.Import(typeof(Delegate)));
+            createdelegate.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Type))));
+            createdelegate.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object))));
+            createdelegate.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(System.Reflection.MethodInfo))));
+
+            // Create the System.Delegate::CreateDelegate method reference.
+            MethodReference invokedelegate = new MethodReference("Invoke", this.m_Module.Import(ret), dg);
+            foreach (ParameterDefinition pd in ps)
+                invokedelegate.Parameters.Add(pd);
+            invokedelegate.HasThis = true;
+
+            // Force local variables to be initalized.
+            invoke.Body.InitLocals = true;
+
+            // Create statement processor for method.
+            StatementProcessor processor = new StatementProcessor(il);
+
+            // Get a type instance reference from the delegate type.
+            il.Append(Instruction.Create(OpCodes.Nop));
+            il.Append(Instruction.Create(OpCodes.Ldtoken, dg));
+            il.Append(Instruction.Create(OpCodes.Call, gettypefromhandle));
+
+            // Get a delegate and then cast it.
+            il.Append(Instruction.Create(OpCodes.Ldarg_2));
+            il.Append(Instruction.Create(OpCodes.Ldarg_1));
+            il.Append(Instruction.Create(OpCodes.Call, createdelegate));
+            il.Append(Instruction.Create(OpCodes.Castclass, dg));
+            il.Append(Instruction.Create(OpCodes.Stloc, v_0));
+
+            // Load the delegate.
+            il.Append(Instruction.Create(OpCodes.Ldloc, v_0));
+
+            // Load the arguments.
+            int i = 0;
+            foreach (ParameterDefinition pd in ps)
+            {
+                il.Append(Instruction.Create(OpCodes.Ldarg_3));
+                il.Append(Instruction.Create(OpCodes.Ldc_I4, i));
+                il.Append(Instruction.Create(OpCodes.Ldelem_Ref));
+                if (pd.ParameterType.IsValueType)
+                    il.Append(Instruction.Create(OpCodes.Unbox_Any, pd.ParameterType));
+                else
+                    il.Append(Instruction.Create(OpCodes.Castclass, pd.ParameterType));
+                i += 1;
+            }
+
+            // Call the delegate's Invoke method.
+            il.Append(Instruction.Create(OpCodes.Callvirt, invokedelegate));
+            if (ret.FullName == this.m_Module.Import(typeof(void)).FullName)
+                il.Append(Instruction.Create(OpCodes.Ldnull));
+            else if (ret.IsValueType)
+                il.Append(Instruction.Create(OpCodes.Box, ret));
+            Instruction ii_stloc = Instruction.Create(OpCodes.Stloc, v_1);
+            Instruction ii_ldloc = Instruction.Create(OpCodes.Ldloc, v_1);
+            il.Append(ii_stloc);
+            il.Append(ii_ldloc);
+            il.Append(Instruction.Create(OpCodes.Ret));
+            il.InsertAfter(ii_stloc, Instruction.Create(OpCodes.Br_S, ii_ldloc));
+        }
+
         /// <summary>
         /// Wraps the method.
         /// </summary>
         public void Wrap()
         {
             this.Log.WriteLine("  + m " + this.m_Method.Name);
+
+            // Generate the direct invocation class.
+            TypeDefinition idc = this.GenerateDirectInvokeClass();
             
             // Get a list of existing instructions.
             Collection<Instruction> instructions = this.m_Method.Body.Instructions;
@@ -71,8 +197,11 @@ namespace Process4.Task.Wrappers
 
             // Generate the IL for the delegate definition and fill the vd and ct
             // variables.
-            Utility.EmitDelegate(il, this.m_Type, md, out vd, out ct);
+            TypeDefinition dg = Utility.EmitDelegate(il, idc, md, out vd, out ct);
 
+            // Implement the Invoke method in the DirectInvoke class.
+            this.ImplementDirectInvokeClass(idc, dg, md.Parameters, md.ReturnType);
+            
             // Create the Process4.Providers.DpmEntrypoint::GetProperty method reference.
             MethodReference getproperty = new MethodReference("GetProperty", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
             getproperty.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));

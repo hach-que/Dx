@@ -17,7 +17,7 @@ namespace Process4.Task
         /// <param name="sourceMethod">The local method on which to base the delegate.</param>
         /// <param name="delegateVariable">The delegate variable to define (in the local method).</param>
         /// <param name="delegateCtor">The delegate constructor that will be used to create new instances of the delegate.</param>
-        public static void EmitDelegate(ILProcessor processor, TypeDefinition sourceType, MethodDefinition sourceMethod, out VariableDefinition delegateVariable, out MethodDefinition delegateCtor)
+        public static TypeDefinition EmitDelegate(ILProcessor processor, TypeDefinition sourceType, MethodDefinition sourceMethod, out VariableDefinition delegateVariable, out MethodDefinition delegateCtor)
         {
             delegateCtor = null;
             delegateVariable = null;
@@ -38,7 +38,7 @@ namespace Process4.Task
             // Create a new TypeDefinition for the delegate.
             TypeDefinition delegateType = new TypeDefinition(
                 method.DeclaringType.Namespace,
-                method.Name + "_DistributedDelegate" + body.Method.DeclaringType.NestedTypes.Count,
+                method.Name + "__DistributedDelegate" + body.Method.DeclaringType.NestedTypes.Count,
                 TypeAttributes.Sealed | TypeAttributes.NestedPublic,
                 type_MulticastDelegate // Inherit from MulticastDelegate
                 );
@@ -151,6 +151,8 @@ namespace Process4.Task
 
             // Add as a local variable to the method.
             body.Variables.Insert(0, delegateVariable);
+
+            return delegateType;
         }
 
         /// <summary>

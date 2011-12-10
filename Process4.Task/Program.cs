@@ -63,7 +63,7 @@ namespace Process4.Task
 
                     // Check to see whether this type has a DistributedAttribute
                     // attached to it.
-                    if (!this.HasAttribute(type, "DistributedAttribute"))
+                    if (!Process4Assembler.HasAttribute(type, "DistributedAttribute"))
                     {
                         this.Log.WriteLine("- " + type.Name);
                         continue;
@@ -71,7 +71,7 @@ namespace Process4.Task
 
                     // Check to see whether this type has a ProcessedAttribute
                     // attached to it.
-                    if (this.HasAttribute(type, "ProcessedAttribute"))
+                    if (Process4Assembler.HasAttribute(type, "ProcessedAttribute"))
                     {
                         this.Log.WriteLine("+ " + type.Name + " (already processed)");
                         continue;
@@ -98,7 +98,7 @@ namespace Process4.Task
                 this.Log.WriteLine(e.GetType().FullName);
                 this.Log.WriteLine(e.Message);
                 this.Log.WriteLine(e.StackTrace);
-                this.Log.WriteLine("== ERRORR: EXIT ==");
+                this.Log.WriteLine("== ERROR: EXIT ==");
                 if (this.BuildEngine != null)
                     this.BuildEngine.LogErrorEvent(new BuildErrorEventArgs("Post Processing", "E0002", e.OffendingType + "." + e.OffendingMember, 0, 0, 0, 0, e.Message, "", ""));
                 this.Log.Close();
@@ -118,37 +118,26 @@ namespace Process4.Task
             }
         }
 
-        #region Wrapping Functions
-
-        /// <summary>
-        /// Modifies the specified method in the specified type so that it contains the
-        /// appropriate calls to the Process4 library.
-        /// </summary>
-        /// <param name="t">The type in which the method is located.</param>
-        /// <param name="m">The method to modify.</param>
-        private void WrapMethod(TypeDefinition t, MethodDefinition m)
-        {
-            
-
-            
-
-            return;
-        }
-
-        #endregion
-
         #region Utility Functions
 
-        private bool HasAttribute(TypeDefinition type, string name)
+        internal static bool HasAttribute(TypeDefinition type, string name)
         {
-            CustomAttribute distributedAttribute = null;
             foreach (CustomAttribute ca in type.CustomAttributes)
-                if (ca.AttributeType.Name == name)
-                    distributedAttribute = ca;
-            if (distributedAttribute == null)
-                return false;
-            else
+            {
+                if (Process4Assembler.AttributeMatches(ca.AttributeType, name))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool AttributeMatches(TypeReference type, string name)
+        {
+            if (type.Name == name)
                 return true;
+            else if (type.Name == "Attribute")
+                return (name == "Attribute");
+            else
+                return Process4Assembler.AttributeMatches(type.Resolve().BaseType, name);
         }
 
         #endregion

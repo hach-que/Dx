@@ -62,6 +62,7 @@
     <Compile Include="Attributes\DistributedAttribute.cs" />
     <Compile Include="Attributes\ProcessedAttribute.cs" />
     <Compile Include="Collections\DList.cs" />
+    <Compile Include="Interfaces\IDirectInvoke.cs" />
     <Compile Include="Interfaces\INetworkProvider.cs" />
     <Compile Include="Networks\AutomaticUdpNetwork.cs" />
     <Compile Include="Providers\DhtWrapper.cs" />

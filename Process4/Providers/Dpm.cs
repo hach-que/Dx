@@ -237,8 +237,18 @@ namespace Process4.Providers
     /// </summary>
     public static class DpmEntrypoint
     {
+        public static object InvokeDynamic(Delegate d, object[] args)
+        {
+            IDirectInvoke di = d.GetType().DeclaringType.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
+            return di.Invoke(d.Method, d.Target, args);
+        }
+
         public static object SetProperty(Delegate d, object[] args)
         {
+            // Invoke directly if not networked.
+            if (LocalNode.Singleton == null)
+                return DpmEntrypoint.InvokeDynamic(d, args);
+
             // Get the network name of the object.
             string objectName = (d.Target as ITransparent).NetworkName;
 
@@ -253,6 +263,10 @@ namespace Process4.Providers
 
         public static object GetProperty(Delegate d, object[] args)
         {
+            // Invoke directly if not networked.
+            if (LocalNode.Singleton == null)
+                return DpmEntrypoint.InvokeDynamic(d, args);
+
             // Get the network name of the object.
             string objectName = (d.Target as ITransparent).NetworkName;
 
@@ -265,6 +279,10 @@ namespace Process4.Providers
 
         public static object AddEvent(Delegate d, object[] args)
         {
+            // Invoke directly if not networked.
+            if (LocalNode.Singleton == null)
+                return DpmEntrypoint.InvokeDynamic(d, args);
+
             // Get the network name of the object.
             string objectName = (d.Target as ITransparent).NetworkName;
 
@@ -295,6 +313,10 @@ namespace Process4.Providers
 
         public static object RemoveEvent(Delegate d, object[] args)
         {
+            // Invoke directly if not networked.
+            if (LocalNode.Singleton == null)
+                return DpmEntrypoint.InvokeDynamic(d, args);
+
             // Get the network name of the object and the name of the method.
             string objectName = (d.Target as ITransparent).NetworkName;
 
@@ -325,6 +347,10 @@ namespace Process4.Providers
 
         public static object Invoke(Delegate d, object[] args)
         {
+            // Invoke directly if not networked.
+            if (LocalNode.Singleton == null)
+                return DpmEntrypoint.InvokeDynamic(d, args);
+
             // Get the network name of the object and the name of the method.
             string objectName = (d.Target as ITransparent).NetworkName;
             string methodName = d.Method.Name;
@@ -335,6 +361,10 @@ namespace Process4.Providers
 
         public static void Construct(object obj)
         {
+            // Skip if not networked.
+            if (LocalNode.Singleton == null)
+                return;
+
             // Check to see if we've already got a NetworkName; if we have
             // then we're a named distributed instance that doesn't need the
             // autoid assigned.
