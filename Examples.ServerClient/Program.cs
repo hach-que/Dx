@@ -14,6 +14,12 @@ namespace Examples.ServerClient
     {
         public static void Main(string[] args)
         {
+            // Create a vector and manual vector both of the same.
+            Vector v = new Vector(2, 4, 5);
+            ManualVector mv = new ManualVector(1, 2, 3);
+            Console.WriteLine("Vector " + v);
+            Console.WriteLine("ManualVector " + mv);
+
             // Set up distributed node.
             LocalNode node = new LocalNode();
             node.Join();

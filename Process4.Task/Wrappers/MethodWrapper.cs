@@ -79,10 +79,10 @@ namespace Process4.Task.Wrappers
             invoke.Parameters.Add(new ParameterDefinition("instance", ParameterAttributes.None, this.m_Module.Import(typeof(object))));
             invoke.Parameters.Add(new ParameterDefinition("parameters", ParameterAttributes.None, this.m_Module.Import(typeof(object[]))));
             invoke.Body.Variables.Add(new VariableDefinition("d", dg));
-            if (ret.FullName == this.m_Module.Import(typeof(void)).FullName)
+            //if (ret.FullName == this.m_Module.Import(typeof(void)).FullName)
                 invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(typeof(object))));
-            else
-                invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(ret)));
+            //else
+            //    invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(ret)));
             idc.Methods.Add(invoke);
 
             // Get the ILProcessor and create variables to store the delegate variable.
@@ -255,6 +255,8 @@ namespace Process4.Task.Wrappers
             processor.Add(new InitDelegateStatement(ct, md, v_0));
 
             // Initialize the array.
+            if (this.m_Method.IsSetter)
+                il.Append(Instruction.Create(OpCodes.Ldloc_0));
             processor.Add(new InitArrayStatement(this.m_Module.Import(typeof(object)), (sbyte)(md.Parameters.Count), v_1,
                 new Action<ILProcessor, int>((p, i) =>
                 {
@@ -275,7 +277,7 @@ namespace Process4.Task.Wrappers
 
             // Call the delegate.
             if (this.m_Method.IsSetter)
-                processor.Add(new CallStatement(setproperty, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
+                processor.Add(new CallStatement(setproperty, new VariableDefinition[] { v_1 }, this.m_Method.ReturnType, v_2));
             else if (this.m_Method.IsGetter)
                 processor.Add(new CallStatement(getproperty, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
             else if (this.m_Method.IsAddOn)
