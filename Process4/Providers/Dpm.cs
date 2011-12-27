@@ -239,7 +239,11 @@ namespace Process4.Providers
     {
         public static object InvokeDynamic(Delegate d, object[] args)
         {
-            IDirectInvoke di = d.GetType().DeclaringType.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
+            Type[] tparams = d.Method.GetGenericArguments();
+            Type dt = d.GetType().DeclaringType;
+            if (dt.ContainsGenericParameters)
+                dt = dt.MakeGenericType(tparams);
+            IDirectInvoke di = dt.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
             return di.Invoke(d.Method, d.Target, args);
         }
 

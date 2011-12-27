@@ -17,7 +17,7 @@ namespace Process4.Task
         /// <param name="sourceMethod">The local method on which to base the delegate.</param>
         /// <param name="delegateVariable">The delegate variable to define (in the local method).</param>
         /// <param name="delegateCtor">The delegate constructor that will be used to create new instances of the delegate.</param>
-        public static TypeDefinition EmitDelegate(ILProcessor processor, TypeDefinition sourceType, MethodDefinition sourceMethod, out VariableDefinition delegateVariable, out MethodDefinition delegateCtor)
+        public static TypeDefinition EmitDelegate(ILProcessor processor, TypeDefinition sourceType, MethodDefinition sourceMethod, out VariableDefinition delegateVariable, out MethodReference delegateCtor)
         {
             delegateCtor = null;
             delegateVariable = null;
@@ -42,6 +42,8 @@ namespace Process4.Task
                 TypeAttributes.Sealed | TypeAttributes.NestedPublic,
                 type_MulticastDelegate // Inherit from MulticastDelegate
                 );
+            foreach (GenericParameter gp in sourceType.GenericParameters)
+                delegateType.GenericParameters.Add(new GenericParameter(gp.Name, delegateType));
             Utility.AddAttribute(delegateType, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), module);
 
             // Add the constructor to the delegate type.
@@ -65,7 +67,6 @@ namespace Process4.Task
             ctor.Body = null;
             ctor.IsRuntime = true;
             ctor.ImplAttributes = MethodImplAttributes.CodeTypeMask;
-            delegateCtor = ctor;
 
             // Add the Invoke method to the delegate type.
             MethodDefinition invoke = new MethodDefinition(
@@ -148,6 +149,28 @@ namespace Process4.Task
             //TypeReference delegateTypeReference = new TypeReference(delegateType.Namespace, delegateType.Name, module, null);
             //delegateTypeReference.DeclaringType = sourceType;
             delegateVariable = new VariableDefinition("d", type_MulticastDelegate);
+
+            if (sourceType.GenericParameters.Count == 0)
+                delegateCtor = ctor;
+            else
+            {
+                // We need to make a generic version of the type and get the constructor from that.
+                GenericInstanceType git = new GenericInstanceType(delegateType);
+                foreach (GenericParameter gp in sourceType.GenericParameters)
+                    git.GenericParameters.Add(new GenericParameter("!!" + gp.Name, git));
+                delegateCtor = new MethodReference(".ctor", type_Void, git);
+                delegateCtor.Parameters.Add(new ParameterDefinition("object", ParameterAttributes.None, type_Object));
+                delegateCtor.Parameters.Add(new ParameterDefinition("method", ParameterAttributes.None, type_IntPtr));
+                delegateCtor.HasThis = true;
+            }
+
+            // Create the generic instance type.
+            /*GenericInstanceType gdg = new GenericInstanceType(dg);
+            foreach (GenericParameter gp in idc.GenericParameters)
+            {
+                gdg.GenericParameters.Add(new GenericParameter("!0", gdg));
+                gdg.GenericArguments.Add(gdg.GenericParameters[0]);
+            }*/
 
             // Add as a local variable to the method.
             body.Variables.Insert(0, delegateVariable);

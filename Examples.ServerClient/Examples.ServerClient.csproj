@@ -89,6 +89,8 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="SealedTest.cs" />
+    <Compile Include="SealedTest_Compare.cs" />
     <Compile Include="Tile.cs" />
     <Compile Include="Vector.cs" />
     <Compile Include="World.cs" />

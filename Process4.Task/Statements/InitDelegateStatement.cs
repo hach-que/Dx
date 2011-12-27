@@ -9,8 +9,8 @@ namespace Process4.Task.Statements
 {
     internal class InitDelegateStatement : Statement
     {
-        private MethodDefinition m_Constructor = null;
-        private MethodDefinition m_Target = null;
+        private MethodReference m_Constructor = null;
+        private MethodReference m_Target = null;
         private VariableDefinition m_Storage = null;
 
         /// <summary>
@@ -19,7 +19,8 @@ namespace Process4.Task.Statements
         /// <param name="constructor">The constructor for the delegate type.</param>
         /// <param name="target">The target the delegate will invoke.</param>
         /// <param name="storage">The variable which will store the new delegate.</param>
-        public InitDelegateStatement(MethodDefinition constructor, MethodDefinition target, VariableDefinition storage) : base(null)
+        public InitDelegateStatement(MethodReference constructor, MethodReference target, VariableDefinition storage)
+            : base(null)
         {
             this.m_Constructor = constructor;
             this.m_Target = target;

@@ -20,6 +20,10 @@ namespace Examples.ServerClient
             Console.WriteLine("Vector " + v);
             Console.WriteLine("ManualVector " + mv);
 
+            // Test generics.
+            SealedTest st = new SealedTest();
+            st.Test<int>();
+
             // Set up distributed node.
             LocalNode node = new LocalNode();
             node.Join();

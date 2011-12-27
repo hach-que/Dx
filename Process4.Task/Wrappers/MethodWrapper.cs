@@ -34,13 +34,20 @@ namespace Process4.Task.Wrappers
 
         private TypeDefinition GenerateDirectInvokeClass()
         {
+            // Determine the generic appendix.
+            string genericAppendix = "";
+            for (int i = 0; i < this.m_Method.GenericParameters.Count; i++)
+                genericAppendix += "`" + (i + 1);
+
             // Create a new type.
             TypeDefinition idc = new TypeDefinition(
-                this.m_Type.Namespace + "." + this.m_Type.Name,
-                this.m_Method.Name + "__InvokeDirect" + this.m_Type.NestedTypes.Count,
+                "",
+                this.m_Method.Name + "__InvokeDirect" + this.m_Type.NestedTypes.Count + genericAppendix,
                 TypeAttributes.Public | TypeAttributes.NestedPublic | TypeAttributes.BeforeFieldInit);
             idc.BaseType = this.m_Module.Import(typeof(object));
             idc.DeclaringType = this.m_Type;
+            foreach (GenericParameter gp in this.m_Method.GenericParameters)
+                idc.GenericParameters.Add(new GenericParameter(gp.Name, idc));
             this.m_Type.NestedTypes.Add(idc);
 
             // Add the IDirectInvoke interface.
@@ -69,6 +76,14 @@ namespace Process4.Task.Wrappers
 
         private void ImplementDirectInvokeClass(TypeDefinition idc, TypeDefinition dg, Collection<ParameterDefinition> ps, TypeReference ret)
         {
+            // Create the generic instance type.
+            GenericInstanceType gdg = new GenericInstanceType(dg);
+            foreach (GenericParameter gp in idc.GenericParameters)
+            {
+                gdg.GenericParameters.Add(new GenericParameter("!0", gdg));
+                gdg.GenericArguments.Add(gdg.GenericParameters[0]);
+            }
+
             // Add the parameters and variables.
             MethodDefinition invoke = new MethodDefinition(
                 "Invoke",
@@ -78,7 +93,7 @@ namespace Process4.Task.Wrappers
             invoke.Parameters.Add(new ParameterDefinition("method", ParameterAttributes.None, this.m_Module.Import(typeof(System.Reflection.MethodInfo))));
             invoke.Parameters.Add(new ParameterDefinition("instance", ParameterAttributes.None, this.m_Module.Import(typeof(object))));
             invoke.Parameters.Add(new ParameterDefinition("parameters", ParameterAttributes.None, this.m_Module.Import(typeof(object[]))));
-            invoke.Body.Variables.Add(new VariableDefinition("d", dg));
+            invoke.Body.Variables.Add(new VariableDefinition("d", gdg));
             //if (ret.FullName == this.m_Module.Import(typeof(void)).FullName)
                 invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(typeof(object))));
             //else
@@ -100,8 +115,8 @@ namespace Process4.Task.Wrappers
             createdelegate.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object))));
             createdelegate.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(System.Reflection.MethodInfo))));
 
-            // Create the System.Delegate::CreateDelegate method reference.
-            MethodReference invokedelegate = new MethodReference("Invoke", this.m_Module.Import(ret), dg);
+            // Create the dg::Invoke method reference.
+            MethodReference invokedelegate = new MethodReference("Invoke", this.m_Module.Import(ret), gdg);
             foreach (ParameterDefinition pd in ps)
                 invokedelegate.Parameters.Add(pd);
             invokedelegate.HasThis = true;
@@ -114,14 +129,14 @@ namespace Process4.Task.Wrappers
 
             // Get a type instance reference from the delegate type.
             il.Append(Instruction.Create(OpCodes.Nop));
-            il.Append(Instruction.Create(OpCodes.Ldtoken, dg));
+            il.Append(Instruction.Create(OpCodes.Ldtoken, gdg));
             il.Append(Instruction.Create(OpCodes.Call, gettypefromhandle));
 
             // Get a delegate and then cast it.
             il.Append(Instruction.Create(OpCodes.Ldarg_2));
             il.Append(Instruction.Create(OpCodes.Ldarg_1));
             il.Append(Instruction.Create(OpCodes.Call, createdelegate));
-            il.Append(Instruction.Create(OpCodes.Castclass, dg));
+            il.Append(Instruction.Create(OpCodes.Castclass, gdg));
             il.Append(Instruction.Create(OpCodes.Stloc, v_0));
 
             // Load the delegate.
@@ -181,6 +196,8 @@ namespace Process4.Task.Wrappers
                 md.Body.ExceptionHandlers.Add(ex);
             foreach (ParameterDefinition p in this.m_Method.Parameters)
                 md.Parameters.Add(p);
+            foreach (GenericParameter gp in this.m_Method.GenericParameters)
+                md.GenericParameters.Add(new GenericParameter(gp.Name, md));
             this.m_Type.Methods.Add(md);
             Utility.AddAttribute(md, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), this.m_Module);
 
@@ -188,7 +205,7 @@ namespace Process4.Task.Wrappers
             // and delegate constructor.
             ILProcessor il = this.m_Method.Body.GetILProcessor();
             VariableDefinition vd;
-            MethodDefinition ct;
+            MethodReference ct;
 
             // Clear the existing instructions and local variables.
             this.m_Method.Body.ExceptionHandlers.Clear();
@@ -251,8 +268,17 @@ namespace Process4.Task.Wrappers
             // Create statement processor for method.
             StatementProcessor processor = new StatementProcessor(il);
 
+            // Make a generic version of the delegate method.
+            GenericInstanceMethod gmd = new GenericInstanceMethod(md);
+            foreach (GenericParameter gp in idc.GenericParameters)
+            {
+                gmd.GenericParameters.Add(new GenericParameter("!!0", gmd));
+                gmd.GenericArguments.Add(gmd.GenericParameters[0]);
+                (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(gmd.GenericParameters[0]);
+            }
+
             // Initialize the delegate.
-            processor.Add(new InitDelegateStatement(ct, md, v_0));
+            processor.Add(new InitDelegateStatement(ct, gmd, v_0));
 
             // Initialize the array.
             if (this.m_Method.IsSetter)
