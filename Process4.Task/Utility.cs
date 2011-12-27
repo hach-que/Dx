@@ -69,12 +69,16 @@ namespace Process4.Task
             ctor.ImplAttributes = MethodImplAttributes.CodeTypeMask;
 
             // Add the Invoke method to the delegate type.
+            TypeReference retType = sourceMethod.ReturnType;
+            if (sourceMethod.ReturnType is GenericParameter)
+                //retType = new GenericParameter((sourceMethod.ReturnType as GenericParameter).Name, delegateType);
+                retType = new GenericParameter(0, GenericParameterType.Type, sourceType.Module);
             MethodDefinition invoke = new MethodDefinition(
                 "Invoke",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot |
                     MethodAttributes.Virtual,
-                sourceMethod.ReturnType
-                );
+                retType
+            );
             foreach (ParameterDefinition p in sourceMethod.Parameters)
             {
                 // Add the parameters that are accepted by the source
@@ -125,7 +129,7 @@ namespace Process4.Task
                 "EndInvoke",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot |
                     MethodAttributes.Virtual,
-                sourceMethod.ReturnType
+                retType
                 );
             endinvoke.Parameters.Add(new ParameterDefinition(
                 "result",

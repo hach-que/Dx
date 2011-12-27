@@ -27,6 +27,17 @@ namespace Examples.ServerClient
 			}
         }
 
+        private class TestPlain__InvokeDirect1<T> : IDirectInvoke
+        {
+            [CompilerGenerated]
+            public delegate T TestPlain__DistributedDelegate2();
+            public object Invoke(MethodInfo method, object instance, object[] parameters)
+            {
+                SealedTest_Compare.TestPlain__InvokeDirect1<T>.TestPlain__DistributedDelegate2 testPlain__DistributedDelegate = (SealedTest_Compare.TestPlain__InvokeDirect1<T>.TestPlain__DistributedDelegate2)Delegate.CreateDelegate(typeof(SealedTest_Compare.TestPlain__InvokeDirect1<T>.TestPlain__DistributedDelegate2), instance, method);
+                return testPlain__DistributedDelegate();
+            }
+        }
+
         public string NetworkName
         {
             get;

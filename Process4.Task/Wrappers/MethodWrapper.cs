@@ -47,7 +47,13 @@ namespace Process4.Task.Wrappers
             idc.BaseType = this.m_Module.Import(typeof(object));
             idc.DeclaringType = this.m_Type;
             foreach (GenericParameter gp in this.m_Method.GenericParameters)
-                idc.GenericParameters.Add(new GenericParameter(gp.Name, idc));
+            {
+                GenericParameter gpn = new GenericParameter(gp.Name, idc);
+                gpn.Attributes = gp.Attributes;
+                foreach (TypeReference tr in gp.Constraints)
+                    gpn.Constraints.Add(tr);
+                idc.GenericParameters.Add(gpn);
+            }
             this.m_Type.NestedTypes.Add(idc);
 
             // Add the IDirectInvoke interface.
@@ -74,7 +80,7 @@ namespace Process4.Task.Wrappers
             return idc;
         }
 
-        private void ImplementDirectInvokeClass(TypeDefinition idc, TypeDefinition dg, Collection<ParameterDefinition> ps, TypeReference ret)
+        private void ImplementDirectInvokeClass(TypeDefinition idc, TypeDefinition dg, Collection<ParameterDefinition> ps, TypeReference tret)
         {
             // Create the generic instance type.
             GenericInstanceType gdg = new GenericInstanceType(dg);
@@ -83,6 +89,9 @@ namespace Process4.Task.Wrappers
                 gdg.GenericParameters.Add(new GenericParameter("!0", gdg));
                 gdg.GenericArguments.Add(gdg.GenericParameters[0]);
             }
+            TypeReference ret = tret;
+            if (ret is GenericParameter)
+                ret = new GenericParameter((tret as GenericParameter).Position, GenericParameterType.Type, gdg.Module);
 
             // Add the parameters and variables.
             MethodDefinition invoke = new MethodDefinition(
@@ -197,7 +206,13 @@ namespace Process4.Task.Wrappers
             foreach (ParameterDefinition p in this.m_Method.Parameters)
                 md.Parameters.Add(p);
             foreach (GenericParameter gp in this.m_Method.GenericParameters)
-                md.GenericParameters.Add(new GenericParameter(gp.Name, md));
+            {
+                GenericParameter gpn = new GenericParameter(gp.Name, md);
+                gpn.Attributes = gp.Attributes;
+                foreach (TypeReference tr in gp.Constraints)
+                    gpn.Constraints.Add(tr);
+                md.GenericParameters.Add(gpn);
+            }
             this.m_Type.Methods.Add(md);
             Utility.AddAttribute(md, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), this.m_Module);
 

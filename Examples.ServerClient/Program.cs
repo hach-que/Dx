@@ -23,6 +23,9 @@ namespace Examples.ServerClient
             // Test generics.
             SealedTest st = new SealedTest();
             st.Test<int>();
+            st.TestPlain<int>();
+            st.Test2<Tile>();
+            st.Test3<Something>();
 
             // Set up distributed node.
             LocalNode node = new LocalNode();
