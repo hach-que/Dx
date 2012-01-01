@@ -41,7 +41,7 @@ namespace Process4.Task.Statements
                 // Return value is void.  Discard any result and return.
                 processor.Append(Instruction.Create(OpCodes.Pop));
             }
-            else if (this.m_ReturnType.IsValueType)
+            else if (this.m_ReturnType.IsValueType || this.m_ReturnType.IsGenericParameter)
             {
                 // Return value is value type (not reference).  Unbox and return it.
                 processor.Append(Instruction.Create(OpCodes.Unbox_Any, this.m_ReturnType));

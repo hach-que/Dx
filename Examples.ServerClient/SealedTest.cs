@@ -33,9 +33,14 @@ namespace Examples.ServerClient
 
     public interface ITest
     {
+        string AsString();
     }
 
     public class Something : ITest
     {
+        public string AsString()
+        {
+            return "Something";
+        }
     }
 }

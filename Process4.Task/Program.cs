@@ -42,7 +42,7 @@ namespace Process4.Task
         {
             Directory.SetCurrentDirectory(Path.GetDirectoryName(this.AssemblyFile));
 
-            this.Log = new StreamWriter("./Process4.Task.Output.txt", true);
+            this.Log = new StreamWriter("./Process4.Task.Output.txt", false);
             this.Log.WriteLine("== BEGIN (" + DateTime.Now.ToString() + ") ==");
 
             try

@@ -67,6 +67,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChildWorld.cs" />
+    <Compile Include="GenericsTest_Compare.cs" />
+    <Compile Include="GenericsTest.cs" />
     <Compile Include="ManualVector.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -33,6 +33,7 @@ namespace Process4.Task.Statements
             processor.Append(Instruction.Create(OpCodes.Nop));
             processor.Append(Instruction.Create(OpCodes.Ldarg_0));
             processor.Append(Instruction.Create(OpCodes.Ldftn, this.m_Target));
+            //processor.Append(Instruction.Create(OpCodes.Ldnull));
             processor.Append(Instruction.Create(OpCodes.Newobj, this.m_Constructor));
             processor.Append(Instruction.Create(OpCodes.Stloc, this.m_Storage));
         }

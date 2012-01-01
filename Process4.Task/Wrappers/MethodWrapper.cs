@@ -32,12 +32,13 @@ namespace Process4.Task.Wrappers
             this.m_Module = method.Module;
         }
 
+
         private TypeDefinition GenerateDirectInvokeClass()
         {
             // Determine the generic appendix.
             string genericAppendix = "";
-            for (int i = 0; i < this.m_Method.GenericParameters.Count; i++)
-                genericAppendix += "`" + (i + 1);
+            if (this.m_Method.GenericParameters.Count > 0)
+                genericAppendix = "`" + this.m_Method.GenericParameters.Count;
 
             // Create a new type.
             TypeDefinition idc = new TypeDefinition(
@@ -46,12 +47,26 @@ namespace Process4.Task.Wrappers
                 TypeAttributes.Public | TypeAttributes.NestedPublic | TypeAttributes.BeforeFieldInit);
             idc.BaseType = this.m_Module.Import(typeof(object));
             idc.DeclaringType = this.m_Type;
+            foreach (GenericParameter gp in this.m_Type.GenericParameters)
+            {
+                GenericParameter gpn = new GenericParameter(gp.Name, idc);
+                gpn.Attributes = gp.Attributes;
+                foreach (TypeReference tr in gp.Constraints)
+                    if (tr is GenericInstanceType)
+                        gpn.Constraints.Add(Utility.RewriteGenericReferencesToType(this.m_Type, tr as GenericInstanceType));
+                    else
+                        gpn.Constraints.Add(tr);
+                idc.GenericParameters.Add(gpn);
+            }
             foreach (GenericParameter gp in this.m_Method.GenericParameters)
             {
                 GenericParameter gpn = new GenericParameter(gp.Name, idc);
                 gpn.Attributes = gp.Attributes;
                 foreach (TypeReference tr in gp.Constraints)
-                    gpn.Constraints.Add(tr);
+                    if (tr is GenericInstanceType)
+                        gpn.Constraints.Add(Utility.RewriteGenericReferencesToType(this.m_Type, tr as GenericInstanceType));
+                    else
+                        gpn.Constraints.Add(tr);
                 idc.GenericParameters.Add(gpn);
             }
             this.m_Type.NestedTypes.Add(idc);
@@ -84,14 +99,25 @@ namespace Process4.Task.Wrappers
         {
             // Create the generic instance type.
             GenericInstanceType gdg = new GenericInstanceType(dg);
+            int gi = 0;
             foreach (GenericParameter gp in idc.GenericParameters)
             {
-                gdg.GenericParameters.Add(new GenericParameter("!0", gdg));
-                gdg.GenericArguments.Add(gdg.GenericParameters[0]);
+                gdg.GenericParameters.Add(new GenericParameter(gp.Name, gdg));
+                gdg.GenericArguments.Add(gdg.GenericParameters[gi]);
+                gi++;
             }
             TypeReference ret = tret;
-            if (ret is GenericParameter)
-                ret = new GenericParameter((tret as GenericParameter).Position, GenericParameterType.Type, gdg.Module);
+            if (ret is GenericInstanceType)
+                ret = Utility.RewriteGenericReferencesToType(this.m_Type, ret as GenericInstanceType);
+            else if (ret is GenericParameter)
+            {
+                ret = new GenericParameter(
+                    (tret as GenericParameter).Type == GenericParameterType.Type ?
+                    (tret as GenericParameter).Position :
+                    (tret as GenericParameter).Position + this.m_Type.GenericParameters.Count,
+                    GenericParameterType.Type,
+                    idc.Module);
+            }
 
             // Add the parameters and variables.
             MethodDefinition invoke = new MethodDefinition(
@@ -107,7 +133,7 @@ namespace Process4.Task.Wrappers
                 invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(typeof(object))));
             //else
             //    invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(ret)));
-            idc.Methods.Add(invoke);
+            idc.Methods.Insert(0, invoke);
 
             // Get the ILProcessor and create variables to store the delegate variable.
             ILProcessor il = invoke.Body.GetILProcessor();
@@ -127,7 +153,21 @@ namespace Process4.Task.Wrappers
             // Create the dg::Invoke method reference.
             MethodReference invokedelegate = new MethodReference("Invoke", this.m_Module.Import(ret), gdg);
             foreach (ParameterDefinition pd in ps)
-                invokedelegate.Parameters.Add(pd);
+            {
+                TypeReference pType = pd.ParameterType;
+                if (pd.ParameterType is GenericParameter)
+                    pType = new GenericParameter(
+                        (pd.ParameterType as GenericParameter).Type == GenericParameterType.Type ?
+                        (pd.ParameterType as GenericParameter).Position :
+                        (pd.ParameterType as GenericParameter).Position + this.m_Type.GenericParameters.Count,
+                        GenericParameterType.Type,
+                        this.m_Module);
+                invokedelegate.Parameters.Add(new ParameterDefinition(
+                    pd.Name,
+                    pd.Attributes,
+                    pType
+                    ));
+            }
             invokedelegate.HasThis = true;
 
             // Force local variables to be initalized.
@@ -155,13 +195,21 @@ namespace Process4.Task.Wrappers
             int i = 0;
             foreach (ParameterDefinition pd in ps)
             {
+                TypeReference pType = pd.ParameterType;
+                if (pd.ParameterType is GenericParameter)
+                    pType = new GenericParameter(
+                        (pd.ParameterType as GenericParameter).Type == GenericParameterType.Type ?
+                        (pd.ParameterType as GenericParameter).Position :
+                        (pd.ParameterType as GenericParameter).Position + this.m_Type.GenericParameters.Count,
+                        GenericParameterType.Type,
+                        this.m_Module);
                 il.Append(Instruction.Create(OpCodes.Ldarg_3));
                 il.Append(Instruction.Create(OpCodes.Ldc_I4, i));
                 il.Append(Instruction.Create(OpCodes.Ldelem_Ref));
-                if (pd.ParameterType.IsValueType)
-                    il.Append(Instruction.Create(OpCodes.Unbox_Any, pd.ParameterType));
+                if (pType.IsValueType || pType.IsGenericParameter)
+                    il.Append(Instruction.Create(OpCodes.Unbox_Any, pType));
                 else
-                    il.Append(Instruction.Create(OpCodes.Castclass, pd.ParameterType));
+                    il.Append(Instruction.Create(OpCodes.Castclass, pType));
                 i += 1;
             }
 
@@ -169,7 +217,7 @@ namespace Process4.Task.Wrappers
             il.Append(Instruction.Create(OpCodes.Callvirt, invokedelegate));
             if (ret.FullName == this.m_Module.Import(typeof(void)).FullName)
                 il.Append(Instruction.Create(OpCodes.Ldnull));
-            else if (ret.IsValueType)
+            else if (ret.IsValueType || ret.IsGenericParameter)
                 il.Append(Instruction.Create(OpCodes.Box, ret));
             Instruction ii_stloc = Instruction.Create(OpCodes.Stloc, v_1);
             Instruction ii_ldloc = Instruction.Create(OpCodes.Ldloc, v_1);
@@ -193,7 +241,10 @@ namespace Process4.Task.Wrappers
             Collection<Instruction> instructions = this.m_Method.Body.Instructions;
 
             // Create a new Action delegate using those instructions.
-            MethodDefinition md = new MethodDefinition("" + this.m_Method.Name + "__Distributed0", MethodAttributes.Private, this.m_Method.ReturnType);
+            TypeReference mdr = this.m_Method.ReturnType;
+            //if (mdr is GenericParameter)
+            //    mdr = new GenericParameter((mdr as GenericParameter).Position, (mdr as GenericParameter).Type, this.m_Module);
+            MethodDefinition md = new MethodDefinition("" + this.m_Method.Name + "__Distributed0", MethodAttributes.Private, mdr);
             md.Body = new MethodBody(md);
             md.Body.InitLocals = true;
             md.Body.Instructions.Clear();
@@ -229,7 +280,7 @@ namespace Process4.Task.Wrappers
 
             // Generate the IL for the delegate definition and fill the vd and ct
             // variables.
-            TypeDefinition dg = Utility.EmitDelegate(il, idc, md, out vd, out ct);
+            TypeDefinition dg = Utility.EmitDelegate(il, idc, md, this.m_Type, out vd, out ct);
 
             // Implement the Invoke method in the DirectInvoke class.
             this.ImplementDirectInvokeClass(idc, dg, md.Parameters, md.ReturnType);
@@ -279,21 +330,64 @@ namespace Process4.Task.Wrappers
 
             // Force local variables to be initalized.
             this.m_Method.Body.InitLocals = true;
+            this.m_Method.Body.MaxStackSize = 10;
 
             // Create statement processor for method.
             StatementProcessor processor = new StatementProcessor(il);
 
             // Make a generic version of the delegate method.
-            GenericInstanceMethod gmd = new GenericInstanceMethod(md);
-            foreach (GenericParameter gp in idc.GenericParameters)
+            TypeDefinition btd = this.m_Type;
+            MethodDefinition bmd = md;
+            MethodReference bmr = btd.Module.Import(bmd);
+            GenericInstanceType bti = null;
+            if (this.m_Type.HasGenericParameters)
             {
-                gmd.GenericParameters.Add(new GenericParameter("!!0", gmd));
-                gmd.GenericArguments.Add(gmd.GenericParameters[0]);
-                (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(gmd.GenericParameters[0]);
+                bti = (GenericInstanceType)Utility.MakeGenericType(this.m_Type, this.m_Type.GenericParameters.ToArray()); 
+                bmr = Utility.MakeGeneric(bmr, bti.GenericArguments.ToArray());
+            }
+            if (this.m_Method.HasGenericParameters)
+            {
+                GenericInstanceMethod gim = new GenericInstanceMethod(bmr);
+                foreach (GenericParameter gp in bmr.GenericParameters)
+                    gim.GenericArguments.Add(gp);
+                bmr = gim;
             }
 
+            foreach (GenericParameter gp in this.m_Type.GenericParameters)
+                (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(gp);
+            foreach (GenericParameter gp in this.m_Method.GenericParameters)
+                (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(gp);
+
+            /*
+            MethodReference dct = ct;
+            if (this.m_Method.HasGenericParameters)
+            {
+                TypeReference td = dtd.DeclaringType;
+                if (this.m_Type.HasGenericParameters)
+                {
+                    td = new TypeReference(td.Namespace, td.Name, td.Module, td.Scope)
+                        {
+                            DeclaringType = bti
+                        };
+                    for (int i = this.m_Type.GenericParameters.Count; i < dtd.DeclaringType.GenericParameters.Count; i++)
+                        td.GenericParameters.Add(new GenericParameter(dtd.DeclaringType.GenericParameters[i].Name, td));
+                }
+                var ivi = (GenericInstanceType)Utility.MakeGenericType(td, this.m_Method.GenericParameters.ToArray());
+                dct = new MethodReference(".ctor", this.m_Module.Import(typeof(void)))
+                {
+                    DeclaringType = new TypeReference(dtd.Namespace, dtd.Name, this.m_Module, dtd.Scope)
+                    {
+                        DeclaringType = ivi
+                    }
+                };
+                foreach (ParameterDefinition pd in ct.Parameters)
+                    dct.Parameters.Add(pd);
+                //dct = Utility.MakeGeneric(dct, ivi.GenericArguments.ToArray());
+            }
+            */
+            
             // Initialize the delegate.
-            processor.Add(new InitDelegateStatement(ct, gmd, v_0));
+            processor.Add(new InitDelegateStatement(ct, bmr, v_0));
 
             // Initialize the array.
             if (this.m_Method.IsSetter)
@@ -311,7 +405,7 @@ namespace Process4.Task.Wrappers
                     p.Append(Instruction.Create(OpCodes.Ldloc, v_1));
                     p.Append(Instruction.Create(OpCodes.Ldc_I4_S, (sbyte)i));
                     p.Append(Instruction.Create(OpCodes.Ldarg_S, pd));
-                    if (pd.ParameterType.IsValueType)
+                    if (pd.ParameterType.IsValueType || pd.ParameterType.IsGenericParameter)
                         p.Append(Instruction.Create(OpCodes.Box, pd.ParameterType));
                     p.Append(Instruction.Create(OpCodes.Stelem_Ref));
                 })));
@@ -327,6 +421,69 @@ namespace Process4.Task.Wrappers
                 processor.Add(new CallStatement(removeevent, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
             else
                 processor.Add(new CallStatement(invoke, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
+
+
+            /*
+            GenericInstanceMethod gmd = null;
+            GenericInstanceType gty = null;
+            if (md.DeclaringType.HasGenericParameters)
+            {
+                gty = new GenericInstanceType(md.DeclaringType);
+                TypeReference tr = md.ReturnType;
+                if (tr is GenericParameter)
+                    tr = new GenericParameter(
+                        (tr as GenericParameter).Position,
+                        (tr as GenericParameter).Type,
+                        this.m_Module);
+                MethodReference gtmr = new MethodReference(md.Name, tr, gty)
+                {
+                    HasThis = md.HasThis,
+                    ExplicitThis = md.ExplicitThis,
+                    CallingConvention = md.CallingConvention
+                };
+                /*foreach (ParameterDefinition pd in md.Parameters)
+                {
+                    if (pd.ParameterType is GenericParameter)
+                    {
+                        gtmr.Parameters.Add(new ParameterDefinition(new GenericParameter(
+                            (pd.ParameterType as GenericParameter).Position,
+                            (pd.ParameterType as GenericParameter).Type,
+                            tr.Module)));
+                    }
+                    //    ParameterDefinition npd = new ParameterDefinition(new Ge
+                    //}
+                    //ParameterDefinition npd = new ParameterDefinition(Utility.FixPotentialGenericArgument(pd.ParameterType));
+                    //gtmr.Parameters.Add(npd);
+                    //gtmr.Parameters.Add(pd);
+                }*
+                gmd = new GenericInstanceMethod(gtmr) { CallingConvention = MethodCallingConvention.Generic };
+            }
+            else
+                gmd = new GenericInstanceMethod(md);
+            for (int iix = 0; iix < idc.GenericParameters.Count; iix++)
+            {
+                GenericParameter ngp = new GenericParameter(
+                    idc.GenericParameters[iix].Position,
+                    idc.GenericParameters[iix].Type,
+                    this.m_Module);
+                gmd.GenericParameters.Add(ngp);
+
+                if (iix < this.m_Type.GenericParameters.Count)
+                {
+                    // Pass in type parameter.
+                    GenericParameter nga = new GenericParameter(iix, GenericParameterType.Type, this.m_Module);
+                    gty.GenericArguments.Add(nga);
+                    (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(nga);
+                }
+                else
+                {
+                    // Pass in method parameter.
+                    GenericParameter nga = new GenericParameter(iix - this.m_Type.GenericParameters.Count,
+                        GenericParameterType.Method, this.m_Module);
+                    gmd.GenericArguments.Add(nga);
+                    (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(nga);
+                }
+            }*/
         }
     }
 }

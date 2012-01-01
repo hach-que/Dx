@@ -239,12 +239,15 @@ namespace Process4.Providers
     {
         public static object InvokeDynamic(Delegate d, object[] args)
         {
-            Type[] tparams = d.Method.GetGenericArguments();
+            Type[] tparams = d.Method.DeclaringType.GetGenericArguments()
+                                .Concat(d.Method.GetGenericArguments())
+                                .ToArray();
             Type dt = d.GetType().DeclaringType;
             if (dt.ContainsGenericParameters)
                 dt = dt.MakeGenericType(tparams);
             IDirectInvoke di = dt.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
-            return di.Invoke(d.Method, d.Target, args);
+            object o = di.Invoke(d.Method, d.Target, args);
+            return o;
         }
 
         public static object SetProperty(Delegate d, object[] args)
@@ -360,7 +363,8 @@ namespace Process4.Providers
             string methodName = d.Method.Name;
 
             // Get our local node and invoke the method.
-            return LocalNode.Singleton.Invoke(objectName, methodName, args);
+            object o = LocalNode.Singleton.Invoke(objectName, methodName, args);
+            return o;
         }
 
         public static void Construct(object obj)
