@@ -392,6 +392,8 @@ namespace Process4.Providers
             // serialize all of their values.
             foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlagsCombined.All))
             {
+                if (fi.GetCustomAttributes(typeof(LocalAttribute), true).Length > 0)
+                    continue;
                 if (fi.FieldType.GetInterface("ITransparent") != null)
                 {
                     // Just serialize the NetworkName instead of the whole object.
@@ -414,6 +416,8 @@ namespace Process4.Providers
             // set their values based on the deserialized information.
             foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlagsCombined.All))
             {
+                if (fi.GetCustomAttributes(typeof(LocalAttribute), true).Length > 0)
+                    continue;
                 if (fi.FieldType.GetInterface("ITransparent") != null)
                 {
                     // Deserialize the object based on the NetworkName.

@@ -35,8 +35,6 @@ namespace Process4.Collections
                 LocalNode.Singleton.Storage.Store(this.m_Name, this.m_Data);
                 typeof(T).GetConstructor(Type.EmptyTypes).Invoke(this.m_Data, null);
             }
-
-            // TODO: Handle value types.
         }
 
         /// <summary>

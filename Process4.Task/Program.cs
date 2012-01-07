@@ -134,6 +134,16 @@ namespace Process4.Task
             return false;
         }
 
+        internal static bool HasAttribute(Collection<CustomAttribute> attributes, string name)
+        {
+            foreach (CustomAttribute ca in attributes)
+            {
+                if (Process4Assembler.AttributeMatches(ca.AttributeType, name))
+                    return true;
+            }
+            return false;
+        }
+
         private static bool HasAttributeSpecific(TypeDefinition type, string name)
         {
             foreach (CustomAttribute ca in type.CustomAttributes)
