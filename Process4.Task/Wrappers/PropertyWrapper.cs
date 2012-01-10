@@ -38,6 +38,7 @@ namespace Process4.Task.Wrappers
         {
             // Check to ensure property type has a distributed attribute or is a value type.
             if (this.m_Property.PropertyType.IsValueType ||
+                this.m_Property.PropertyType.Resolve().IsInterface ||
                 this.m_Property.PropertyType.FullName == "System.String" ||
                 Process4Assembler.HasAttribute(this.m_Property.PropertyType.Resolve(), "DistributedAttribute"))
             {

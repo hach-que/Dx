@@ -70,6 +70,7 @@
     <Compile Include="GenericsTest_Compare.cs" />
     <Compile Include="GenericsTest.cs" />
     <Compile Include="IInterfaceTest.cs" />
+    <Compile Include="InterfaceTest.cs" />
     <Compile Include="LocalizedTest.cs" />
     <Compile Include="ManualVector.cs" />
     <Compile Include="Program.cs" />
@@ -107,6 +108,6 @@
   </Target>-->
   <PropertyGroup>
     <PostBuildEvent>cd "$(TargetDir)"
-"C:\Server Storage\Projects\Redpoint\Dx\Process4.Task\bin\x86\Debug\Process4.Task.exe" "$(TargetPath)"</PostBuildEvent>
+rem "C:\Server Storage\Projects\Redpoint\Dx\Process4.Task\bin\x86\Debug\Process4.Task.exe" "$(TargetPath)"</PostBuildEvent>
   </PropertyGroup>
 </Project>

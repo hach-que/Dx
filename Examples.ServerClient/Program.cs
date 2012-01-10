@@ -73,7 +73,7 @@ namespace Examples.ServerClient
             try { gt.Method0(); } catch (Exception e) { Console.WriteLine("Method0: " + e.Message); }
             try { gt.Method1(); } catch (Exception e) { Console.WriteLine("Method1: " + e.Message); }
             try { gt.Method2(); } catch (Exception e) { Console.WriteLine("Method2: " + e.Message); }
-            /*try { */gt.Method3<string>();/* } catch (Exception e) { Console.WriteLine("Method3: " + e.Message); }*/
+            try { gt.Method3<string>(); } catch (Exception e) { Console.WriteLine("Method3: " + e.Message); }
             try { gt.Method4<Tile>(); } catch (Exception e) { Console.WriteLine("Method4: " + e.Message); }
             try { gt.Method5<Tile>(); } catch (Exception e) { Console.WriteLine("Method5: " + e.Message); }
             try { gt.Method6<int>(); } catch (Exception e) { Console.WriteLine("Method6: " + e.Message); }
