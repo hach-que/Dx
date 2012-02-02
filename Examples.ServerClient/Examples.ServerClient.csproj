@@ -70,6 +70,12 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="ChildWorld.cs" />
+    <Compile Include="GenericsTest_Compare.cs" />
+    <Compile Include="GenericsTest.cs" />
+    <Compile Include="IInterfaceTest.cs" />
+    <Compile Include="InterfaceTest.cs" />
+    <Compile Include="LocalizedTest.cs" />
+    <Compile Include="ManualVector.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -91,7 +97,10 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="SealedTest.cs" />
+    <Compile Include="SealedTest_Compare.cs" />
     <Compile Include="Tile.cs" />
+    <Compile Include="Vector.cs" />
     <Compile Include="World.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

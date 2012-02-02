@@ -42,7 +42,7 @@ namespace Process4.Task
         {
             Directory.SetCurrentDirectory(Path.GetDirectoryName(this.AssemblyFile));
 
-            this.Log = new StreamWriter("./Process4.Task.Output.txt", true);
+            this.Log = new StreamWriter("./Process4.Task.Output.txt", false);
             this.Log.WriteLine("== BEGIN (" + DateTime.Now.ToString() + ") ==");
 
             try
@@ -130,6 +130,16 @@ namespace Process4.Task
                     type = type.BaseType.Resolve();
                 else
                     type = null;
+            }
+            return false;
+        }
+
+        internal static bool HasAttribute(Collection<CustomAttribute> attributes, string name)
+        {
+            foreach (CustomAttribute ca in attributes)
+            {
+                if (Process4Assembler.AttributeMatches(ca.AttributeType, name))
+                    return true;
             }
             return false;
         }

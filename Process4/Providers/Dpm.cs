@@ -239,8 +239,15 @@ namespace Process4.Providers
     {
         public static object InvokeDynamic(Delegate d, object[] args)
         {
-            IDirectInvoke di = d.GetType().DeclaringType.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
-            return di.Invoke(d.Method, d.Target, args);
+            Type[] tparams = d.Method.DeclaringType.GetGenericArguments()
+                                .Concat(d.Method.GetGenericArguments())
+                                .ToArray();
+            Type dt = d.GetType().DeclaringType;
+            if (dt.ContainsGenericParameters)
+                dt = dt.MakeGenericType(tparams);
+            IDirectInvoke di = dt.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
+            object o = di.Invoke(d.Method, d.Target, args);
+            return o;
         }
 
         public static object SetProperty(Delegate d, object[] args)
@@ -356,7 +363,8 @@ namespace Process4.Providers
             string methodName = d.Method.Name;
 
             // Get our local node and invoke the method.
-            return LocalNode.Singleton.Invoke(objectName, methodName, args);
+            object o = LocalNode.Singleton.Invoke(objectName, methodName, args);
+            return o;
         }
 
         public static void Construct(object obj)
@@ -384,6 +392,8 @@ namespace Process4.Providers
             // serialize all of their values.
             foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlagsCombined.All))
             {
+                if (fi.GetCustomAttributes(typeof(LocalAttribute), true).Length > 0)
+                    continue;
                 if (fi.FieldType.GetInterface("ITransparent") != null)
                 {
                     // Just serialize the NetworkName instead of the whole object.
@@ -406,6 +416,8 @@ namespace Process4.Providers
             // set their values based on the deserialized information.
             foreach (FieldInfo fi in obj.GetType().GetFields(BindingFlagsCombined.All))
             {
+                if (fi.GetCustomAttributes(typeof(LocalAttribute), true).Length > 0)
+                    continue;
                 if (fi.FieldType.GetInterface("ITransparent") != null)
                 {
                     // Deserialize the object based on the NetworkName.

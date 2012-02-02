@@ -17,7 +17,7 @@ namespace Process4.Task
         /// <param name="sourceMethod">The local method on which to base the delegate.</param>
         /// <param name="delegateVariable">The delegate variable to define (in the local method).</param>
         /// <param name="delegateCtor">The delegate constructor that will be used to create new instances of the delegate.</param>
-        public static TypeDefinition EmitDelegate(ILProcessor processor, TypeDefinition sourceType, MethodDefinition sourceMethod, out VariableDefinition delegateVariable, out MethodDefinition delegateCtor)
+        public static TypeDefinition EmitDelegate(ILProcessor processor, TypeDefinition sourceType, MethodDefinition sourceMethod, TypeReference originalType, out VariableDefinition delegateVariable, out MethodReference delegateCtor)
         {
             delegateCtor = null;
             delegateVariable = null;
@@ -37,11 +37,27 @@ namespace Process4.Task
 
             // Create a new TypeDefinition for the delegate.
             TypeDefinition delegateType = new TypeDefinition(
-                method.DeclaringType.Namespace,
+                "",
                 method.Name + "__DistributedDelegate" + body.Method.DeclaringType.NestedTypes.Count,
                 TypeAttributes.Sealed | TypeAttributes.NestedPublic,
                 type_MulticastDelegate // Inherit from MulticastDelegate
                 );
+            foreach (GenericParameter gp in originalType.GenericParameters)
+            {
+                GenericParameter ngp = new GenericParameter(gp.Name, delegateType);
+                ngp.Attributes = gp.Attributes;
+                foreach (TypeReference gpc in gp.Constraints)
+                    ngp.Constraints.Add(gpc);
+                delegateType.GenericParameters.Add(ngp);
+            }
+            foreach (GenericParameter gp in sourceMethod.GenericParameters)
+            {
+                GenericParameter ngp = new GenericParameter(gp.Name, delegateType);
+                ngp.Attributes = gp.Attributes;
+                foreach (TypeReference gpc in gp.Constraints)
+                    ngp.Constraints.Add(gpc);
+                delegateType.GenericParameters.Add(ngp);
+            }
             Utility.AddAttribute(delegateType, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), module);
 
             // Add the constructor to the delegate type.
@@ -65,23 +81,40 @@ namespace Process4.Task
             ctor.Body = null;
             ctor.IsRuntime = true;
             ctor.ImplAttributes = MethodImplAttributes.CodeTypeMask;
-            delegateCtor = ctor;
 
             // Add the Invoke method to the delegate type.
+            TypeReference retType = sourceMethod.ReturnType;
+            if (sourceMethod.ReturnType is GenericInstanceType)
+                retType = Utility.RewriteGenericReferencesToType(originalType, sourceMethod.ReturnType as GenericInstanceType);
+            else if (sourceMethod.ReturnType is GenericParameter)
+                retType = new GenericParameter(
+                                (sourceMethod.ReturnType as GenericParameter).Type == GenericParameterType.Type ?
+                                (sourceMethod.ReturnType as GenericParameter).Position :
+                                (sourceMethod.ReturnType as GenericParameter).Position + originalType.GenericParameters.Count,
+                                GenericParameterType.Type,
+                                sourceType.Module);
             MethodDefinition invoke = new MethodDefinition(
                 "Invoke",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot |
                     MethodAttributes.Virtual,
-                sourceMethod.ReturnType
-                );
+                retType
+            );
             foreach (ParameterDefinition p in sourceMethod.Parameters)
             {
                 // Add the parameters that are accepted by the source
                 // method to the delegate.
+                TypeReference pType = p.ParameterType;
+                if (p.ParameterType is GenericParameter)
+                    pType = new GenericParameter(
+                                    (p.ParameterType as GenericParameter).Type == GenericParameterType.Type ?
+                                    (p.ParameterType as GenericParameter).Position :
+                                    (p.ParameterType as GenericParameter).Position + originalType.GenericParameters.Count,
+                                    GenericParameterType.Type,
+                                    sourceMethod.Module);
                 invoke.Parameters.Add(new ParameterDefinition(
                     p.Name,
                     p.Attributes,
-                    p.ParameterType
+                    pType
                     ));
             }
             invoke.Body = null;
@@ -99,10 +132,18 @@ namespace Process4.Task
             {
                 // Add the parameters that are accepted by the source
                 // method to the delegate.
+                TypeReference pType = p.ParameterType;
+                if (p.ParameterType is GenericParameter)
+                    pType = new GenericParameter(
+                                    (p.ParameterType as GenericParameter).Type == GenericParameterType.Type ?
+                                    (p.ParameterType as GenericParameter).Position :
+                                    (p.ParameterType as GenericParameter).Position + originalType.GenericParameters.Count,
+                                    GenericParameterType.Type,
+                                    sourceMethod.Module);
                 begininvoke.Parameters.Add(new ParameterDefinition(
                     p.Name,
                     p.Attributes,
-                    p.ParameterType
+                    pType
                     ));
             }
             begininvoke.Parameters.Add(new ParameterDefinition(
@@ -124,7 +165,7 @@ namespace Process4.Task
                 "EndInvoke",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot |
                     MethodAttributes.Virtual,
-                sourceMethod.ReturnType
+                retType
                 );
             endinvoke.Parameters.Add(new ParameterDefinition(
                 "result",
@@ -148,6 +189,28 @@ namespace Process4.Task
             //TypeReference delegateTypeReference = new TypeReference(delegateType.Namespace, delegateType.Name, module, null);
             //delegateTypeReference.DeclaringType = sourceType;
             delegateVariable = new VariableDefinition("d", type_MulticastDelegate);
+
+            if (sourceType.GenericParameters.Count == 0)
+                delegateCtor = ctor;
+            else
+            {
+                // We need to make a generic version of the type and get the constructor from that.
+                GenericInstanceType git = new GenericInstanceType(delegateType);
+                foreach (GenericParameter gp in sourceType.GenericParameters)
+                    git.GenericParameters.Add(new GenericParameter(gp.Position, GenericParameterType.Type, gp.Module)); // "!!" + gp.Name, git
+                delegateCtor = new MethodReference(".ctor", type_Void, git);
+                delegateCtor.Parameters.Add(new ParameterDefinition("object", ParameterAttributes.None, type_Object));
+                delegateCtor.Parameters.Add(new ParameterDefinition("method", ParameterAttributes.None, type_IntPtr));
+                delegateCtor.HasThis = true;
+            }
+
+            // Create the generic instance type.
+            /*GenericInstanceType gdg = new GenericInstanceType(dg);
+            foreach (GenericParameter gp in idc.GenericParameters)
+            {
+                gdg.GenericParameters.Add(new GenericParameter("!0", gdg));
+                gdg.GenericArguments.Add(gdg.GenericParameters[0]);
+            }*/
 
             // Add as a local variable to the method.
             body.Variables.Insert(0, delegateVariable);
@@ -305,6 +368,105 @@ namespace Process4.Task
 
             // Add the method.
             t.Methods.Add(getobjdata);
+        }
+
+        /// <summary>
+        /// Fixes a potential generic argument so that it's owner is changed (this method does not
+        /// adjust types or offsets of generic parameters).
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="newOwner"></param>
+        /// <returns></returns>
+        public static TypeReference FixPotentialGenericArgument(TypeReference type)
+        {
+            if (type is GenericParameter)
+            {
+                GenericParameter gp = type as GenericParameter;
+                return new GenericParameter(gp.Position, gp.Type, type.Module);
+            }
+            else if (type is GenericInstanceType)
+            {
+                GenericInstanceType git = type as GenericInstanceType;
+                GenericInstanceType ngit = new GenericInstanceType(git.ElementType);
+                foreach (GenericParameter gp in git.GenericParameters)
+                    ngit.GenericParameters.Add(new GenericParameter(gp.Name, ngit));
+                foreach (TypeReference tr in git.GenericArguments)
+                    ngit.GenericArguments.Add(Utility.FixPotentialGenericArgument(tr));
+                return ngit;
+            }
+            else
+                return type;
+        }
+
+        /// <summary>
+        /// Updates a generic instance's references to method generic parameters such that they
+        /// refer to a type generic parameter instead (with the offset determined by the number
+        /// of generic parameters in the original type). 
+        /// </summary>
+        /// <param name="original">The original type that contains the type-level parameters.</param>
+        /// <param name="git">The generic instance type to update.</param>
+        /// <returns></returns>
+        public static TypeReference RewriteGenericReferencesToType(TypeReference original, GenericInstanceType git)
+        {
+            GenericInstanceType ngit = new GenericInstanceType(git.ElementType);
+            foreach (GenericParameter gp in git.GenericParameters)
+                ngit.GenericParameters.Add(new GenericParameter(gp.Name, ngit));
+            foreach (TypeReference tr in git.GenericArguments)
+            {
+                if (tr is GenericParameter)
+                {
+                    // We fix this reference since it'll be a method generic
+                    // instead of the type generic.
+                    GenericParameter ngp = new GenericParameter(
+                        (tr as GenericParameter).Type == GenericParameterType.Type ?
+                        (tr as GenericParameter).Position :
+                        (tr as GenericParameter).Position + original.GenericParameters.Count,
+                        GenericParameterType.Type,
+                        original.Module);
+                    ngit.GenericArguments.Add(ngp);
+                }
+                else if (tr is GenericInstanceType)
+                {
+                    // This is another generic instance which may further contain
+                    // more generic parameters that need to be fixed.
+                    ngit.GenericArguments.Add(Utility.RewriteGenericReferencesToType(original, tr as GenericInstanceType));
+                }
+                else
+                    // Standard type that can be simply added.
+                    ngit.GenericArguments.Add(tr);
+            }
+            return ngit;
+        }
+
+        public static TypeReference MakeGenericType(TypeReference self, params TypeReference[] arguments)
+        {
+            if (self.GenericParameters.Count != arguments.Length)
+                throw new ArgumentException();
+
+            var instance = new GenericInstanceType(self);
+            foreach (var argument in arguments)
+                instance.GenericArguments.Add(argument);
+
+            return instance;
+        }
+
+        public static MethodReference MakeGeneric(MethodReference self, params TypeReference[] arguments)
+        {
+            var reference = new MethodReference(self.Name, self.ReturnType)
+            {
+                DeclaringType = Utility.MakeGenericType(self.DeclaringType, arguments),
+                HasThis = self.HasThis,
+                ExplicitThis = self.ExplicitThis,
+                CallingConvention = self.CallingConvention,
+            };
+
+            foreach (var parameter in self.Parameters)
+                reference.Parameters.Add(new ParameterDefinition(parameter.ParameterType));
+
+            foreach (var generic_parameter in self.GenericParameters)
+                reference.GenericParameters.Add(new GenericParameter(generic_parameter.Name, reference));
+
+            return reference;
         }
     }
 }

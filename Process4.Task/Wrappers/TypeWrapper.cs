@@ -57,7 +57,7 @@ namespace Process4.Task.Wrappers
 
             // Wrap all of our other properties, methods and fields.
             foreach (PropertyDefinition p in this.m_Type.Properties.Where(value => !exclusions.Contains(value.Name)).ToList())
-                (new PropertyWrapper(p) { Log = this.Log }).Wrap();
+                (new PropertyWrapper(p) { Log = this.Log, Exclusions = exclusions }).Wrap();
             foreach (PropertyDefinition p in this.m_Type.Properties.Where(value => exclusions.Contains(value.Name)).ToList())
                 this.Log.WriteLine("  - p " + p.Name + " (excluded)");
             foreach (MethodDefinition m in this.m_Type.Methods.Where(value => !exclusions.Contains(value.Name) && !value.IsStatic && value.Name != ".ctor").ToList())

@@ -18,6 +18,8 @@ namespace Process4.Task.Wrappers
         /// </summary>
         public StreamWriter Log { get; set; }
 
+        public List<string> Exclusions { get; set; }
+
         /// <summary>
         /// Creates a new property wrapper which will wrap the specified property.
         /// </summary>
@@ -36,11 +38,19 @@ namespace Process4.Task.Wrappers
         {
             // Check to ensure property type has a distributed attribute or is a value type.
             if (this.m_Property.PropertyType.IsValueType ||
+                this.m_Property.PropertyType.Resolve().IsInterface ||
                 this.m_Property.PropertyType.FullName == "System.String" ||
                 Process4Assembler.HasAttribute(this.m_Property.PropertyType.Resolve(), "DistributedAttribute"))
             {
                 // This is a valid type.
                 this.Log.WriteLine("  + p " + this.m_Property.Name);
+            }
+            else if (Process4Assembler.HasAttribute(this.m_Property.CustomAttributes, "LocalAttribute"))
+            {
+                // This is a localized property; add the get and set methods to our
+                // exclusion list.
+                this.Exclusions.Add(this.m_Property.GetMethod.Name);
+                this.Exclusions.Add(this.m_Property.SetMethod.Name);
             }
             else
             {
