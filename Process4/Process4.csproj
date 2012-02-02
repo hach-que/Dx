@@ -55,6 +55,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\VersionInfo.cs">
+      <Link>Properties\VersionInfo.cs</Link>
+    </Compile>
     <Compile Include="Attributes\AsynchronousAttribute.cs" />
     <Compile Include="Attributes\ClientCallableAttribute.cs" />
     <Compile Include="Collections\Distributed.cs" />
@@ -63,6 +66,7 @@
     <Compile Include="Attributes\ProcessedAttribute.cs" />
     <Compile Include="Collections\DList.cs" />
     <Compile Include="Interfaces\IDirectInvoke.cs" />
+    <Compile Include="Interfaces\IImmutable.cs" />
     <Compile Include="Interfaces\INetworkProvider.cs" />
     <Compile Include="Networks\AutomaticUdpNetwork.cs" />
     <Compile Include="Providers\DhtWrapper.cs" />

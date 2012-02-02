@@ -39,6 +39,7 @@ namespace Data4
         //private ConcurrentBag<Entry> p_CachedEntries = new ConcurrentBag<Entry>();
 
         public event EventHandler<MessageEventArgs> OnReceived;
+        public event EventHandler<EntriesRequestedEventArgs> OnEntriesRequested;
 
         public Dht(ID identifier, IPEndPoint endpoint)
             : this(identifier, endpoint, false)
@@ -246,6 +247,14 @@ namespace Data4
             foreach (Entry e in this.p_OwnedEntries)
                 if (e.Key == request.Key)
                     entries.Add(e);
+            if (this.OnEntriesRequested != null)
+            {
+                EntriesRequestedEventArgs erea = new EntriesRequestedEventArgs();
+                this.OnEntriesRequested(this, erea);
+                foreach (KeyValuePair<ID, object> kv in erea.Entries)
+                    if (kv.Key == request.Key)
+                        entries.Add(new Entry(this, this.Self, kv.Key, kv.Value));
+            }
             /*foreach (Entry e in this.p_CachedEntries)
                 if (e.Key == request.Key)
                     entries.Add(e);*/

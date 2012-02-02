@@ -76,6 +76,7 @@ namespace Data4
         {
             string type = info.GetString("type");
             this.m_StrongValue = info.GetValue("object", Type.GetType(type));
+            this.p_Key = info.GetValue("key", typeof(ID)) as ID;
         }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -89,6 +90,7 @@ namespace Data4
             object o = this.m_Value.Target;
             info.AddValue("type", o.GetType().AssemblyQualifiedName);
             info.AddValue("object", o);
+            info.AddValue("key", this.p_Key);
         }
 
         #endregion

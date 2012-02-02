@@ -20,14 +20,25 @@ namespace Process4.Collections
         /// instance (so all instances of Distributed&lt;&gt; with the same name point to the
         /// same data in the network).
         /// </summary>
-        /// <param name="name"></param>
-        public Distributed(string name)
+        /// <param name="name">The unique identifier for this object in the network.</param>
+        public Distributed(string name) : this(name, false)
+        {
+        }
+
+        /// <summary>
+        /// Constructs a Distributed&lt;&gt; generic with the specified name.  If the name is the same
+        /// as a Distributed&lt;&gt; already in the network, it will point to the existing
+        /// instance (so all instances of Distributed&lt;&gt; with the same name point to the
+        /// same data in the network).
+        /// </summary>
+        /// <param name="name">The unique identifier for this object in the network.</param>
+        private Distributed(string name, bool preventCreate)
         {
             this.m_Name = name;
 
             // Get the object from the DHT.
             this.m_Data = (T)LocalNode.Singleton.Storage.Fetch(name);
-            if (this.m_Data == null && typeof(T).GetInterface("ITransparent") != null)
+            if (this.m_Data == null && typeof(T).GetInterface("ITransparent") != null && !preventCreate)
             {
                 // Create the new object and register it.
                 this.m_Data = (T)FormatterServices.GetUninitializedObject(typeof(T));
@@ -83,9 +94,51 @@ namespace Process4.Collections
                                                     + "If this class does have the Distributed attribute set, ensure the post-processor is being executed during build.");
         }
 
+        #region Helpers for Immutable Storage
+
+        /// <summary>
+        /// Pushes the current object out to all other nodes in the network, informing them that
+        /// they should store the object data forever and never attempt to fetch it from the
+        /// source again.  This method only works if the node caching is set to StoreOnDemand.
+        /// </summary>
+        public void PushImmutable()
+        {
+            if (typeof(T).GetInterface("Process4.Interfaces.IImmutable") == null)
+                throw new NotSupportedException("Unable to push non-immutable type using PushImmutable.");
+            if ((this.m_Data as ITransparent).IsImmutablyPushed)
+                throw new NotSupportedException("Unable to repush immutable type using PushImmutable.");
+            (this.m_Data as ITransparent).IsImmutablyPushed = true;
+            LocalNode.Singleton.Storage.Store(this.m_Name, this.m_Data);
+
+            // TODO: Push to other nodes in the network.
+        }
+
+        /// <summary>
+        /// Pulls an immutable object from the network, making sure that it does not accidently
+        /// create a new immutable object in the network.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public static T PullImmutable(string key)
+        {
+            if (typeof(T).GetInterface("Process4.Interfaces.IImmutable") == null)
+                throw new NotSupportedException("Unable to pull non-immutable type using PullImmutable.");
+            Distributed<T> d = new Distributed<T>(key, true);
+            if (d.m_Data == null)
+                return default(T);
+            else
+                return d;
+        }
+
+        #endregion
+
+        #region Manual Cast Method
+
         internal T ManualDistributedErasure()
         {
             return (T)this;
         }
+
+        #endregion
     }
 }

@@ -42,13 +42,17 @@ namespace Process4.Task.Wrappers
 
             // Add required properties.
             Utility.AddAutoProperty(this.m_Type, "NetworkName", typeof(string));
+            Utility.AddAutoProperty(this.m_Type, "IsImmutablyPushed", typeof(bool));
 
             // Define a list of exclusions for wrapping.
             List<string> exclusions = new List<string>
             {
                 "NetworkName",
                 "get_NetworkName",
-                "set_NetworkName"
+                "set_NetworkName",
+                "IsImmutablyPushed",
+                "get_IsImmutablyPushed",
+                "set_IsImmutablyPushed"
             };
 
             // Wrap all of our other properties, methods and fields.

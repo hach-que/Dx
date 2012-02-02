@@ -77,16 +77,23 @@ namespace Process4.Attributes
         PullOnDemand,
 
         /// <summary>
-        /// The data is periodically fetched from the node that owns it.  The data is fetched in the background.  When
-        /// a node sets a property, it acts the same as PullOnDemand (the node must wait for the operation to complete).
-        /// </summary>
-        //PullOnTimeout,
-
-        /// <summary>
         /// When the server changes data that it owns, it pushes the information to the clients in the network who cache
         /// the value indefinitely.  Only valid in the ServerClient architecture.
         /// </summary>
         PushOnChange,
+        
+        /// <summary>
+        /// The data is permanently stored in the local cache forever when initially retrieved.  Only appropriate for
+        /// networks where all distributed objects are immutable (such as where peer-to-peer instances are signed with
+        /// cryptography).
+        /// </summary>
+        StoreOnDemand,
+
+        /// <summary>
+        /// The data is periodically fetched from the node that owns it.  The data is fetched in the background.  When
+        /// a node sets a property, it acts the same as PullOnDemand (the node must wait for the operation to complete).
+        /// </summary>
+        //PullOnTimeout,
 
         /// <summary>
         /// The data is fetched from the node that owns it when the property is accessed.  The last known value is

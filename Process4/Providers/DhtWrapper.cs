@@ -37,7 +37,11 @@ namespace Process4.Providers
 
             // Register the message listener on the DHT which we will use to
             // detect InvokeMessage, SetPropertyMessage and GetPropertyMessage.
-            this.p_Dht.OnReceived += new EventHandler<MessageEventArgs>(m_Dht_OnReceived);
+            this.p_Dht.OnReceived += new EventHandler<MessageEventArgs>(p_Dht_OnReceived);
+
+            // Register the entry provider for when we are operating in StoreOnDemand mode.
+            if (this.m_Node.Caching == Caching.StoreOnDemand)
+                this.p_Dht.OnEntriesRequested += new EventHandler<EntriesRequestedEventArgs>(p_Dht_OnEntriesRequested);
         }
 
         /// <summary>
@@ -52,8 +56,25 @@ namespace Process4.Providers
         /// This event is raised when the DHT has received a message and we should
         /// check to see if it is any of the types we want to handle.
         /// </summary>
-        void m_Dht_OnReceived(object sender, MessageEventArgs e)
+        void p_Dht_OnReceived(object sender, MessageEventArgs e)
         {
+            if (e.Message is FetchConfirmationMessage && this.m_Node.Caching == Caching.StoreOnDemand)
+            {
+                // We want to store a copy of everything we have fetched in our dictionary.
+                foreach (Entry ee in (e.Message as FetchConfirmationMessage).Values)
+                {
+                    try
+                    {
+                        this.p_CachedEntries.Add(ee.Key, ee.Value);
+                    }
+                    catch (ArgumentException)
+                    {
+                        // The network is immutable, so any entries with the same ID must also
+                        // have the same value and hence we don't care if they can't be added.
+                    }
+                }
+            }
+
             if (e.Message is InvokeMessage ||
                 e.Message is SetPropertyMessage ||
                 e.Message is GetPropertyMessage ||
@@ -116,6 +137,38 @@ namespace Process4.Providers
                         // The server doesn't care whether we got the message.
                         e.SendConfirmation = false;
                     }
+                    // We also need to handle StoreOnDemand mode.
+                    else if (this.m_Node.Caching == Caching.StoreOnDemand)
+                    {
+                        // Get a reference to the cached object.
+                        ITransparent obj = this.FetchCached(i.ObjectID) as ITransparent;
+
+                        // Get our cached copy of the object.
+                        if (obj == null)
+                        {
+                            // We don't yet have a cached copy of this object.  Request a complete
+                            // copy of the data that the server has.
+                            obj = this.Fetch(i.ObjectID) as ITransparent;
+                            if (obj == null) return;
+                            try
+                            {
+                                this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
+                            }
+                            catch (ArgumentException) { }
+
+                            // We don't need to call the setter since the cached value we just got
+                            // will contain the new value anyway.
+                        }
+                        else
+                        {
+                            // Check to see if we are in StoreOnDemand mode.
+                            if (this.m_Node.Caching == Caching.StoreOnDemand)
+                                throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
+                        }
+
+                        // The server doesn't care whether we got the message.
+                        e.SendConfirmation = false;
+                    }
                     else
                     {
                         // Tell the node to set the property.
@@ -161,6 +214,16 @@ namespace Process4.Providers
                     e.SendConfirmation = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// Handles providing any cached entries to the DHT when operating in StoreOnDemand
+        /// mode (since we need to pass along entries which we didn't originally own).
+        /// </summary>
+        void p_Dht_OnEntriesRequested(object sender, EntriesRequestedEventArgs e)
+        {
+            foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
+                e.Entries.Add(kv.Key, kv.Value);
         }
 
         #region IContactProvider Members
@@ -222,6 +285,10 @@ namespace Process4.Providers
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
                     if (obj == null) throw new ObjectVanishedException(id);
 
+                    // Check to see if we are in StoreOnDemand mode.
+                    if (this.m_Node.Caching == Caching.StoreOnDemand && obj.IsImmutablyPushed)
+                        throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
+
                     MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
@@ -233,6 +300,10 @@ namespace Process4.Providers
                 }
                 else
                 {
+                    // Check to see if we are in StoreOnDemand mode.
+                    if (this.m_Node.Caching == Caching.StoreOnDemand)
+                        throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
+
                     // Invoke the property setter remotely.
                     RemoteNode rnode = new RemoteNode(owner);
                     rnode.SetProperty(id, property, value);
@@ -243,6 +314,10 @@ namespace Process4.Providers
                 // Only the server is permitted to set properties.
                 if (!this.m_Node.IsServer)
                     throw new MemberAccessException("Only servers may set the '" + property + "' property.");
+
+                // Check to see if we are in StoreOnDemand mode.
+                if (this.m_Node.Caching == Caching.StoreOnDemand)
+                    throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
 
                 // Get the object directly from the owned entries (this is much
                 // faster than asking the entire network).
@@ -291,9 +366,9 @@ namespace Process4.Providers
                 if (owner == null) throw new ObjectVanishedException(id);
 
                 // Check to see if we own the property.
-                if (owner.Identifier == this.m_Node.ID)
+                if (owner.Identifier == this.m_Node.ID || this.m_Node.Caching == Caching.StoreOnDemand)
                 {
-                    // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
+                    // Invoke what would have been the delegate passed to DpmEntrypoint::GetProperty directly.
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
                     if (obj == null) throw new ObjectVanishedException(id);
 

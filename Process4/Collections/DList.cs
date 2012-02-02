@@ -95,6 +95,19 @@ namespace Process4.Collections
             }
         }
 
+        private bool m_IsImmutablyPushed;
+        public bool IsImmutablyPushed
+        {
+            get
+            {
+                return this.m_IsImmutablyPushed;
+            }
+            set
+            {
+                this.m_IsImmutablyPushed = value;
+            }
+        }
+
         #endregion
 
         #region ISerializable Members

@@ -12,5 +12,6 @@ namespace Process4.Interfaces
     public interface ITransparent
     {
         string NetworkName { get; set; }
+        bool IsImmutablyPushed { get; set; }
     }
 }
