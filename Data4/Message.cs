@@ -30,6 +30,7 @@ namespace Data4
         private Contact p_Sender = null;
         private List<Contact> p_Seen = new List<Contact>();
         private string p_Data = null;
+        private static object m_SendingLock = new object();
 
         private ID m_Identifier = null;
         private bool p_Sent = false;
@@ -87,18 +88,31 @@ namespace Data4
                 this.m_Identifier = ID.NewRandom();
 
             // Send the message to the target.
-            UdpClient udp = new UdpClient(target.EndPoint.AddressFamily);
-            using (MemoryStream writer = new MemoryStream())
+            using (MemoryStream buffer = new MemoryStream())
             {
-                this.Dht.LogI(Dht.LogType.DEBUG, "Sending -");
-                this.Dht.LogI(Dht.LogType.DEBUG, "          Message - " + this.ToString());
-                this.Dht.LogI(Dht.LogType.DEBUG, "          Target - " + target.ToString());
-                StreamingContext old = this.Dht.Formatter.Context;
-                this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Dht = this.Dht, IsMessage = true });
-                this.Dht.Formatter.Serialize(writer, this);
-                this.Dht.Formatter.Context = old;
-                int bytes = udp.Send(writer.GetBuffer(), writer.GetBuffer().Length, target.EndPoint);
-                this.Dht.LogI(Dht.LogType.DEBUG, bytes + " total bytes sent.");
+                using (MemoryStream writer = new MemoryStream())
+                {
+                    this.Dht.LogI(Dht.LogType.DEBUG, "Sending -");
+                    this.Dht.LogI(Dht.LogType.DEBUG, "          Message - " + this.ToString());
+                    this.Dht.LogI(Dht.LogType.DEBUG, "          Target - " + target.ToString());
+                    StreamingContext old = this.Dht.Formatter.Context;
+                    this.Dht.Formatter.Context = new StreamingContext(this.Dht.Formatter.Context.State, new SerializationData { Dht = this.Dht, IsMessage = true });
+                    this.Dht.Formatter.Serialize(writer, this);
+                    this.Dht.Formatter.Context = old;
+                    if (writer.Length >= Int32.MaxValue)
+                        throw new InvalidDataException("Message contents too large to send over network!");
+                    buffer.Write(BitConverter.GetBytes(writer.Length), 0, sizeof(Int32));
+                    buffer.Write(writer.GetBuffer(), 0, (Int32)writer.Length);
+                    lock (Message.m_SendingLock)
+                    {
+                        TcpClient tcp = ContactPool.GetTcpClient(target.EndPoint);
+                        int sent = 0;
+                        int total = (int)buffer.Length;
+                        while (sent < total)
+                            sent += tcp.Client.Send(buffer.GetBuffer(), sent, total - sent, SocketFlags.None);
+                        this.Dht.LogI(Dht.LogType.DEBUG, sent + " total bytes sent.");
+                    }
+                }
             }
 
             return duplicate;

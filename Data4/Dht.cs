@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
@@ -31,12 +32,14 @@ namespace Data4
         private Contact p_Self = null;
         private List<Contact> p_Contacts = new List<Contact>();
         private IFormatter p_Formatter = null;
-        private UdpClient m_UdpClient = null;
-        private Thread m_UdpThread = null;
+        private TcpListener m_TcpListener = null;
+        private Thread m_TcpThread = null;
         private bool p_ShowDebug = false;
         private List<Entry> p_OwnedEntries = new List<Entry>();
+        private object p_OwnedEntriesLock = new object();
         private object p_YieldingLock = new object();
-        //private ConcurrentBag<Entry> p_CachedEntries = new ConcurrentBag<Entry>();
+
+        public const int TIMEOUT = 5;
 
         public event EventHandler<MessageEventArgs> OnReceived;
         public event EventHandler<EntriesRequestedEventArgs> OnEntriesRequested;
@@ -53,38 +56,98 @@ namespace Data4
             this.p_ShowDebug = debug;
 
             // Start listening for events.
-            IPEndPoint from = null;
-            this.m_UdpClient = new UdpClient(endpoint);
-            this.m_UdpThread = new Thread(delegate()
+            this.m_TcpListener = new TcpListener(endpoint);
+            this.m_TcpThread = new Thread(delegate()
             {
-                try
+                while (true)
                 {
-                    while (true)
+                    try
                     {
-                        byte[] result = this.m_UdpClient.Receive(ref from);
-                        this.LogI(LogType.DEBUG, "Received a message from " + from.ToString());
-                        Thread handler = new Thread(() =>
+                        Socket client = this.m_TcpListener.AcceptSocket();
+                        new Thread(() =>
+                        {
+                            while (true)
                             {
-                                this.OnReceive(from, result);
-                            });
-                        handler.Name = "Message Handling Thread";
-                        handler.Start();
+                                try
+                                {
+                                    int received = 0;
+                                    int total = sizeof(Int32);
+                                    byte[] size = new byte[sizeof(Int32)];
+                                    while (received < total)
+                                        received += client.Receive(size, received, sizeof(Int32) - received, SocketFlags.None);
+                                    if (BitConverter.ToInt32(size, 0) == 0)
+                                        throw new InvalidDataException("Length of received message must be greater than 0.");
+                                    received = 0;
+                                    total = BitConverter.ToInt32(size, 0);
+                                    byte[] result = new byte[total];
+                                    while (received < total)
+                                        received += client.Receive(result, received, total - received, SocketFlags.None);
+                                    this.LogI(LogType.DEBUG, "Received a message from " + client.RemoteEndPoint.ToString());
+                                    Thread handler = new Thread(a =>
+                                        {
+                                            this.OnReceive(((ThreadInformation)a).Endpoint, ((ThreadInformation)a).Result);
+                                        });
+                                    handler.Name = "Message Handling Thread";
+                                    handler.IsBackground = true;
+                                    handler.Start(new ThreadInformation { Endpoint = client.RemoteEndPoint as IPEndPoint, Result = result.Clone() as byte[] });
+                                }
+                                catch (SocketException ex)
+                                {
+                                    if (ex.SocketErrorCode == SocketError.ConnectionAborted ||
+                                        ex.SocketErrorCode == SocketError.ConnectionReset ||
+                                        ex.SocketErrorCode == SocketError.TimedOut)
+                                        return; // Other host disconnected.
+                                    else
+                                        throw;
+                                }
+                                catch (Exception ex)
+                                {
+                                    if (ex is ThreadAbortException)
+                                        return;
+                                    Console.WriteLine(ex.ToString());
+                                    throw;
+                                }
+                            }
+                        }) { IsBackground = true }.Start();
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is ThreadAbortException)
+                            return;
+                        Console.WriteLine(e.ToString());
+                        throw;
                     }
                 }
-                catch (Exception e)
-                {
-                    if (e is ThreadAbortException)
-                        return;
-                    Console.WriteLine(e.ToString());
-                }
-            }
-            );
-            this.m_UdpThread.Name = "Dht Receiving Thread";
-            //this.m_UdpThread.IsBackground = true;
-            this.m_UdpThread.Start();
+            });
+            this.m_TcpThread.Name = "Dht Receiving Thread";
+            this.m_TcpThread.IsBackground = true;
+            this.m_TcpListener.Start();
+            this.m_TcpThread.Start();
 
             if (this.p_ShowDebug)
                 Console.WriteLine("Dht node created with " + identifier.ToString() + " on " + endpoint.ToString());
+        }
+
+        private struct ThreadInformation
+        {
+            public IPEndPoint Endpoint;
+            public byte[] Result;
+        }
+
+        /// <summary>
+        /// Updates an existing entry in the DHT, or adds a new entry if it does not
+        /// exist.
+        /// </summary>
+        public void UpdateOrPut(ID key, object value)
+        {
+            lock (this.p_OwnedEntriesLock)
+            {
+                Entry e = this.p_OwnedEntries.Where(v => v.Key == key).FirstOrDefault();
+                if (e == null)
+                    this.p_OwnedEntries.Add(new Entry(this, this.p_Self, key, value));
+                else
+                    e.Value = value;
+            }
         }
 
         /// <summary>
@@ -92,7 +155,10 @@ namespace Data4
         /// </summary>
         public void Put(ID key, object value)
         {
-            this.p_OwnedEntries.Add(new Entry(this, this.p_Self, key, value));
+            lock (this.p_OwnedEntriesLock)
+            {
+                this.p_OwnedEntries.Add(new Entry(this, this.p_Self, key, value));
+            }
         }
 
         /// <summary>
@@ -101,11 +167,14 @@ namespace Data4
         public void Remove(ID key)
         {
             List<Entry> es = new List<Entry>();
-            foreach (Entry e in this.p_OwnedEntries)
-                if (e.Key == key)
-                    es.Add(e);
-            foreach (Entry e in es)
-                this.p_OwnedEntries.Remove(e);
+            lock (this.p_OwnedEntriesLock)
+            {
+                foreach (Entry e in this.p_OwnedEntries)
+                    if (e.Key == key)
+                        es.Add(e);
+                foreach (Entry e in es)
+                    this.p_OwnedEntries.Remove(e);
+            }
         }
 
         /// <summary>
@@ -115,13 +184,6 @@ namespace Data4
         /// </summary>
         public IEnumerable<Entry> Get(ID key)
         {
-            // 
-            // TODO: Make this return null instantly if all contacts have responded
-            //       but there are still no results rather than waiting for one
-            //       second!  It looks like it does this, but it doesn't actually
-            //       work that way.
-            //
-
             // Yield any entries that we already have
             // first.
             Entry[] el = this.p_OwnedEntries.ToArray();
@@ -137,9 +199,9 @@ namespace Data4
             EventHandler ev = null;
             ev = (sender, e) =>
                  {
-                     respondants.Add((sender as FetchMessage).Target);
                      foreach (Entry ee in (sender as FetchMessage).Values)
                          entries.Add(ee);
+                     respondants.Add((sender as FetchMessage).Target);
                      (sender as FetchMessage).ResultReceived -= ev;
                  };
 
@@ -156,39 +218,12 @@ namespace Data4
             // list yet.
             if (this.p_Contacts.Count > 0)
             {
+                DateTime start = DateTime.Now;
+
                 // If there are still contacts left to respond and we have
                 // no entries.
-                while (entries.Count == 0 && respondants.Count < this.p_Contacts.Count)
-                {
-                    DateTime start = DateTime.Now;
-
-                    while (entries.Count == 0 && respondants.Count < this.p_Contacts.Count && DateTime.Now.Subtract(start).Seconds < 1)
-                        Thread.Sleep(0);
-
-                    if (entries.Count == 0 && respondants.Count < this.p_Contacts.Count)
-                    {
-                        // Still nothing, request the data from the nodes again.
-                        Contact[] cc = respondants.ToArray();
-                        foreach (Contact c in this.p_Contacts)
-                        {
-                            // No idea why .Contains isn't working here...
-                            bool isin = false;
-                            foreach (Contact c2 in cc)
-                                if (c == c2)
-                                {
-                                    isin = true;
-                                    break;
-                                }
-
-                            if (!isin)
-                            {
-                                FetchMessage fm = new FetchMessage(this, c, key);
-                                fm.ResultReceived += ev;
-                                fm.Send();
-                            }
-                        }
-                    }
-                }
+                while (entries.Count == 0 && respondants.Count < 1 && DateTime.Now.Subtract(start).Seconds < Dht.TIMEOUT)
+                    Thread.Sleep(0);
             }
 
             // Take entries from the collection while
@@ -199,7 +234,7 @@ namespace Data4
         }
 
         /// <summary>
-        /// Handles receiving data through the UdpClient.
+        /// Handles receiving data through the TcpClient.
         /// </summary>
         /// <param name="endpoint">The endpoint from which the message was received.</param>
         /// <param name="result">The data that was received.</param>
@@ -211,6 +246,8 @@ namespace Data4
                 this.p_Formatter.Context = new StreamingContext(this.p_Formatter.Context.State, new SerializationData { Dht = this, IsMessage = true });
                 Message message = this.p_Formatter.Deserialize(stream) as Message;
                 this.p_Formatter.Context = old;
+                if (stream.Position != stream.Length)
+                    throw new InvalidDataException("Not all transferred data was consumed during deserialization.");
                 MessageEventArgs e = new MessageEventArgs(message);
                 message.Dht = this;
                 message.Sender = this.FindContactByEndPoint(endpoint);
@@ -218,22 +255,33 @@ namespace Data4
                 if (this.OnReceived != null)
                     this.OnReceived(this, e);
 
-                // TODO: Is there a better way to do this?
-                if (e.Message is FetchMessage)
+                // If the remote host that sent the message disappears when sending
+                // the confirmation data then we don't really care, since we were only
+                // ever sending confirmation anyway.
+                try
                 {
-                    // Handle the fetch request.
-                    FetchConfirmationMessage fcm = new FetchConfirmationMessage(this, message, this.OnFetch(e.Message as FetchMessage));
-                    fcm.Send();
-
-                    // TODO: Make sure that the confirmation message is received.
+                    // TODO: Is there a better way to do this?
+                    if (e.Message is FetchMessage)
+                    {
+                        // Handle the fetch request.
+                        FetchConfirmationMessage fcm = new FetchConfirmationMessage(this, message, this.OnFetch(e.Message as FetchMessage));
+                        fcm.Send();
+                    }
+                    else if (e.SendConfirmation && !(e.Message is ConfirmationMessage))
+                    {
+                        // Send confirmation message.
+                        ConfirmationMessage cm = new ConfirmationMessage(this, message, "");
+                        cm.Send();
+                    }
                 }
-                else if (e.SendConfirmation && !( e.Message is ConfirmationMessage ))
+                catch (SocketException ex)
                 {
-                    ConfirmationMessage cm = new ConfirmationMessage(this, message, "");
-                    cm.Send();
-
-                    // TODO: Make sure that the confirmation message is received.  Probably should
-                    //       implement confirmation of confirmations in ConfirmationMessage class itself.
+                    if (ex.SocketErrorCode == SocketError.ConnectionAborted ||
+                        ex.SocketErrorCode == SocketError.ConnectionReset ||
+                        ex.SocketErrorCode == SocketError.TimedOut)
+                        return;
+                    else
+                        throw;
                 }
             }
         }
@@ -244,9 +292,12 @@ namespace Data4
         private List<Entry> OnFetch(FetchMessage request)
         {
             List<Entry> entries = new List<Entry>();
-            foreach (Entry e in this.p_OwnedEntries)
-                if (e.Key == request.Key)
-                    entries.Add(e);
+            lock (this.p_OwnedEntriesLock)
+            {
+                foreach (Entry e in this.p_OwnedEntries)
+                    if (e.Key == request.Key)
+                        entries.Add(e);
+            }
             if (this.OnEntriesRequested != null)
             {
                 EntriesRequestedEventArgs erea = new EntriesRequestedEventArgs();
@@ -255,9 +306,6 @@ namespace Data4
                     if (kv.Key == request.Key)
                         entries.Add(new Entry(this, this.Self, kv.Key, kv.Value));
             }
-            /*foreach (Entry e in this.p_CachedEntries)
-                if (e.Key == request.Key)
-                    entries.Add(e);*/
             return entries;
         }
 
@@ -269,8 +317,8 @@ namespace Data4
 
         public void Close()
         {
-            this.m_UdpThread.Abort();
-            this.m_UdpClient.Close();
+            this.m_TcpThread.Abort();
+            this.m_TcpListener.Stop();
         }
 
         public IFormatter Formatter

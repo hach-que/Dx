@@ -68,6 +68,11 @@ namespace Process4.Providers
         {
         }
 
+        internal void InspectorLog(string message, string type)
+        {
+            (this.m_Node.Storage as DhtWrapper).InspectorLog(message, type);
+        }
+
         #region IProcessorProvider Members
 
         public void AddEvent(EventTransport transport)
@@ -75,14 +80,26 @@ namespace Process4.Providers
             // Fetch the entry that would be returned by Storage.Fetch (since we
             // need the contact information).
             Contact owner = this.m_Node.Storage.FetchOwner(transport.SourceObjectNetworkName);
-            if (owner == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            if (owner == null)
+            {
+                this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
+                throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            }
+            else
+                this.InspectorLog("Retrieved owner of object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
 
             // Check to see if we own the property.
             if (owner.Identifier == this.m_Node.ID)
             {
                 // Get object that the event handler resides on.
                 ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
-                if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+                if (obj == null)
+                {
+                    this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
+                    throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+                }
+                else
+                    this.InspectorLog("Retrieved transparent proxy to object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
 
                 // Get a reference to the event adder.
                 MethodInfo mi = obj.GetType().GetMethod("add_" + transport.SourceEventName + "__Distributed0", BindingFlagsCombined.All);
@@ -94,7 +111,8 @@ namespace Process4.Providers
                 EventHandler handler = transport.CreateRemotedDelegate();
 
                 // Invoke the event adder.
-                mi.Invoke(obj, new object[] { handler });
+                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { handler });
+                //mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
                 if (obj.GetType().GetMethod("add_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
@@ -113,14 +131,26 @@ namespace Process4.Providers
             // Fetch the entry that would be returned by Storage.Fetch (since we
             // need the contact information).
             Contact owner = this.m_Node.Storage.FetchOwner(transport.SourceObjectNetworkName);
-            if (owner == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            if (owner == null)
+            {
+                this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
+                throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            }
+            else
+                this.InspectorLog("Retrieved owner of object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
 
             // Check to see if we own the property.
             if (owner.Identifier == this.m_Node.ID)
             {
                 // Get object that the event handler resides on.
                 ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
-                if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+                if (obj == null)
+                {
+                    this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
+                    throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+                }
+                else
+                    this.InspectorLog("Retrieved transparent proxy to object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
 
                 // Get a reference to the event adder.
                 MethodInfo mi = obj.GetType().GetMethod("remove_" + transport.SourceEventName + "__Distributed0", BindingFlagsCombined.All);
@@ -132,7 +162,8 @@ namespace Process4.Providers
                 EventHandler handler = transport.CreateRemotedDelegate();
 
                 // Invoke the event adder.
-                mi.Invoke(obj, new object[] { handler });
+                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { handler });
+                //mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
                 if (obj.GetType().GetMethod("remove_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
@@ -151,19 +182,32 @@ namespace Process4.Providers
             // Get the object based on the agreed reference.
             KeyValuePair<ID, object> kv = this.AgreedReferences.FirstOrDefault(value => value.Key == transport.ListenerAgreedReference);
             object obj = (object.ReferenceEquals(kv, null)) ? null : kv.Value;
-            if (obj == null) throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            if (obj == null)
+            {
+                this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
+                throw new ObjectVanishedException(transport.SourceObjectNetworkName);
+            }
+            else
+                this.InspectorLog("Retrieved transparent proxy to object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
 
             // Invoke the target method.
             MethodInfo mi = obj.GetType().GetMethod(transport.ListenerMethod, BindingFlagsCombined.All);
             if (mi == null)
                 throw new MissingMethodException(obj.GetType().FullName, transport.ListenerMethod);
-            mi.Invoke(obj, new object[] { sender, e });
+            DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { sender, e });
+            //mi.Invoke(obj, new object[] { sender, e });
         }
 
         public object Invoke(string id, string method, object[] args)
         {
             ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
-            if (obj == null) throw new ObjectVanishedException(id);
+            if (obj == null)
+            {
+                this.InspectorLog("Object '" + id + "' has vanished from the network.", "object_vanished");
+                throw new ObjectVanishedException(id);
+            }
+            else
+                this.InspectorLog("Retrieved transparent proxy to object '" + id + "' from network.", "retrieved_success");
 
             if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
@@ -171,7 +215,8 @@ namespace Process4.Providers
                 MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, method);
-                return mi.Invoke(obj, args);
+                return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, args);
+                //return mi.Invoke(obj, args);
             }
             else if (this.m_Node.Architecture == Architecture.ServerClient)
             {
@@ -181,7 +226,8 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, method);
-                    return mi.Invoke(obj, args);
+                    return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, args);
+                    //return mi.Invoke(obj, args);
                 }
                 else
                 {
@@ -189,7 +235,9 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod(method.Substring(0, method.IndexOf("__Distributed0")), BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, method);
-                    if (mi.GetCustomAttributes(typeof(ClientCallableAttribute), false).Count() == 0)
+                    if (mi.GetCustomAttributes(typeof(ClientIgnorableAttribute), false).Count() != 0)
+                        return null;
+                    else if (mi.GetCustomAttributes(typeof(ClientCallableAttribute), false).Count() == 0)
                         throw new MemberAccessException("The method '" + method + "' is not accessible to client machines.");
 
                     // If we get to here, then we're permitted to call the method, but we still need
@@ -239,16 +287,35 @@ namespace Process4.Providers
     {
         public static object InvokeDynamic(Delegate d, object[] args)
         {
-            Type[] tparams = d.Method.DeclaringType.GetGenericArguments()
-                                .Concat(d.Method.GetGenericArguments())
+            return DpmEntrypoint.InvokeDynamicBase(d.GetType().DeclaringType, d.Method, d.Target, args);
+        }
+
+        public static object InvokeDynamic(Type dt, MethodInfo mi, object target, object[] args)
+        {
+            foreach (Type nt in dt.GetNestedTypes(BindingFlags.NonPublic))
+            {
+                if (mi.Name.IndexOf("__") == -1)
+                    continue;
+                if (nt.FullName.Contains("+" + mi.Name.Substring(0, mi.Name.IndexOf("__")) + "__InvokeDirect"))
+                    return DpmEntrypoint.InvokeDynamicBase(nt, mi, target, args);
+            }
+
+            // Fall back to slow invocation.
+            return mi.Invoke(target, args);
+        }
+
+        private static object InvokeDynamicBase(Type dt, MethodInfo mi, object target, object[] args)
+        {
+            Type[] tparams = mi.DeclaringType.GetGenericArguments()
+                                .Concat(mi.GetGenericArguments())
                                 .ToArray();
-            Type dt = d.GetType().DeclaringType;
             if (dt.ContainsGenericParameters)
                 dt = dt.MakeGenericType(tparams);
             IDirectInvoke di = dt.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
-            object o = di.Invoke(d.Method, d.Target, args);
+            object o = di.Invoke(mi, target, args);
             return o;
         }
+
 
         public static object SetProperty(Delegate d, object[] args)
         {

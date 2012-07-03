@@ -68,6 +68,11 @@ namespace Data4
                 else
                     return this.m_Value.Target;
             }
+            internal set
+            {
+                this.m_StrongValue = null;
+                this.m_Value = new WeakReference(value);
+            }
         }
 
         #region Serialization Methods

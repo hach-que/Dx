@@ -47,7 +47,11 @@ namespace Process4.Remoting
             spm.Send();
 
             // Wait until we have received it.
-            while (!received) Thread.Sleep(0);
+            while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
+
+            // If the request timed out, remove the contact.
+            if (!received)
+                this.m_LocalDht.Contacts.Remove(this.m_Target);
 
             // We have nothing to return (but it was still important to wait
             // until confirmation).
@@ -79,7 +83,11 @@ namespace Process4.Remoting
             gpm.Send();
 
             // Wait until we have received it.
-            while (!received) Thread.Sleep(0);
+            while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
+
+            // If the request timed out, remove the contact.
+            if (!received)
+                this.m_LocalDht.Contacts.Remove(this.m_Target);
 
             if (!received)
                 gpm.ResultReceived -= ev;
@@ -111,7 +119,11 @@ namespace Process4.Remoting
             aem.Send();
 
             // Wait until we have received it.
-            while (!received) Thread.Sleep(0);
+            while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
+
+            // If the request timed out, remove the contact.
+            if (!received)
+                this.m_LocalDht.Contacts.Remove(this.m_Target);
 
             // We have nothing to return (but it was still important to wait
             // until confirmation).
@@ -142,7 +154,11 @@ namespace Process4.Remoting
             aem.Send();
 
             // Wait until we have received it.
-            while (!received) Thread.Sleep(0);
+            while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
+
+            // If the request timed out, remove the contact.
+            if (!received)
+                this.m_LocalDht.Contacts.Remove(this.m_Target);
 
             // We have nothing to return (but it was still important to wait
             // until confirmation).
@@ -174,7 +190,11 @@ namespace Process4.Remoting
             fm.Send();
 
             // Wait until we have received it.
-            while (!received) Thread.Sleep(0);
+            while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
+
+            // If the request timed out, remove the contact.
+            if (!received)
+                this.m_LocalDht.Contacts.Remove(this.m_Target);
 
             if (!received)
                 fm.ResultReceived -= ev;
@@ -207,7 +227,11 @@ namespace Process4.Remoting
             fm.Send();
 
             // Wait until we have received it.
-            while (!received) Thread.Sleep(0);
+            while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
+
+            // If the request timed out, remove the contact.
+            if (!received)
+                this.m_LocalDht.Contacts.Remove(this.m_Target);
 
             // We have nothing to return (but it was still important to wait
             // until confirmation).

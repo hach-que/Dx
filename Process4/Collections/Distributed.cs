@@ -40,6 +40,14 @@ namespace Process4.Collections
             this.m_Data = (T)LocalNode.Singleton.Storage.Fetch(name);
             if (this.m_Data == null && typeof(T).GetInterface("ITransparent") != null && !preventCreate)
             {
+                // Check to see if we are not the server and in a client-server network.
+                if (LocalNode.Singleton.Architecture == Attributes.Architecture.ServerClient &&
+                    !LocalNode.Singleton.IsServer)
+                {
+                    (LocalNode.Singleton.Storage as Process4.Providers.DhtWrapper).InspectorLog("Client attempted to create new named object '" + name + "' as it could not find one that exists on the network.", "object_vanished");
+                    throw new MemberAccessException("Clients are not permitted to create named objects in a server-client architecture.");
+                }
+
                 // Create the new object and register it.
                 this.m_Data = (T)FormatterServices.GetUninitializedObject(typeof(T));
                 (this.m_Data as ITransparent).NetworkName = this.m_Name;

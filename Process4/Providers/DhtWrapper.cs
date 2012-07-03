@@ -11,6 +11,9 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using Process4.Attributes;
 using System.Runtime.CompilerServices;
+using System.Net.Sockets;
+using System.Threading;
+using Data4.Inspector;
 
 namespace Process4.Providers
 {
@@ -19,12 +22,28 @@ namespace Process4.Providers
         private Dht p_Dht = null;
         private LocalNode m_Node = null;
         private Dictionary<ID, object> p_CachedEntries = new Dictionary<ID, object>();
+#if INSPECTOR
+        private Thread m_InspectorThread = null;
+        private InspectorForm m_Inspector = null;
+#endif
 
         internal DhtWrapper(LocalNode node)
         {
             // Store our reference to our node so we can use the IProcessorProvider
             // later on.
             this.m_Node = node;
+
+            // Start inspector.
+#if INSPECTOR
+            this.m_InspectorThread = new Thread(() =>
+                {
+                    System.Windows.Forms.Application.EnableVisualStyles();
+                    System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(true);
+                    this.m_Inspector = new InspectorForm(this);
+                    System.Windows.Forms.Application.Run(this.m_Inspector);
+                }) { IsBackground = true };
+            this.m_InspectorThread.Start();
+#endif
         }
 
         /// <summary>
@@ -50,6 +69,14 @@ namespace Process4.Providers
         public void Stop()
         {
             this.p_Dht.Close();
+        }
+
+        internal void InspectorLog(string message, string type)
+        {
+#if INSPECTOR
+            if (this.m_Inspector != null)
+                this.m_Inspector.Log(message, type);
+#endif
         }
 
         /// <summary>
@@ -93,7 +120,19 @@ namespace Process4.Providers
                     InvokeMessage i = (e.Message as InvokeMessage);
                     object r = this.m_Node.Invoke(i.ObjectID, i.ObjectMethod, i.Arguments);
                     InvokeConfirmationMessage icm = new InvokeConfirmationMessage(this.p_Dht, i, r);
-                    icm.Send();
+                    try
+                    {
+                        icm.Send();
+                    }
+                    catch (SocketException ex)
+                    {
+                        if (ex.SocketErrorCode == SocketError.ConnectionAborted ||
+                            ex.SocketErrorCode == SocketError.ConnectionReset ||
+                            ex.SocketErrorCode == SocketError.TimedOut)
+                            this.m_Node.Contacts.Remove(icm.Target);
+                        else
+                            throw;
+                    }
                 }
                 else if (e.Message is SetPropertyMessage)
                 {
@@ -118,6 +157,7 @@ namespace Process4.Providers
                             if (obj == null) return;
                             try
                             {
+                                this.InspectorLog("Fetched complete copy of '" + i.ObjectID + "' for initial caching.", "updated_cache");
                                 this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
                             }
                             catch (ArgumentException) { }
@@ -128,10 +168,12 @@ namespace Process4.Providers
                         else
                         {
                             // Invoke the setter.
+                            this.InspectorLog("Updating cached property '" + i.ObjectProperty + "' for '" + i.ObjectID + "'.", "updated_cache");
                             MethodInfo mi = obj.GetType().GetMethod("set_" + i.ObjectProperty + "__Distributed0", BindingFlagsCombined.All);
                             if (mi == null)
                                 throw new MissingMethodException(obj.GetType().FullName, "set_" + i.ObjectProperty + "__Distributed0");
-                            mi.Invoke(obj, new object[] { i.NewValue });
+                            DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { i.NewValue });
+                            //mi.Invoke(obj, new object[] { i.NewValue });
                         }
 
                         // The server doesn't care whether we got the message.
@@ -184,7 +226,19 @@ namespace Process4.Providers
                     GetPropertyMessage i = (e.Message as GetPropertyMessage);
                     object r = this.m_Node.GetProperty(i.ObjectID, i.ObjectProperty);
                     GetPropertyConfirmationMessage gpcm = new GetPropertyConfirmationMessage(this.p_Dht, i, r);
-                    gpcm.Send();
+                    try
+                    {
+                        gpcm.Send();
+                    }
+                    catch (SocketException ex)
+                    {
+                        if (ex.SocketErrorCode == SocketError.ConnectionAborted ||
+                            ex.SocketErrorCode == SocketError.ConnectionReset ||
+                            ex.SocketErrorCode == SocketError.TimedOut)
+                            this.m_Node.Contacts.Remove(gpcm.Target);
+                        else
+                            throw;
+                    }
                 }
                 else if (e.Message is AddEventMessage)
                 {
@@ -235,16 +289,19 @@ namespace Process4.Providers
 
         public void Add(Contact contact)
         {
+            this.InspectorLog("Computer at endpoint " + contact.EndPoint + " has joined the network.", "contact");
             this.p_Dht.Contacts.Add(contact);
         }
 
         public void Remove(Contact contact)
         {
+            this.InspectorLog("Computer at endpoint " + contact.EndPoint + " has left / disconnected from the network.", "contact");
             this.p_Dht.Contacts.Remove(contact);
         }
 
         public void Clear()
         {
+            this.InspectorLog("All known contacts were cleared.", "contact");
             this.p_Dht.Contacts.Clear();
         }
 
@@ -276,14 +333,26 @@ namespace Process4.Providers
             {
                 // Fetch the owner of the specified entry.
                 Contact owner = this.FetchOwner(id);
-                if (owner == null) throw new ObjectVanishedException(id);
+                if (owner == null)
+                {
+                    this.InspectorLog("Object '" + id + "' has vanished from the network.", "object_vanished");
+                    throw new ObjectVanishedException(id);
+                }
+                else
+                    this.InspectorLog("Retrieved owner of object '" + id + "' from network.", "retrieved_success");
 
                 // Check to see if we own the property.
                 if (owner.Identifier == this.m_Node.ID)
                 {
                     // Invoke what would have been the delegate passed to DpmEntrypoint::SetProperty directly.
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
-                    if (obj == null) throw new ObjectVanishedException(id);
+                    if (obj == null)
+                    {
+                        this.InspectorLog("Object '" + id + "' has vanished from the network.", "object_vanished");
+                        throw new ObjectVanishedException(id);
+                    }
+                    else
+                        this.InspectorLog("Retrieved transparent proxy to object '" + id + "' from network.", "retrieved_success");
 
                     // Check to see if we are in StoreOnDemand mode.
                     if (this.m_Node.Caching == Caching.StoreOnDemand && obj.IsImmutablyPushed)
@@ -292,7 +361,8 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
-                    mi.Invoke(obj, new object[] { value });
+                    DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { value });
+                    //mi.Invoke(obj, new object[] { value });
 
                     // Now also synchronise the object with the DHT.
                     if (obj.GetType().GetMethod("set_" + property, BindingFlagsCombined.All).GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() != 0)
@@ -322,13 +392,18 @@ namespace Process4.Providers
                 // Get the object directly from the owned entries (this is much
                 // faster than asking the entire network).
                 ITransparent obj = this.FetchLocal(id) as ITransparent;
-                if (obj == null) throw new ObjectVanishedException(id);
+                if (obj == null)
+                {
+                    this.InspectorLog("Object '" + id + "' has vanished from the local machine.", "object_vanished");
+                    throw new ObjectVanishedException(id);
+                }
                 
                 // Invoke the setter.
                 MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
-                mi.Invoke(obj, new object[] { value });
+                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { value });
+                //mi.Invoke(obj, new object[] { value });
 
                 // If this is an auto-generated property we need to synchronise the DHT and
                 // then tell all of the clients the new value.
@@ -342,12 +417,26 @@ namespace Process4.Providers
                     if (this.m_Node.Caching == Caching.PushOnChange)
                     {
                         // Send a SetProperty message to every client in the network.
-                        foreach (Contact c in this.m_Node.Contacts)
+                        foreach (Contact c in this.m_Node.Contacts.ToArray())
                         {
                             if (c.Identifier != this.m_Node.ID)
                             {
-                                SetPropertyMessage spm = new SetPropertyMessage(this.Dht, c, id, property, value);
-                                spm.Send();
+                                try
+                                {
+                                    if (id.StartsWith("autoid-"))
+                                        this.InspectorLog("Sending updated property '" + property + "' for automatic object to remote contact at endpoint " + c.EndPoint + ".", "sent");
+                                    else
+                                        this.InspectorLog("Sending updated property '" + property + "' for named object '" + id + "' to remote contact at endpoint " + c.EndPoint + ".", "sent");
+                                    SetPropertyMessage spm = new SetPropertyMessage(this.Dht, c, id, property, value);
+                                    spm.Send();
+                                }
+                                catch (SocketException ex)
+                                {
+                                    if (ex.SocketErrorCode == SocketError.ConnectionAborted ||
+                                        ex.SocketErrorCode == SocketError.ConnectionReset ||
+                                        ex.SocketErrorCode == SocketError.TimedOut)
+                                        this.m_Node.Contacts.Remove(c);
+                                }
                             }
                         }
                     }
@@ -375,7 +464,8 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
-                    object r = mi.Invoke(obj, new object[] { });
+                    object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { });
+                    //object r = mi.Invoke(obj, new object[] { });
                     return r;
                 }
                 else
@@ -400,7 +490,8 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
-                    object r = mi.Invoke(obj, new object[] { });
+                    object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { });
+                    //object r = mi.Invoke(obj, new object[] { });
                     return r;
                 }
                 else
@@ -424,7 +515,8 @@ namespace Process4.Providers
                         MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                         if (mi == null)
                             throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
-                        object r = mi.Invoke(obj, new object[] { });
+                        object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { });
+                        //object r = mi.Invoke(obj, new object[] { });
                         return r;
                     }
                     else if (this.m_Node.Caching == Caching.PullOnDemand)
@@ -449,7 +541,14 @@ namespace Process4.Providers
 
         public void Store(string id, object o)
         {
-            this.Dht.Put(ID.NewHash(id), o);
+            if (this.FetchLocal(id) == null)
+            {
+                if (id.StartsWith("autoid-"))
+                    this.InspectorLog("A new automatic object was stored in the network.", "object_new");
+                else
+                    this.InspectorLog("A new named object with ID '" + id + "' was stored in the network.", "object_new");
+            }
+            this.Dht.UpdateOrPut(ID.NewHash(id), o);
         }
 
         public object Fetch(string id)
@@ -459,17 +558,19 @@ namespace Process4.Providers
             return e.Value;
         }
 
-        public object FetchLocal(string id)
+        public object FetchLocal(string idh)
         {
-            Entry e = this.Dht.OwnedEntries.Where(value => value.Key == ID.NewHash(id)).DefaultIfEmpty(null).First();
+            ID id = ID.NewHash(idh);
+            Entry e = this.Dht.OwnedEntries.ToArray().Where(value => value.Key == id).DefaultIfEmpty(null).First();
             if (e == null) return null;
             return e.Value;
         }
 
-        public object FetchCached(string id)
+        public object FetchCached(string idh)
         {
+            ID id = ID.NewHash(idh);
             foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
-                if (kv.Key == ID.NewHash(id))
+                if (kv.Key == id)
                     return kv.Value;
             return null;
         }
