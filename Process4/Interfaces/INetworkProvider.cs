@@ -21,6 +21,16 @@ namespace Process4.Interfaces
         ID ID { get; }
 
         /// <summary>
+        /// The discovery port that the UDP network (INetworkProvider) is listening on.
+        /// </summary>
+        int DiscoveryPort { get; }
+
+        /// <summary>
+        /// The messaging port that the TCP network (IStorageProvider) is listening on.
+        /// </summary>
+        int MessagingPort { get; }
+
+        /// <summary>
         /// The IP address that processing and storage services should bind on.
         /// </summary>
         IPAddress IPAddress { get; }

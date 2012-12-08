@@ -52,7 +52,7 @@ namespace Process4.Providers
         public void Start()
         {
             // Creates our new DHT node with the specified ID and endpoint.
-            this.p_Dht = new Dht(this.m_Node.ID, new IPEndPoint(this.m_Node.Network.IPAddress, 18000));
+            this.p_Dht = new Dht(this.m_Node.ID, new IPEndPoint(this.m_Node.Network.IPAddress, this.m_Node.Network.MessagingPort));
 
             // Register the message listener on the DHT which we will use to
             // detect InvokeMessage, SetPropertyMessage and GetPropertyMessage.

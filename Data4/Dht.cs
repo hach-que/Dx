@@ -317,7 +317,8 @@ namespace Data4
 
         public void Close()
         {
-            this.m_TcpThread.Abort();
+            // We no longer abort the thread here since it may be waiting on
+            // a kernel call and thus will not be forced to stop.
             this.m_TcpListener.Stop();
         }
 
