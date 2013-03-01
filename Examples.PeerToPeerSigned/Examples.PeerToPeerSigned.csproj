@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask TaskName="Process4Assembler" AssemblyFile="..\Process4.Task\bin\x86\Debug\Process4.Task.exe" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -100,15 +101,9 @@
     </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
   <Target Name="AfterBuild">
+    <Process4Assembler AssemblyFile="$(TargetPath)" />
   </Target>
-  -->
-  <PropertyGroup>
-    <PostBuildEvent>cd "$(TargetDir)"
-"C:\Server Storage\Projects\Redpoint\Dx\Process4.Task\bin\x86\Debug\Process4.Task.exe" "$(TargetPath)"</PostBuildEvent>
-  </PropertyGroup>
 </Project>
