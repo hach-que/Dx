@@ -26,32 +26,32 @@ namespace Process4
         /// <summary>
         /// The provider which gives this node it's network representation.
         /// </summary>
-        public INetworkProvider Network { get; private set; }
+        public INetworkProvider Network { get; set; }
 
         /// <summary>
         /// The provider which gives this node it's set of contacts.
         /// </summary>
-        public IContactProvider Contacts { get; private set; }
+        public IContactProvider Contacts { get; set; }
 
         /// <summary>
         /// The storage provider which stores data in the network on this node's behalf.
         /// </summary>
-        public IStorageProvider Storage { get; private set; }
+        public IStorageProvider Storage { get; set; }
 
         /// <summary>
         /// The processing provider which invokes methods on this node's behalf.
         /// </summary>
-        public IProcessorProvider Processor { get; private set; }
+        public IProcessorProvider Processor { get; set; }
 
         /// <summary>
         /// The network architecture.
         /// </summary>
-        public Architecture Architecture { get; private set; }
+        public Architecture Architecture { get; set; }
 
         /// <summary>
         /// The caching mode currently in use.
         /// </summary>
-        public Caching Caching { get; private set; }
+        public Caching Caching { get; set; }
 
         /// <summary>
         /// Creates a new reference to the local processing node, targetting the entry
