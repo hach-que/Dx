@@ -1,4 +1,4 @@
-﻿using Process4.Attributes;
+using Process4.Attributes;
 using Process4.Interfaces;
 using Process4.Providers;
 using System;

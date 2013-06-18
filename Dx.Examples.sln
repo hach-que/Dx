@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples.PeerToPeer", "Examples.PeerToPeer\Examples.PeerToPeer.csproj", "{B4FFEF16-476B-4C68-A649-F7F2EDB00333}"

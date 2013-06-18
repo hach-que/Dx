@@ -1,4 +1,4 @@
-﻿namespace Data4.Inspector
+namespace Data4.Inspector
 {
     partial class InspectorForm
     {
