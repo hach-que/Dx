@@ -32,7 +32,8 @@ namespace Process4.Collections
         /// same data in the network).
         /// </summary>
         /// <param name="name">The unique identifier for this object in the network.</param>
-        private Distributed(string name, bool preventCreate)
+        /// <param name="preventCreate">If this is false, then null is returned if the object does not already exist.</param> 
+        public Distributed(string name, bool preventCreate)
         {
             this.m_Name = name;
 
