@@ -119,6 +119,9 @@ namespace Process4.Task.Wrappers
                     idc.Module);
             }
 
+            // Pick the normal delegate if there were no generic type parameters.
+            TypeReference rdg = gdg.GenericArguments.Count > 0 ? gdg : (TypeReference)dg;
+
             // Add the parameters and variables.
             MethodDefinition invoke = new MethodDefinition(
                 "Invoke",
@@ -128,12 +131,8 @@ namespace Process4.Task.Wrappers
             invoke.Parameters.Add(new ParameterDefinition("method", ParameterAttributes.None, this.m_Module.Import(typeof(System.Reflection.MethodInfo))));
             invoke.Parameters.Add(new ParameterDefinition("instance", ParameterAttributes.None, this.m_Module.Import(typeof(object))));
             invoke.Parameters.Add(new ParameterDefinition("parameters", ParameterAttributes.None, this.m_Module.Import(typeof(object[]))));
-            invoke.Body.Variables.Add(new VariableDefinition("d", gdg));
-            //if (ret.FullName == this.m_Module.Import(typeof(void)).FullName)
-                invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(typeof(object))));
-            //else
-            //    invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(ret)));
-            idc.Methods.Insert(0, invoke);
+            invoke.Body.Variables.Add(new VariableDefinition("d", rdg));
+            invoke.Body.Variables.Add(new VariableDefinition("ret", this.m_Module.Import(typeof(object))));
 
             // Get the ILProcessor and create variables to store the delegate variable.
             ILProcessor il = invoke.Body.GetILProcessor();
@@ -151,7 +150,7 @@ namespace Process4.Task.Wrappers
             createdelegate.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(System.Reflection.MethodInfo))));
 
             // Create the dg::Invoke method reference.
-            MethodReference invokedelegate = new MethodReference("Invoke", this.m_Module.Import(ret), gdg);
+            MethodReference invokedelegate = new MethodReference("Invoke", this.m_Module.Import(ret), rdg);
             foreach (ParameterDefinition pd in ps)
             {
                 TypeReference pType = pd.ParameterType;
@@ -178,14 +177,14 @@ namespace Process4.Task.Wrappers
 
             // Get a type instance reference from the delegate type.
             il.Append(Instruction.Create(OpCodes.Nop));
-            il.Append(Instruction.Create(OpCodes.Ldtoken, gdg));
+            il.Append(Instruction.Create(OpCodes.Ldtoken, rdg));
             il.Append(Instruction.Create(OpCodes.Call, gettypefromhandle));
 
             // Get a delegate and then cast it.
             il.Append(Instruction.Create(OpCodes.Ldarg_2));
             il.Append(Instruction.Create(OpCodes.Ldarg_1));
             il.Append(Instruction.Create(OpCodes.Call, createdelegate));
-            il.Append(Instruction.Create(OpCodes.Castclass, gdg));
+            il.Append(Instruction.Create(OpCodes.Castclass, rdg));
             il.Append(Instruction.Create(OpCodes.Stloc, v_0));
 
             // Load the delegate.
@@ -225,6 +224,8 @@ namespace Process4.Task.Wrappers
             il.Append(ii_ldloc);
             il.Append(Instruction.Create(OpCodes.Ret));
             il.InsertAfter(ii_stloc, Instruction.Create(OpCodes.Br_S, ii_ldloc));
+            
+            idc.Methods.Insert(0, invoke);
         }
 
         /// <summary>
