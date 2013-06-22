@@ -234,6 +234,8 @@ namespace Process4.Task.Wrappers
         public void Wrap()
         {
             this.Log.WriteLine("  + m " + this.m_Method.Name);
+            if (this.m_Method.CustomAttributes.Any(c => c.AttributeType.Name == "LocalAttribute"))
+                return;
 
             // Generate the direct invocation class.
             TypeDefinition idc = this.GenerateDirectInvokeClass();

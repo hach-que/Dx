@@ -237,7 +237,7 @@ namespace Process4.Providers
                         throw new MissingMethodException(obj.GetType().FullName, method);
                     if (mi.GetCustomAttributes(typeof(ClientIgnorableAttribute), false).Count() != 0)
                         return null;
-                    else if (mi.GetCustomAttributes(typeof(ClientCallableAttribute), false).Count() == 0)
+                    if (mi.GetCustomAttributes(typeof(ClientCallableAttribute), false).Count() == 0)
                         throw new MemberAccessException("The method '" + method + "' is not accessible to client machines.");
 
                     // If we get to here, then we're permitted to call the method, but we still need

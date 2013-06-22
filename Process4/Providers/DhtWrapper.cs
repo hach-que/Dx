@@ -92,7 +92,10 @@ namespace Process4.Providers
                 {
                     try
                     {
-                        this.p_CachedEntries.Add(ee.Key, ee.Value);
+                        lock (this.p_CachedEntries)
+                        {
+                            this.p_CachedEntries.Add(ee.Key, ee.Value);
+                        }
                     }
                     catch (ArgumentException)
                     {
@@ -158,7 +161,10 @@ namespace Process4.Providers
                             try
                             {
                                 this.InspectorLog("Fetched complete copy of '" + i.ObjectID + "' for initial caching.", "updated_cache");
-                                this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
+                                lock (this.p_CachedEntries)
+                                {
+                                    this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
+                                }
                             }
                             catch (ArgumentException) { }
 
@@ -194,7 +200,10 @@ namespace Process4.Providers
                             if (obj == null) return;
                             try
                             {
-                                this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
+                                lock (this.p_CachedEntries)
+                                {
+                                    this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
+                                }
                             }
                             catch (ArgumentException) { }
 
@@ -276,8 +285,11 @@ namespace Process4.Providers
         /// </summary>
         void p_Dht_OnEntriesRequested(object sender, EntriesRequestedEventArgs e)
         {
-            foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
-                e.Entries.Add(kv.Key, kv.Value);
+            lock (this.p_CachedEntries)
+            {
+                foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
+                    e.Entries.Add(kv.Key, kv.Value);
+            }
         }
 
         #region IContactProvider Members
@@ -508,7 +520,10 @@ namespace Process4.Providers
                         {
                             obj = this.Fetch(id) as ITransparent;
                             if (obj == null) throw new ObjectVanishedException(id);
-                            this.p_CachedEntries.Add(ID.NewHash(id), obj);
+                            lock (this.p_CachedEntries)
+                            {
+                                this.p_CachedEntries.Add(ID.NewHash(id), obj);
+                            }
                         } 
 
                         // Invoke the getter.
@@ -569,9 +584,12 @@ namespace Process4.Providers
         public object FetchCached(string idh)
         {
             ID id = ID.NewHash(idh);
-            foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
-                if (kv.Key == id)
-                    return kv.Value;
+            lock (this.p_CachedEntries)
+            {
+                foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
+                    if (kv.Key == id)
+                        return kv.Value;
+            }
             return null;
         }
 

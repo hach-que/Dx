@@ -86,19 +86,22 @@ namespace Process4.Collections
                 throw new NotSupportedException("Attempted to perform distributed erasure on value type.  Value types must be accessed via Distributed<"
                                                     + typeof(T).Name + "> and can't be implicitly cast to their own type.");
             }
-            else if (typeof(T).GetInterface("ITransparent") != null)
+            
+            if (typeof(T).GetInterface("ITransparent") != null)
             {
                 // Convert the instance to an ITransparent.
+                if (t.m_Data == null)
+                    return default(T);
                 ITransparent i = (t.m_Data as ITransparent);
                 i.NetworkName = t.m_Name;
                 return (T)i;
             }
-            else
-                // This class does not have ITransparent implement, likely because
-                // it does not have the Distributed attribute or the post-processor
-                // hasn't been run correctly.
-                throw new NotSupportedException("Attempting to perform distributed erasure on a reference type that does not have ITransparent implemented.  "
-                                                    + "If this class does have the Distributed attribute set, ensure the post-processor is being executed during build.");
+            
+            // This class does not have ITransparent implement, likely because
+            // it does not have the Distributed attribute or the post-processor
+            // hasn't been run correctly.
+            throw new NotSupportedException("Attempting to perform distributed erasure on a reference type that does not have ITransparent implemented.  "
+                                            + "If this class does have the Distributed attribute set, ensure the post-processor is being executed during build.");
         }
 
         #region Helpers for Immutable Storage
