@@ -230,7 +230,10 @@ namespace Data4
             // ever we can.
             Entry take;
             while (entries.TryTake(out take))
-                yield return take;
+            {
+                if (!take.DeadOnArrival)
+                    yield return take;
+            }
         }
 
         /// <summary>

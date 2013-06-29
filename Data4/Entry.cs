@@ -1,9 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Runtime.Serialization;
-using System.Reflection;
 
 namespace Data4
 {
@@ -15,6 +11,7 @@ namespace Data4
         private ID p_Key;
         private object m_StrongValue = null;
         private WeakReference m_Value = null;
+        private bool p_DeadOnArrival;
 
         public Entry(Dht dht, Contact owner, ID key, object obj)
         {
@@ -22,6 +19,7 @@ namespace Data4
             this.p_Owner = owner;
             this.p_Key = key;
             this.m_Value = new WeakReference(obj);
+            this.p_DeadOnArrival = false;
         }
 
         public Contact Owner
@@ -39,6 +37,17 @@ namespace Data4
         public ID Key
         {
             get { return this.p_Key; }
+        }
+
+        /// <summary>
+        /// Whether the entry is dead on arrival at the remote end (this can happen due
+        /// to race conditions with WeakReferences, where we are too late in the sender's
+        /// process to terminate the send operation, but the reference has since expired
+        /// so we can't send useful data).
+        /// </summary>
+        public bool DeadOnArrival
+        {
+            get { return this.p_DeadOnArrival; }
         }
 
         /// <summary>
@@ -79,9 +88,17 @@ namespace Data4
 
         public Entry(SerializationInfo info, StreamingContext context)
         {
-            string type = info.GetString("type");
-            this.m_StrongValue = info.GetValue("object", Type.GetType(type));
-            this.p_Key = info.GetValue("key", typeof(ID)) as ID;
+            this.p_DeadOnArrival = false;
+            try
+            {
+                string type = info.GetString("type");
+                this.m_StrongValue = info.GetValue("object", Type.GetType(type));
+                this.p_Key = info.GetValue("key", typeof(ID)) as ID;
+            }
+            catch (SerializationException)
+            {
+                this.p_DeadOnArrival = true;
+            }
         }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -91,7 +108,7 @@ namespace Data4
             if (this.m_Value == null)
                 throw new InvalidOperationException("Attempted to serialize an entry that contains no data.");
             if (!this.m_Value.IsAlive)
-                throw new InvalidOperationException("Attempted to serialize an entry that contains exoired data.");
+                return; // Message will be dead on arrival.
             object o = this.m_Value.Target;
             info.AddValue("type", o.GetType().AssemblyQualifiedName);
             info.AddValue("object", o);
