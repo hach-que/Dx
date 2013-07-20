@@ -66,7 +66,7 @@ namespace Process4
         /// assembly.
         /// </summary>
         /// <param name="target">The assembly to target.</param>
-        public LocalNode(Assembly target)
+        public LocalNode(Assembly target, DistributedAttribute settings = null)
         {
             if (LocalNode.Singleton != null)
                 throw new InvalidOperationException("You can only initialize one LocalNode per application instance.");
@@ -90,6 +90,11 @@ namespace Process4
             {
                 this.Architecture = (o[0] as DistributedAttribute).Architecture;
                 this.Caching = (o[0] as DistributedAttribute).Caching;
+            }
+            else if (settings != null)
+            {
+                this.Architecture = settings.Architecture;
+                this.Caching = settings.Caching;
             }
             else
             {
