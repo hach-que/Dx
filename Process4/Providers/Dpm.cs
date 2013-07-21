@@ -309,6 +309,9 @@ namespace Process4.Providers
             Type[] tparams = mi.DeclaringType.GetGenericArguments()
                                 .Concat(mi.GetGenericArguments())
                                 .ToArray();
+            foreach (var t in tparams)
+                if (t.IsGenericParameter)
+                    throw new InvalidOperationException("Generic parameter not resolved before invocation of method.");
             if (dt.ContainsGenericParameters)
                 dt = dt.MakeGenericType(tparams);
             IDirectInvoke di = dt.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
