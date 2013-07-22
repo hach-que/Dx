@@ -121,7 +121,7 @@ namespace Process4.Providers
                 {
                     // Tell the node to invoke the method.
                     InvokeMessage i = (e.Message as InvokeMessage);
-                    object r = this.m_Node.Invoke(i.ObjectID, i.ObjectMethod, i.Arguments);
+                    object r = this.m_Node.Invoke(i.ObjectID, i.ObjectMethod, i.TypeArguments, i.Arguments);
                     InvokeConfirmationMessage icm = new InvokeConfirmationMessage(this.p_Dht, i, r);
                     try
                     {
@@ -178,7 +178,7 @@ namespace Process4.Providers
                             MethodInfo mi = obj.GetType().GetMethod("set_" + i.ObjectProperty + "__Distributed0", BindingFlagsCombined.All);
                             if (mi == null)
                                 throw new MissingMethodException(obj.GetType().FullName, "set_" + i.ObjectProperty + "__Distributed0");
-                            DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { i.NewValue });
+                            DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { i.NewValue });
                             //mi.Invoke(obj, new object[] { i.NewValue });
                         }
 
@@ -373,7 +373,7 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
-                    DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { value });
+                    DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { value });
                     //mi.Invoke(obj, new object[] { value });
 
                     // Now also synchronise the object with the DHT.
@@ -414,7 +414,7 @@ namespace Process4.Providers
                 MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
-                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { value });
+                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { value });
                 //mi.Invoke(obj, new object[] { value });
 
                 // If this is an auto-generated property we need to synchronise the DHT and
@@ -476,7 +476,7 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
-                    object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { });
+                    object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { });
                     //object r = mi.Invoke(obj, new object[] { });
                     return r;
                 }
@@ -502,7 +502,7 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
-                    object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { });
+                    object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { });
                     //object r = mi.Invoke(obj, new object[] { });
                     return r;
                 }
@@ -530,7 +530,7 @@ namespace Process4.Providers
                         MethodInfo mi = obj.GetType().GetMethod("get_" + property + "__Distributed0", BindingFlagsCombined.All);
                         if (mi == null)
                             throw new MissingMethodException(obj.GetType().FullName, "get_" + property + "__Distributed0");
-                        object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { });
+                        object r = DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { });
                         //object r = mi.Invoke(obj, new object[] { });
                         return r;
                     }

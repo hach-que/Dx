@@ -133,7 +133,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 return this._IndexOf(item);
             else
-                return (int)this.Owner.Invoke(this.NetworkName, "_IndexOf", new object[] { item });
+                return (int)this.Owner.Invoke(this.NetworkName, "_IndexOf", new Type[0], new object[] { item });
         }
 
         public void Insert(int index, T item)
@@ -141,7 +141,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 this._Insert(index, item);
             else
-                this.Owner.Invoke(this.NetworkName, "_Insert", new object[] { index, item });
+                this.Owner.Invoke(this.NetworkName, "_Insert", new Type[0], new object[] { index, item });
         }
 
         public void RemoveAt(int index)
@@ -149,7 +149,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 this._RemoveAt(index);
             else
-                this.Owner.Invoke(this.NetworkName, "_RemoveAt", new object[] { index });
+                this.Owner.Invoke(this.NetworkName, "_RemoveAt", new Type[0], new object[] { index });
         }
 
         public T this[int index]
@@ -159,14 +159,14 @@ namespace Process4.Collections
                 if (this.InvokeLocally)
                     return this._GetItemInternal(index);
                 else
-                    return (T)this.Owner.Invoke(this.NetworkName, "_GetItemInternal", new object[] { index });
+                    return (T)this.Owner.Invoke(this.NetworkName, "_GetItemInternal", new Type[0], new object[] { index });
             }
             set
             {
                 if (this.InvokeLocally)
                     this._SetItemInternal(index, value);
                 else
-                    this.Owner.Invoke(this.NetworkName, "_SetItemInternal", new object[] { index, value });
+                    this.Owner.Invoke(this.NetworkName, "_SetItemInternal", new Type[0], new object[] { index, value });
             }
         }
 
@@ -179,7 +179,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 this._Add(item);
             else
-                this.Owner.Invoke(this.NetworkName, "_Add", new object[] { item });
+                this.Owner.Invoke(this.NetworkName, "_Add", new Type[0], new object[] { item });
         }
 
         public void Clear()
@@ -187,7 +187,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 this._Clear();
             else
-                this.Owner.Invoke(this.NetworkName, "_Clear", new object[] { });
+                this.Owner.Invoke(this.NetworkName, "_Clear", new Type[0], new object[] { });
         }
 
         public bool Contains(T item)
@@ -195,7 +195,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 return this._Contains(item);
             else
-                return (bool)this.Owner.Invoke(this.NetworkName, "_Contains", new object[] { item });
+                return (bool)this.Owner.Invoke(this.NetworkName, "_Contains", new Type[0], new object[] { item });
         }
 
         public void CopyTo(T[] array, int arrayIndex)
@@ -203,7 +203,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 this._CopyTo(array, arrayIndex);
             else
-                this.Owner.Invoke(this.NetworkName, "_CopyTo", new object[] { array, arrayIndex });
+                this.Owner.Invoke(this.NetworkName, "_CopyTo", new Type[0], new object[] { array, arrayIndex });
         }
 
         public int Count
@@ -213,7 +213,7 @@ namespace Process4.Collections
                 if (this.InvokeLocally)
                     return this._Count();
                 else
-                    return (int)this.Owner.Invoke(this.NetworkName, "_Count", new object[] { });
+                    return (int)this.Owner.Invoke(this.NetworkName, "_Count", new Type[0], new object[] { });
             }
         }
 
@@ -224,7 +224,7 @@ namespace Process4.Collections
                 if (this.InvokeLocally)
                     return this._IsReadOnly();
                 else
-                    return (bool)this.Owner.Invoke(this.NetworkName, "_IsReadOnly", new object[] { });
+                    return (bool)this.Owner.Invoke(this.NetworkName, "_IsReadOnly", new Type[0], new object[] { });
             }
         }
 
@@ -233,7 +233,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 return this._Remove(item);
             else
-                return (bool)this.Owner.Invoke(this.NetworkName, "_Remove", new object[] { item });
+                return (bool)this.Owner.Invoke(this.NetworkName, "_Remove", new Type[0], new object[] { item });
         }
 
         #endregion
@@ -245,7 +245,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 return this._GetEnumerator();
             else
-                return (IEnumerator<T>)this.Owner.Invoke(this.NetworkName, "_GetEnumerator", new object[] { });
+                return (IEnumerator<T>)this.Owner.Invoke(this.NetworkName, "_GetEnumerator", new Type[0], new object[] { });
         }
 
         #endregion
@@ -257,7 +257,7 @@ namespace Process4.Collections
             if (this.InvokeLocally)
                 return this._IGetEnumerator();
             else
-                return (IEnumerator)this.Owner.Invoke(this.NetworkName, "_IGetEnumerator", new object[] { });
+                return (IEnumerator)this.Owner.Invoke(this.NetworkName, "_IGetEnumerator", new Type[0], new object[] { });
         }
 
         #endregion

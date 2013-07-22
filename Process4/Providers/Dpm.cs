@@ -111,7 +111,7 @@ namespace Process4.Providers
                 EventHandler handler = transport.CreateRemotedDelegate();
 
                 // Invoke the event adder.
-                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { handler });
+                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { handler });
                 //mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
@@ -162,7 +162,7 @@ namespace Process4.Providers
                 EventHandler handler = transport.CreateRemotedDelegate();
 
                 // Invoke the event adder.
-                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { handler });
+                DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { handler });
                 //mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
@@ -194,11 +194,11 @@ namespace Process4.Providers
             MethodInfo mi = obj.GetType().GetMethod(transport.ListenerMethod, BindingFlagsCombined.All);
             if (mi == null)
                 throw new MissingMethodException(obj.GetType().FullName, transport.ListenerMethod);
-            DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new object[] { sender, e });
+            DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { sender, e });
             //mi.Invoke(obj, new object[] { sender, e });
         }
 
-        public object Invoke(string id, string method, object[] args)
+        public object Invoke(string id, string method, Type[] targs, object[] args)
         {
             ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
             if (obj == null)
@@ -215,7 +215,7 @@ namespace Process4.Providers
                 MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, method);
-                return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, args);
+                return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, targs, args);
                 //return mi.Invoke(obj, args);
             }
             else if (this.m_Node.Architecture == Architecture.ServerClient)
@@ -226,7 +226,7 @@ namespace Process4.Providers
                     MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, method);
-                    return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, args);
+                    return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, targs, args);
                     //return mi.Invoke(obj, args);
                 }
                 else
@@ -245,7 +245,7 @@ namespace Process4.Providers
                     Contact owner = this.m_Node.Storage.FetchOwner(id);
                     if (owner == null) throw new ObjectVanishedException(id);
                     RemoteNode rnode = new RemoteNode(owner);
-                    object r = rnode.Invoke(id, method, args);
+                    object r = rnode.Invoke(id, method, targs, args);
                     return r;
                 }
             }
@@ -253,7 +253,7 @@ namespace Process4.Providers
                 throw new NotSupportedException("Unsupported network architecture detected.");
         }
 
-        public DTask<object> InvokeAsync(string id, string method, object[] args, Delegate callback)
+        public DTask<object> InvokeAsync(string id, string method, Type[] targs, object[] args, Delegate callback)
         {
             if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
@@ -287,27 +287,32 @@ namespace Process4.Providers
     {
         public static object InvokeDynamic(Delegate d, object[] args)
         {
-            return DpmEntrypoint.InvokeDynamicBase(d.GetType().DeclaringType, d.Method, d.Target, args);
+            return DpmEntrypoint.InvokeDynamicBase(d.GetType().DeclaringType, d.Method, d.Target, d.Method.GetGenericArguments(), args);
         }
 
-        public static object InvokeDynamic(Type dt, MethodInfo mi, object target, object[] args)
+        public static object InvokeDynamic(Type dt, MethodInfo mi, object target, Type[] targs, object[] args)
         {
+            if (targs == null || targs.Any(x => x == null))
+                throw new ArgumentNullException("targs");
+        
             foreach (Type nt in dt.GetNestedTypes(BindingFlags.NonPublic))
             {
                 if (mi.Name.IndexOf("__") == -1)
                     continue;
                 if (nt.FullName.Contains("+" + mi.Name.Substring(0, mi.Name.IndexOf("__")) + "__InvokeDirect"))
-                    return DpmEntrypoint.InvokeDynamicBase(nt, mi, target, args);
+                    return DpmEntrypoint.InvokeDynamicBase(nt, mi, target, targs, args);
             }
 
             // Fall back to slow invocation.
+            if (mi.IsGenericMethod)
+                mi = mi.MakeGenericMethod(targs);
             return mi.Invoke(target, args);
         }
 
-        private static object InvokeDynamicBase(Type dt, MethodInfo mi, object target, object[] args)
+        private static object InvokeDynamicBase(Type dt, MethodInfo mi, object target, Type[] targs, object[] args)
         {
             Type[] tparams = mi.DeclaringType.GetGenericArguments()
-                                .Concat(mi.GetGenericArguments())
+                                .Concat(targs)
                                 .ToArray();
             foreach (var t in tparams)
                 if (t.IsGenericParameter)
@@ -433,7 +438,7 @@ namespace Process4.Providers
             string methodName = d.Method.Name;
 
             // Get our local node and invoke the method.
-            object o = LocalNode.Singleton.Invoke(objectName, methodName, args);
+            object o = LocalNode.Singleton.Invoke(objectName, methodName, d.Method.GetGenericArguments(), args);
             return o;
         }
 

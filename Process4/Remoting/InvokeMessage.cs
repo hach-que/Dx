@@ -13,23 +13,25 @@ namespace Process4.Remoting
         private string p_ObjectID = null;
         private string p_ObjectMethod = null;
         private object[] p_Arguments = null;
+        private Type[] p_TypeArguments = null;
         private object p_Result = null;
         private bool p_Asynchronous = false;
 
         public event EventHandler ResultReceived;
 
-        public InvokeMessage(Dht dht, Contact target, string id, string method, object[] args)
-            : this(dht, target, id, method, args, false)
+        public InvokeMessage(Dht dht, Contact target, string id, string method, Type[] targs, object[] args)
+            : this(dht, target, id, method, targs, args, false)
         {
             this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
-        public InvokeMessage(Dht dht, Contact target, string id, string method, object[] args, bool async)
+        public InvokeMessage(Dht dht, Contact target, string id, string method, Type[] targs, object[] args, bool async)
             : base(dht, target, null)
         {
             this.p_ObjectID = id;
             this.p_ObjectMethod = method;
             this.p_Arguments = args;
+            this.p_TypeArguments = targs;
             this.p_Asynchronous = async;
 
             this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
@@ -41,6 +43,7 @@ namespace Process4.Remoting
             this.p_ObjectID = info.GetValue("invoke.objid", typeof(string)) as string;
             this.p_ObjectMethod = info.GetValue("invoke.objmethod", typeof(string)) as string;
             this.p_Arguments = info.GetValue("invoke.arguments", typeof(object[])) as object[];
+            this.p_TypeArguments = (info.GetValue("invoke.typearguments", typeof(string[])) as string[]).Select(Type.GetType).ToArray();
             this.p_Asynchronous = (bool)info.GetValue("invoke.asynchronous", typeof(bool));
 
             this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
@@ -53,6 +56,7 @@ namespace Process4.Remoting
             info.AddValue("invoke.objid", this.p_ObjectID, typeof(string));
             info.AddValue("invoke.objmethod", this.p_ObjectMethod, typeof(string));
             info.AddValue("invoke.arguments", this.p_Arguments, typeof(object[]));
+            info.AddValue("invoke.typearguments", this.p_TypeArguments.Select(x => x.AssemblyQualifiedName).ToArray(), typeof(string[]));
             info.AddValue("invoke.asynchronous", this.p_Asynchronous, typeof(bool));
         }
 
@@ -89,7 +93,7 @@ namespace Process4.Remoting
         /// </summary>
         protected override Message Clone()
         {
-            InvokeMessage fm = new InvokeMessage(Dht, this.Target, this.ObjectID, this.ObjectMethod, this.p_Arguments, this.p_Asynchronous);
+            InvokeMessage fm = new InvokeMessage(Dht, this.Target, this.ObjectID, this.ObjectMethod, this.p_TypeArguments, this.p_Arguments, this.p_Asynchronous);
             return fm;
         }
 
@@ -115,6 +119,14 @@ namespace Process4.Remoting
         public object[] Arguments
         {
             get { return this.p_Arguments; }
+        }
+
+        /// <summary>
+        /// The requested type arguments for the delegate.
+        /// </summary>
+        public Type[] TypeArguments
+        {
+            get { return this.p_TypeArguments; }
         }
 
         /// <summary>

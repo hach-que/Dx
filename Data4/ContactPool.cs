@@ -20,7 +20,14 @@ namespace Data4
             lock (ContactPool.m_ConnectionLock)
             {
                 if (ContactPool.m_Connections.ContainsKey(endpoint))
+                {
+                    if (!ContactPool.m_Connections[endpoint].Connected)
+                    {
+                        ContactPool.m_Connections.Remove(endpoint);
+                        return GetTcpClient(endpoint);
+                    }
                     return ContactPool.m_Connections[endpoint];
+                }
                 else
                 {
                     // Connect to target.

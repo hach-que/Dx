@@ -166,7 +166,7 @@ namespace Process4.Remoting
                 aem.ConfirmationReceived -= ev;
         }
 
-        internal override object Invoke(string id, string method, object[] args)
+        internal override object Invoke(string id, string method, Type[] targs, object[] args)
         {
             bool received = false;
             InvokeMessage fm = null;
@@ -174,7 +174,7 @@ namespace Process4.Remoting
             DateTime start = DateTime.Now;
 
             // Create the message.
-            fm = new InvokeMessage(this.m_LocalDht, this.m_Target, id, method, args, false);
+            fm = new InvokeMessage(this.m_LocalDht, this.m_Target, id, method, targs, args, false);
 
             // Register the event handler.
             EventHandler ev = null;
@@ -239,12 +239,12 @@ namespace Process4.Remoting
                 fm.ConfirmationReceived -= ev;
         }
 
-        internal override DTask<object> InvokeAsync(string id, string method, object[] args, Delegate callback)
+        internal override DTask<object> InvokeAsync(string id, string method, Type[] targs, object[] args, Delegate callback)
         {
             DTask<object> task = new DTask<object>();
 
             // Create the message.
-            InvokeMessage fm = new InvokeMessage(this.m_LocalDht, this.m_Target, id, method, args, true);
+            InvokeMessage fm = new InvokeMessage(this.m_LocalDht, this.m_Target, id, method, targs, args, true);
 
             // Register the event handler.
             fm.ResultReceived += (sender, e) =>

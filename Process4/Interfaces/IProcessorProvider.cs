@@ -49,7 +49,7 @@ namespace Process4.Interfaces
         /// <param name="id">The network ID of the object.</param>
         /// <param name="method">The method to be invoked.</param>
         /// <param name="args">The arguments to pass to the method.</param>
-        object Invoke(string id, string method, object[] args);
+        object Invoke(string id, string method, Type[] targs, object[] args);
 
         /// <summary>
         /// Invokes a method on the object with ID, descending through fields / properties
@@ -61,6 +61,6 @@ namespace Process4.Interfaces
         /// <param name="method">The method to be invoked.</param>
         /// <param name="args">The arguments to pass to the method.</param>
         /// <param name="callback">The callback to issue when the method completes.</param>
-        DTask<object> InvokeAsync(string id, string method, object[] args, Delegate callback);
+        DTask<object> InvokeAsync(string id, string method, Type[] targs, object[] args, Delegate callback);
     }
 }

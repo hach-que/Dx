@@ -255,14 +255,14 @@ namespace Process4
             this.Processor.InvokeEvent(transport, sender, e);
         }
 
-        internal override object Invoke(string id, string method, object[] args)
+        internal override object Invoke(string id, string method, Type[] targs, object[] args)
         {
-            return this.Processor.Invoke(id, method, args);
+            return this.Processor.Invoke(id, method, targs, args);
         }
 
-        internal override DTask<object> InvokeAsync(string id, string method, object[] args, Delegate callback)
+        internal override DTask<object> InvokeAsync(string id, string method, Type[] targs, object[] args, Delegate callback)
         {
-            return this.Processor.InvokeAsync(id, method, args, callback);
+            return this.Processor.InvokeAsync(id, method, targs, args, callback);
         }
 
         #endregion
