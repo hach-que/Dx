@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Name="Dx.Runtime" Path="Dx.Runtime" Type="Library">
+  <References>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="Microsoft.CSharp" />
+  </References>
+  <Files>
+    <Compile Include="Processing\Asynchronous\DEvent.cs" />
+    <Compile Include="Processing\Asynchronous\DTask.cs" />
+    <Compile Include="Processing\Attributes\AsynchronousAttribute.cs" />
+    <Compile Include="Processing\Attributes\ClientCallableAttribute.cs" />
+    <Compile Include="Processing\Attributes\ClientIgnorableAttribute.cs" />
+    <Compile Include="Processing\Attributes\DistributedAttribute.cs" />
+    <Compile Include="Processing\Attributes\LocalAttribute.cs" />
+    <Compile Include="Processing\Attributes\ProcessedAttribute.cs" />
+    <Compile Include="Processing\Collections\Distributed.cs" />
+    <Compile Include="Processing\Collections\DList.cs" />
+    <Compile Include="Processing\Inspector\InspectorForm.cs" />
+    <Compile Include="Processing\Inspector\InspectorForm.Designer.cs" />
+    <Compile Include="Processing\Interfaces\IContactProvider.cs" />
+    <Compile Include="Processing\Interfaces\IDirectInvoke.cs" />
+    <Compile Include="Processing\Interfaces\IImmutable.cs" />
+    <Compile Include="Processing\Interfaces\INetworkProvider.cs" />
+    <Compile Include="Processing\Interfaces\IProcessorProvider.cs" />
+    <Compile Include="Processing\Interfaces\IStorageProvider.cs" />
+    <Compile Include="Processing\Interfaces\ITransparent.cs" />
+    <Compile Include="Processing\LocalNode.cs" />
+    <Compile Include="Processing\Networks\AutomaticUdpNetwork.cs" />
+    <Compile Include="Processing\Node.cs" />
+    <Compile Include="Processing\Providers\DhtWrapper.cs" />
+    <Compile Include="Processing\Providers\Dpm.cs" />
+    <Compile Include="Processing\Remoting\AddEventMessage.cs" />
+    <Compile Include="Processing\Remoting\BindingFlagsCombined.cs" />
+    <Compile Include="Processing\Remoting\EventTransport.cs" />
+    <Compile Include="Processing\Remoting\GetPropertyConfirmationMessage.cs" />
+    <Compile Include="Processing\Remoting\GetPropertyMessage.cs" />
+    <Compile Include="Processing\Remoting\InvokeConfirmationMessage.cs" />
+    <Compile Include="Processing\Remoting\InvokeEventMessage.cs" />
+    <Compile Include="Processing\Remoting\InvokeMessage.cs" />
+    <Compile Include="Processing\Remoting\ObjectVanishedException.cs" />
+    <Compile Include="Processing\Remoting\RemoteNode.cs" />
+    <Compile Include="Processing\Remoting\RemoveEventMessage.cs" />
+    <Compile Include="Processing\Remoting\SetPropertyMessage.cs" />
+    <Compile Include="Storage\Contact.cs" />
+    <Compile Include="Storage\ContactPool.cs" />
+    <Compile Include="Storage\Dht.cs" />
+    <Compile Include="Storage\EntriesRequestedEventArgs.cs" />
+    <Compile Include="Storage\Entry.cs" />
+    <Compile Include="Storage\ID.cs" />
+    <Compile Include="Storage\Message.cs" />
+    <Compile Include="Storage\MessageEventArgs.cs" />
+    <Compile Include="Storage\Messages\BroadcastMessage.cs" />
+    <Compile Include="Storage\Messages\ConfirmationMessage.cs" />
+    <Compile Include="Storage\Messages\DirectMessage.cs" />
+    <Compile Include="Storage\Messages\FetchConfirmationMessage.cs" />
+    <Compile Include="Storage\Messages\FetchMessage.cs" />
+    <Compile Include="Storage\SerializationPair.cs" />
+    <None Include="Processing\Inspector\InspectorForm.resources" />
+    <None Include="Processing\Inspector\InspectorForm.resx" />
+  </Files>
+</Project>

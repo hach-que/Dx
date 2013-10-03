@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Name="Dx.Process" Path="Dx.Process" Type="Console">
+  <References>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Build.Framework" />
+    <Reference Include="Microsoft.Build.Utilites.v4.0" />
+    <Reference Include="Dx.Runtime" />
+  </References>
+  <Files>
+    <Compile Include="IWrapper.cs" />
+    <Compile Include="PostProcessingException.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="StatementProcessor.cs" />
+    <Compile Include="Statements\CallStatement.cs" />
+    <Compile Include="Statements\InitArrayStatement.cs" />
+    <Compile Include="Statements\InitDelegateStatement.cs" />
+    <Compile Include="Statements\Statement.cs" />
+    <Compile Include="Utility.cs" />
+    <Compile Include="Wrappers\ConstructorWrapper.cs" />
+    <Compile Include="Wrappers\FieldWrapper.cs" />
+    <Compile Include="Wrappers\MethodWrapper.cs" />
+    <Compile Include="Wrappers\PropertyWrapper.cs" />
+    <Compile Include="Wrappers\TypeWrapper.cs" />
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </Files>
+</Project>
