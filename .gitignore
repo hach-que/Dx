@@ -3,3 +3,5 @@
 *.suo
 Old/*
 *.userprefs
+*.sln
+*.csproj
