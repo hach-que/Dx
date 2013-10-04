@@ -4,12 +4,16 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Build.Framework" />
     <Reference Include="Dx.Runtime" />
+    <Reference Include="Dx.Process" />
   </References>
   <Files>
     <Compile Include="ContactTests.cs" />
     <Compile Include="EnumerableExtensionsTests.cs" />
     <Compile Include="IDTests.cs" />
+    <Compile Include="ProcessorClasses\InterceptNewInstructionTest.cs" />
+    <Compile Include="ProcessorTests.cs" />
     <None Include="packages.config" />
   </Files>
 </Project>

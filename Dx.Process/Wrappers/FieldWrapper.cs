@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Mono.Cecil;
 using System.IO;
+using Dx.Process;
 
 namespace Process4.Task.Wrappers
 {
@@ -37,7 +38,7 @@ namespace Process4.Task.Wrappers
             // Throw an exception if it's not a compiler generated field.
             if (this.m_Field.CustomAttributes.Where(c => c.AttributeType.Name == "CompilerGeneratedAttribute").Count() == 0 &&
                 !this.IsEvent(this.m_Field.FieldType) &&
-                !Process4Assembler.HasAttribute(this.m_Field.CustomAttributes, "LocalAttribute"))
+                !DxProcessor.HasAttribute(this.m_Field.CustomAttributes, "LocalAttribute"))
                 throw new PostProcessingException(this.m_Type.FullName, this.m_Field.Name, "The field '" + this.m_Field.Name + "' was found.  Distributed types may not contain fields as they can not be hooked successfully.  Use auto-generated properties instead.");
         }
 

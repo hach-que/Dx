@@ -11,10 +11,11 @@
   <Files>
     <Compile Include="DefaultDxFactory.cs" />
     <Compile Include="EnumerableExtensions.cs" />
+    <Compile Include="GlobalState\DpmConstructContext.cs" />
+    <Compile Include="GlobalState\DpmEntrypoint.cs" />
     <Compile Include="ID.cs" />
     <Compile Include="IDxFactory.cs" />
     <Compile Include="Processing\Attributes\Architecture.cs" />
-    <Compile Include="Processing\Attributes\AsynchronousAttribute.cs" />
     <Compile Include="Processing\Attributes\Caching.cs" />
     <Compile Include="Processing\Attributes\ClientCallableAttribute.cs" />
     <Compile Include="Processing\Attributes\ClientIgnorableAttribute.cs" />

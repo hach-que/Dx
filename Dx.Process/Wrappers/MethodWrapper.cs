@@ -240,17 +240,27 @@ namespace Process4.Task.Wrappers
             
             // Get a list of existing instructions.
             Collection<Instruction> instructions = this.m_Method.Body.Instructions;
+            
+            // Get a reference to the context setting method.
+            var assignNodeContext = new MethodReference("AssignNodeContext", this.m_Type.Module.Import(typeof(void)), this.m_Type.Module.Import(typeof(DpmConstructContext)));
+            assignNodeContext.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object))));
 
             // Create a new Action delegate using those instructions.
             TypeReference mdr = this.m_Method.ReturnType;
-            //if (mdr is GenericParameter)
-            //    mdr = new GenericParameter((mdr as GenericParameter).Position, (mdr as GenericParameter).Type, this.m_Module);
             MethodDefinition md = new MethodDefinition("" + this.m_Method.Name + "__Distributed0", MethodAttributes.Private, mdr);
             md.Body = new MethodBody(md);
             md.Body.InitLocals = true;
             md.Body.Instructions.Clear();
             foreach (Instruction ii in instructions)
+            {
+                Console.WriteLine(ii.OpCode);
+                if (ii.OpCode == OpCodes.Newobj)
+                {
+                    md.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
+                    md.Body.Instructions.Add(Instruction.Create(OpCodes.Call, assignNodeContext));
+                }
                 md.Body.Instructions.Add(ii);
+            }
             foreach (VariableDefinition l in this.m_Method.Body.Variables)
                 md.Body.Variables.Add(l);
             foreach (ExceptionHandler ex in this.m_Method.Body.ExceptionHandlers)
@@ -310,11 +320,6 @@ namespace Process4.Task.Wrappers
             MethodReference removeevent = new MethodReference("RemoveEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
-
-            // Extract the base generic DTask type.
-            //GenericInstanceType generic = new GenericInstanceType((this.m_Type.Module.Import(typeof(Process4.DTask<bool>)) as GenericInstanceType).ElementType);
-            //generic.GenericParameters.Add(new GenericParameter("!0", generic));
-            //generic.GenericArguments.Add(generic.GenericParameters[0]);
 
             // Generate the local variables like:
             // * 0 - MultitypeDelegate

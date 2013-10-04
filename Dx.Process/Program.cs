@@ -1,21 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.IO;
 using Microsoft.Build.Framework;
 using Mono.Cecil;
-using Mono.Cecil.Cil;
 using Mono.Collections.Generic;
-using System.CodeDom.Compiler;
-using Microsoft.CSharp;
-using System.CodeDom;
-using System.IO;
 using Process4.Task.Wrappers;
-using Mono.Cecil.Pdb;
+using System.Reflection;
 
-namespace Process4.Task
+namespace Dx.Process
 {
-    public class Process4Assembler : ITask
+    public class DxProcessor : ITask
     {
         [Required]
         public string AssemblyFile { get; set; }
@@ -27,7 +20,7 @@ namespace Process4.Task
 
         static void Main(string[] args)
         {
-            Process4Assembler p = new Process4Assembler();
+            var p = new DxProcessor();
             p.AssemblyFile = args[0];
             p.Execute();
         }
@@ -47,7 +40,12 @@ namespace Process4.Task
             try
             {
                 // Get the assembly based on the path.
-                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(this.AssemblyFile, new ReaderParameters { ReadSymbols = true });
+                AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(
+                    this.AssemblyFile,
+                    new ReaderParameters
+                    {
+                        ReadSymbols = File.Exists(this.AssemblyFile + ".mdb"),
+                    });
 
                 // Get all of the types in the assembly.
                 TypeDefinition[] types = assembly.MainModule.Types.ToArray();
@@ -62,7 +60,7 @@ namespace Process4.Task
 
                     // Check to see whether this type has a DistributedAttribute
                     // attached to it.
-                    if (!Process4Assembler.HasAttribute(type, "DistributedAttribute"))
+                    if (!DxProcessor.HasAttribute(type, "DistributedAttribute"))
                     {
                         this.Log.WriteLine("- " + type.Name);
                         continue;
@@ -70,7 +68,7 @@ namespace Process4.Task
 
                     // Check to see whether this type has a ProcessedAttribute
                     // attached to it.
-                    if (Process4Assembler.HasAttributeSpecific(type, "ProcessedAttribute"))
+                    if (DxProcessor.HasAttributeSpecific(type, "ProcessedAttribute"))
                     {
                         this.Log.WriteLine("+ " + type.Name + " (already processed)");
                         continue;
@@ -123,7 +121,7 @@ namespace Process4.Task
         {
             while (type != null)
             {
-                if (Process4Assembler.HasAttributeSpecific(type, name))
+                if (DxProcessor.HasAttributeSpecific(type, name))
                     return true;
                 if (type.BaseType != null)
                     type = type.BaseType.Resolve();
@@ -137,7 +135,7 @@ namespace Process4.Task
         {
             foreach (CustomAttribute ca in attributes)
             {
-                if (Process4Assembler.AttributeMatches(ca.AttributeType, name))
+                if (DxProcessor.AttributeMatches(ca.AttributeType, name))
                     return true;
             }
             return false;
@@ -147,7 +145,7 @@ namespace Process4.Task
         {
             foreach (CustomAttribute ca in type.CustomAttributes)
             {
-                if (Process4Assembler.AttributeMatches(ca.AttributeType, name))
+                if (DxProcessor.AttributeMatches(ca.AttributeType, name))
                     return true;
             }
             return false;
@@ -160,7 +158,7 @@ namespace Process4.Task
             else if (type.Name == "Attribute")
                 return (name == "Attribute");
             else
-                return Process4Assembler.AttributeMatches(type.Resolve().BaseType, name);
+                return DxProcessor.AttributeMatches(type.Resolve().BaseType, name);
         }
 
         #endregion
