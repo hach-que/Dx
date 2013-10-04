@@ -7,8 +7,8 @@ namespace Dx.Runtime
     [Serializable]
     public class Contact : ISerializable, IEquatable<Contact>
     {
-        private IPEndPoint p_EndPoint = null;
-        private ID p_Identifier = null;
+        private IPEndPoint p_EndPoint;
+        private ID p_Identifier;
 
         public Contact(ID identifier, IPEndPoint endpoint)
         {

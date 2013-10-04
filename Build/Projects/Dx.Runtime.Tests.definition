@@ -7,6 +7,7 @@
     <Reference Include="Dx.Runtime" />
   </References>
   <Files>
+    <Compile Include="ContactTests.cs" />
     <Compile Include="EnumerableExtensionsTests.cs" />
     <Compile Include="IDTests.cs" />
     <None Include="packages.config" />
