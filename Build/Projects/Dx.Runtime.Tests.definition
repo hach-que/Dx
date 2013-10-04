@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Name="Dx.Runtime.Tests" Path="Dx.Runtime.Tests" Type="Tests">
+  <References>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+  </References>
+  <Files>
+    <Compile Include="ClassTests.cs" />
+    <None Include="packages.config" />
+  </Files>
+</Project>
