@@ -1,30 +1,28 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Data4;
-using Process4.Providers;
 using System.Threading;
 
-namespace Process4.Remoting
+namespace Dx.Runtime
 {
-    internal class RemoteNode : Node
+    internal class RemoteNode : INode
     {
-        private Contact m_Target = null;
-        private Dht m_LocalDht = (LocalNode.Singleton.Storage as DhtWrapper).Dht;
+        private Contact m_Target;
+        private Dht m_LocalDht;
+        
+        public ID ID { get; set; }
 
         /// <summary>
         /// Creates a new remote node which references the specified contact.
         /// </summary>
         /// <param name="target">The target contact.</param>
-        internal RemoteNode(Contact target)
+        internal RemoteNode(ILocalNode localNode, Contact target)
         {
             if (target == null)
                 throw new ArgumentException("The remote node's target can not be null.", "target");
             this.m_Target = target;
+            this.m_LocalDht = (localNode.Storage as DhtWrapper).Dht;
         }
 
-        internal override void SetProperty(string id, string property, object value)
+        public void SetProperty(string id, string property, object value)
         {
             bool received = false;
 
@@ -59,7 +57,7 @@ namespace Process4.Remoting
                 spm.ConfirmationReceived -= ev;
         }
 
-        internal override object GetProperty(string id, string property)
+        public object GetProperty(string id, string property)
         {
             bool received = false;
             GetPropertyMessage gpm = null;
@@ -96,7 +94,7 @@ namespace Process4.Remoting
             return gpm.Result;
         }
 
-        internal override void AddEvent(EventTransport transport)
+        public void AddEvent(EventTransport transport)
         {
             bool received = false;
 
@@ -131,7 +129,7 @@ namespace Process4.Remoting
                 aem.ConfirmationReceived -= ev;
         }
 
-        internal override void RemoveEvent(EventTransport transport)
+        public void RemoveEvent(EventTransport transport)
         {
             bool received = false;
 
@@ -166,7 +164,7 @@ namespace Process4.Remoting
                 aem.ConfirmationReceived -= ev;
         }
 
-        internal override object Invoke(string id, string method, Type[] targs, object[] args)
+        public object Invoke(string id, string method, Type[] targs, object[] args)
         {
             bool received = false;
             InvokeMessage fm = null;
@@ -203,7 +201,7 @@ namespace Process4.Remoting
             return fm.Result;
         }
 
-        internal override void InvokeEvent(EventTransport transport, object sender, EventArgs e)
+        public void InvokeEvent(EventTransport transport, object sender, EventArgs e)
         {
             bool received = false;
             InvokeEventMessage fm = null;
@@ -237,29 +235,6 @@ namespace Process4.Remoting
             // until confirmation).
             if (!received)
                 fm.ConfirmationReceived -= ev;
-        }
-
-        internal override DTask<object> InvokeAsync(string id, string method, Type[] targs, object[] args, Delegate callback)
-        {
-            DTask<object> task = new DTask<object>();
-
-            // Create the message.
-            InvokeMessage fm = new InvokeMessage(this.m_LocalDht, this.m_Target, id, method, targs, args, true);
-
-            // Register the event handler.
-            fm.ResultReceived += (sender, e) =>
-            {
-                // Execute the callback.
-                task.Value = fm.Result;
-                task.Completed = true;
-                callback.DynamicInvoke(null);
-            };
-
-            // Send the message.
-            fm.Send();
-
-            // Return the task.
-            return task;
         }
     }
 }

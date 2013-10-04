@@ -1,10 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Data4;
 
-namespace Process4.Interfaces
+namespace Dx.Runtime
 {
     public interface IContactProvider : IEnumerable<Contact>
     {

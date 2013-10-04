@@ -1,15 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Process4.Interfaces;
-using Data4;
-using Process4.Providers;
 using System.Runtime.Serialization;
 
-namespace Process4.Remoting
+namespace Dx.Runtime
 {
-    [Serializable()]
+    [Serializable]
     public class EventTransport : ISerializable
     {
         public string SourceObjectNetworkName { get; set; }
@@ -70,31 +66,26 @@ namespace Process4.Remoting
         /// Creates a delegate that will invoke this event transport when the delegate
         /// is called (by the event).
         /// </summary>
-        public EventHandler CreateRemotedDelegate()
+        public EventHandler CreateRemotedDelegate(ILocalNode localNode)
         {
             return (sender, e) =>
                 {
                     // Check to see if we are the target that the event should invoke on.
-                    if (LocalNode.Singleton.ID == this.ListenerNodeID)
+                    if (localNode.ID == this.ListenerNodeID)
                     {
                         // Invoke locally.
-                        LocalNode.Singleton.Processor.InvokeEvent(this, sender, e);
+                        localNode.Processor.InvokeEvent(this, sender, e);
                     }
                     else
                     {
                         // Locate the contact to invoke the event callbacks on.
-                        Contact c = LocalNode.Singleton.Contacts.FirstOrDefault(value => value.Identifier == this.ListenerNodeID);
+                        var c = localNode.Contacts.FirstOrDefault(value => value.Identifier == this.ListenerNodeID);
                         if (c == null) return;
 
                         // Get the remote node and invoke the event.
-                        RemoteNode node = new RemoteNode(c);
+                        var node = new RemoteNode(localNode, c);
                         node.InvokeEvent(this, sender, e);
                     }
-
-
-                    /*Type t = Type.GetType(transport.ListenerMethod);
-                    MethodInfo tt = t.GetMethod(methodname, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-                    Delegate handler = Delegate.CreateDelegate(mi.GetParameters()[0].GetType(), null, tt);*/
                 };
         }
     }

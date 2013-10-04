@@ -1,11 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Data4;
 using System.Runtime.Serialization;
 
-namespace Process4.Remoting
+namespace Dx.Runtime
 {
     [Serializable()]
     public class InvokeConfirmationMessage : ConfirmationMessage, ISerializable

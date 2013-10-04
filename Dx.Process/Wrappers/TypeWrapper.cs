@@ -1,9 +1,8 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Mono.Cecil;
 using System.IO;
+using System.Linq;
+using Dx.Runtime;
+using Mono.Cecil;
 
 namespace Process4.Task.Wrappers
 {
@@ -33,11 +32,11 @@ namespace Process4.Task.Wrappers
         public void Wrap()
         {
             // Add attributes.
-            Utility.AddAttribute(this.m_Type, typeof(Process4.Attributes.ProcessedAttribute), this.m_Type.Module);
+            Utility.AddAttribute(this.m_Type, typeof(ProcessedAttribute), this.m_Type.Module);
             this.m_Type.Attributes |= TypeAttributes.Serializable;
 
             // Add appropriate interfaces.
-            this.m_Type.Interfaces.Add(this.m_Module.Import(typeof(Process4.Interfaces.ITransparent)));
+            this.m_Type.Interfaces.Add(this.m_Module.Import(typeof(ITransparent)));
             this.m_Type.Interfaces.Add(this.m_Module.Import(typeof(System.Runtime.Serialization.ISerializable)));
 
             // Add required properties.

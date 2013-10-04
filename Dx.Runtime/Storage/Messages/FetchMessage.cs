@@ -1,42 +1,27 @@
-// 
-//  Copyright 2010  Trust4 Developers
-// 
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-// 
-//        http://www.apache.org/licenses/LICENSE-2.0
-// 
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 
-namespace Data4
+namespace Dx.Runtime
 {
-    [Serializable()]
+    [Serializable]
     public class FetchMessage : DirectMessage, ISerializable
     {
-        private ID p_Key = null;
-        private List<Entry> p_Values = null;
+        private ID m_Key;
+        private List<Entry> m_Values;
 
         public event EventHandler ResultReceived;
 
         public FetchMessage(Dht dht, Contact target, ID key) : base(dht, target, "")
         {
-            this.p_Key = key;
+            this.m_Key = key;
 
             this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
         public FetchMessage(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            this.p_Key = info.GetValue("fetch.key", typeof(ID)) as ID;
+            this.m_Key = info.GetValue("fetch.key", typeof(ID)) as ID;
 
             this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
@@ -45,7 +30,7 @@ namespace Data4
         {
             base.GetObjectData(info, context);
 
-            info.AddValue("fetch.key", this.p_Key, typeof(ID));
+            info.AddValue("fetch.key", this.m_Key, typeof(ID));
         }
 
         /// <summary>
@@ -69,11 +54,11 @@ namespace Data4
 
             if (e.Message is FetchConfirmationMessage && e.Message.Identifier == this.Identifier)
             {
-                this.p_Values = ( e.Message as FetchConfirmationMessage ).Values;
+                this.m_Values = ( e.Message as FetchConfirmationMessage ).Values;
 
                 // Now assign the owner of the values as the owner of the message.  We do this to
                 // prevent people faking ownership by a more trusted user.
-                foreach (Entry t in this.p_Values)
+                foreach (Entry t in this.m_Values)
                     t.Owner = e.Message.Sender;
 
                 this.Received = true;
@@ -87,7 +72,7 @@ namespace Data4
         /// </summary>
         protected override Message Clone()
         {
-            FetchMessage fm = new FetchMessage(Dht, this.Target, this.p_Key);
+            FetchMessage fm = new FetchMessage(Dht, this.Target, this.m_Key);
             return fm;
         }
 
@@ -96,7 +81,7 @@ namespace Data4
         /// </summary>
         public ID Key
         {
-            get { return this.p_Key; }
+            get { return this.m_Key; }
         }
 
         /// <summary>
@@ -104,7 +89,7 @@ namespace Data4
         /// </summary>
         public List<Entry> Values
         {
-            get { return this.p_Values; }
+            get { return this.m_Values; }
         }
     }
 }

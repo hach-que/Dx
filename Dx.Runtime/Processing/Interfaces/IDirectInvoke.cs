@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Reflection;
 
-namespace Process4.Interfaces
+namespace Dx.Runtime
 {
     public interface IDirectInvoke
     {

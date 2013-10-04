@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Process4.Interfaces
+namespace Dx.Runtime
 {
     public interface IImmutable
     {

@@ -1,49 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Process4.Interfaces;
-using Data4;
 using System.Net;
-using Process4.Remoting;
-using System.IO;
-using System.Reflection;
-using System.Runtime.Serialization;
-using Process4.Attributes;
-using System.Runtime.CompilerServices;
 using System.Net.Sockets;
-using System.Threading;
-using Data4.Inspector;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
-namespace Process4.Providers
+namespace Dx.Runtime
 {
     internal class DhtWrapper : IStorageProvider, IContactProvider
     {
         private Dht p_Dht = null;
-        private LocalNode m_Node = null;
+        private ILocalNode m_Node = null;
         private Dictionary<ID, object> p_CachedEntries = new Dictionary<ID, object>();
-#if INSPECTOR
-        private Thread m_InspectorThread = null;
-        private InspectorForm m_Inspector = null;
-#endif
 
-        internal DhtWrapper(LocalNode node)
+        public DhtWrapper(ILocalNode node)
         {
             // Store our reference to our node so we can use the IProcessorProvider
             // later on.
             this.m_Node = node;
-
-            // Start inspector.
-#if INSPECTOR
-            this.m_InspectorThread = new Thread(() =>
-                {
-                    System.Windows.Forms.Application.EnableVisualStyles();
-                    System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(true);
-                    this.m_Inspector = new InspectorForm(this);
-                    System.Windows.Forms.Application.Run(this.m_Inspector);
-                }) { IsBackground = true };
-            this.m_InspectorThread.Start();
-#endif
         }
 
         /// <summary>
@@ -57,10 +32,6 @@ namespace Process4.Providers
             // Register the message listener on the DHT which we will use to
             // detect InvokeMessage, SetPropertyMessage and GetPropertyMessage.
             this.p_Dht.OnReceived += new EventHandler<MessageEventArgs>(p_Dht_OnReceived);
-
-            // Register the entry provider for when we are operating in StoreOnDemand mode.
-            if (this.m_Node.Caching == Caching.StoreOnDemand)
-                this.p_Dht.OnEntriesRequested += new EventHandler<EntriesRequestedEventArgs>(p_Dht_OnEntriesRequested);
         }
 
         /// <summary>
@@ -71,40 +42,12 @@ namespace Process4.Providers
             this.p_Dht.Close();
         }
 
-        internal void InspectorLog(string message, string type)
-        {
-#if INSPECTOR
-            if (this.m_Inspector != null)
-                this.m_Inspector.Log(message, type);
-#endif
-        }
-
         /// <summary>
         /// This event is raised when the DHT has received a message and we should
         /// check to see if it is any of the types we want to handle.
         /// </summary>
         void p_Dht_OnReceived(object sender, MessageEventArgs e)
         {
-            if (e.Message is FetchConfirmationMessage && this.m_Node.Caching == Caching.StoreOnDemand)
-            {
-                // We want to store a copy of everything we have fetched in our dictionary.
-                foreach (Entry ee in (e.Message as FetchConfirmationMessage).Values)
-                {
-                    try
-                    {
-                        lock (this.p_CachedEntries)
-                        {
-                            this.p_CachedEntries.Add(ee.Key, ee.Value);
-                        }
-                    }
-                    catch (ArgumentException)
-                    {
-                        // The network is immutable, so any entries with the same ID must also
-                        // have the same value and hence we don't care if they can't be added.
-                    }
-                }
-            }
-
             if (e.Message is InvokeMessage ||
                 e.Message is SetPropertyMessage ||
                 e.Message is GetPropertyMessage ||
@@ -160,7 +103,6 @@ namespace Process4.Providers
                             if (obj == null) return;
                             try
                             {
-                                this.InspectorLog("Fetched complete copy of '" + i.ObjectID + "' for initial caching.", "updated_cache");
                                 lock (this.p_CachedEntries)
                                 {
                                     this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
@@ -174,47 +116,11 @@ namespace Process4.Providers
                         else
                         {
                             // Invoke the setter.
-                            this.InspectorLog("Updating cached property '" + i.ObjectProperty + "' for '" + i.ObjectID + "'.", "updated_cache");
                             MethodInfo mi = obj.GetType().GetMethod("set_" + i.ObjectProperty + "__Distributed0", BindingFlagsCombined.All);
                             if (mi == null)
                                 throw new MissingMethodException(obj.GetType().FullName, "set_" + i.ObjectProperty + "__Distributed0");
                             DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { i.NewValue });
                             //mi.Invoke(obj, new object[] { i.NewValue });
-                        }
-
-                        // The server doesn't care whether we got the message.
-                        e.SendConfirmation = false;
-                    }
-                    // We also need to handle StoreOnDemand mode.
-                    else if (this.m_Node.Caching == Caching.StoreOnDemand)
-                    {
-                        // Get a reference to the cached object.
-                        ITransparent obj = this.FetchCached(i.ObjectID) as ITransparent;
-
-                        // Get our cached copy of the object.
-                        if (obj == null)
-                        {
-                            // We don't yet have a cached copy of this object.  Request a complete
-                            // copy of the data that the server has.
-                            obj = this.Fetch(i.ObjectID) as ITransparent;
-                            if (obj == null) return;
-                            try
-                            {
-                                lock (this.p_CachedEntries)
-                                {
-                                    this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
-                                }
-                            }
-                            catch (ArgumentException) { }
-
-                            // We don't need to call the setter since the cached value we just got
-                            // will contain the new value anyway.
-                        }
-                        else
-                        {
-                            // Check to see if we are in StoreOnDemand mode.
-                            if (this.m_Node.Caching == Caching.StoreOnDemand)
-                                throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
                         }
 
                         // The server doesn't care whether we got the message.
@@ -301,19 +207,16 @@ namespace Process4.Providers
 
         public void Add(Contact contact)
         {
-            this.InspectorLog("Computer at endpoint " + contact.EndPoint + " has joined the network.", "contact");
             this.p_Dht.Contacts.Add(contact);
         }
 
         public void Remove(Contact contact)
         {
-            this.InspectorLog("Computer at endpoint " + contact.EndPoint + " has left / disconnected from the network.", "contact");
             this.p_Dht.Contacts.Remove(contact);
         }
 
         public void Clear()
         {
-            this.InspectorLog("All known contacts were cleared.", "contact");
             this.p_Dht.Contacts.Clear();
         }
 
@@ -347,11 +250,8 @@ namespace Process4.Providers
                 Contact owner = this.FetchOwner(id);
                 if (owner == null)
                 {
-                    this.InspectorLog("Object '" + id + "' has vanished from the network.", "object_vanished");
                     throw new ObjectVanishedException(id);
                 }
-                else
-                    this.InspectorLog("Retrieved owner of object '" + id + "' from network.", "retrieved_success");
 
                 // Check to see if we own the property.
                 if (owner.Identifier == this.m_Node.ID)
@@ -360,15 +260,8 @@ namespace Process4.Providers
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
                     if (obj == null)
                     {
-                        this.InspectorLog("Object '" + id + "' has vanished from the network.", "object_vanished");
                         throw new ObjectVanishedException(id);
                     }
-                    else
-                        this.InspectorLog("Retrieved transparent proxy to object '" + id + "' from network.", "retrieved_success");
-
-                    // Check to see if we are in StoreOnDemand mode.
-                    if (this.m_Node.Caching == Caching.StoreOnDemand && obj.IsImmutablyPushed)
-                        throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
 
                     MethodInfo mi = obj.GetType().GetMethod("set_" + property + "__Distributed0", BindingFlagsCombined.All);
                     if (mi == null)
@@ -378,16 +271,12 @@ namespace Process4.Providers
 
                     // Now also synchronise the object with the DHT.
                     if (obj.GetType().GetMethod("set_" + property, BindingFlagsCombined.All).GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() != 0)
-                        LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                        this.m_Node.Storage.Store(obj.NetworkName, obj);
                 }
                 else
                 {
-                    // Check to see if we are in StoreOnDemand mode.
-                    if (this.m_Node.Caching == Caching.StoreOnDemand)
-                        throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
-
                     // Invoke the property setter remotely.
-                    RemoteNode rnode = new RemoteNode(owner);
+                    RemoteNode rnode = new RemoteNode(this.m_Node, owner);
                     rnode.SetProperty(id, property, value);
                 }
             }
@@ -397,16 +286,11 @@ namespace Process4.Providers
                 if (!this.m_Node.IsServer)
                     throw new MemberAccessException("Only servers may set the '" + property + "' property.");
 
-                // Check to see if we are in StoreOnDemand mode.
-                if (this.m_Node.Caching == Caching.StoreOnDemand)
-                    throw new InvalidOperationException("Unable to set properties on immutable classes (caching is StoreOnDemand).");
-
                 // Get the object directly from the owned entries (this is much
                 // faster than asking the entire network).
                 ITransparent obj = this.FetchLocal(id) as ITransparent;
                 if (obj == null)
                 {
-                    this.InspectorLog("Object '" + id + "' has vanished from the local machine.", "object_vanished");
                     throw new ObjectVanishedException(id);
                 }
                 
@@ -422,7 +306,7 @@ namespace Process4.Providers
                 if (obj.GetType().GetMethod("set_" + property, BindingFlagsCombined.All).GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() != 0)
                 {
                     // Synchronise the object with the DHT.
-                    LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                    this.m_Node.Storage.Store(obj.NetworkName, obj);
 
                     // Check to see if we need to alert all of the clients of the new
                     // value.
@@ -435,10 +319,6 @@ namespace Process4.Providers
                             {
                                 try
                                 {
-                                    if (id.StartsWith("autoid-"))
-                                        this.InspectorLog("Sending updated property '" + property + "' for automatic object to remote contact at endpoint " + c.EndPoint + ".", "sent");
-                                    else
-                                        this.InspectorLog("Sending updated property '" + property + "' for named object '" + id + "' to remote contact at endpoint " + c.EndPoint + ".", "sent");
                                     SetPropertyMessage spm = new SetPropertyMessage(this.Dht, c, id, property, value);
                                     spm.Send();
                                 }
@@ -467,7 +347,7 @@ namespace Process4.Providers
                 if (owner == null) throw new ObjectVanishedException(id);
 
                 // Check to see if we own the property.
-                if (owner.Identifier == this.m_Node.ID || this.m_Node.Caching == Caching.StoreOnDemand)
+                if (owner.Identifier == this.m_Node.ID)
                 {
                     // Invoke what would have been the delegate passed to DpmEntrypoint::GetProperty directly.
                     ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
@@ -483,7 +363,7 @@ namespace Process4.Providers
                 else
                 {
                     // Invoke the property getter remotely.
-                    RemoteNode rnode = new RemoteNode(owner);
+                    RemoteNode rnode = new RemoteNode(this.m_Node, owner);
                     object r = rnode.GetProperty(id, property);
                     return r;
                 }
@@ -542,7 +422,7 @@ namespace Process4.Providers
                         if (owner == null) throw new ObjectVanishedException(id);
 
                         // Invoke the property getter remotely.
-                        RemoteNode rnode = new RemoteNode(owner);
+                        RemoteNode rnode = new RemoteNode(this.m_Node, owner);
                         object r = rnode.GetProperty(id, property);
                         return r;
                     }
@@ -556,13 +436,6 @@ namespace Process4.Providers
 
         public void Store(string id, object o)
         {
-            if (this.FetchLocal(id) == null)
-            {
-                if (id.StartsWith("autoid-"))
-                    this.InspectorLog("A new automatic object was stored in the network.", "object_new");
-                else
-                    this.InspectorLog("A new named object with ID '" + id + "' was stored in the network.", "object_new");
-            }
             this.Dht.UpdateOrPut(ID.NewHash(id), o);
         }
 

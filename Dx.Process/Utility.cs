@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Mono.Cecil.Cil;
+using Dx.Runtime;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 namespace Process4.Task
 {
@@ -317,7 +316,7 @@ namespace Process4.Task
         public static void AddDeserializationConstructor(TypeDefinition t)
         {
             // Create the Process4.Providers.DpmEntrypoint::Deserialize method reference.
-            MethodReference deserialize = new MethodReference("Deserialize", t.Module.Import(typeof(void)), t.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference deserialize = new MethodReference("Deserialize", t.Module.Import(typeof(void)), t.Module.Import(typeof(DpmEntrypoint)));
             deserialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(object))));
             deserialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.SerializationInfo))));
             deserialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.StreamingContext))));
@@ -347,7 +346,7 @@ namespace Process4.Task
         internal static void AddSerializationMethod(TypeDefinition t)
         {
             // Create the Process4.Providers.DpmEntrypoint::Serialize method reference.
-            MethodReference serialize = new MethodReference("Serialize", t.Module.Import(typeof(void)), t.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference serialize = new MethodReference("Serialize", t.Module.Import(typeof(void)), t.Module.Import(typeof(DpmEntrypoint)));
             serialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(object))));
             serialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.SerializationInfo))));
             serialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.StreamingContext))));

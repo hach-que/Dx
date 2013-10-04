@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Process4.Interfaces;
-using System.Net.Sockets;
 using System.Net;
-using System.Threading;
-using Data4;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
 
-namespace Process4.Networks
+namespace Dx.Runtime
 {
     public class AutomaticUdpNetwork : INetworkProvider
     {
@@ -20,7 +18,7 @@ namespace Process4.Networks
         /// <summary>
         /// The node this network provider is associated with.
         /// </summary>
-        public LocalNode Node { get; private set; }
+        public ILocalNode Node { get; private set; }
 
         /// <summary>
         /// The network identifier.
@@ -91,7 +89,7 @@ namespace Process4.Networks
         /// to 18000.
         /// </summary>
         /// <param name="node">The node to associate with this network provider.</param>
-        public AutomaticUdpNetwork(LocalNode node)
+        public AutomaticUdpNetwork(ILocalNode node)
             : this(node, 18000, AutomaticUdpNetwork.GetFreePort())
         {
         }
@@ -103,7 +101,7 @@ namespace Process4.Networks
         /// <param name="node">The node to associate with this network provider.</param>
         /// <param name="port">The discovery port to listen on.</param>
         /// <param name="port">The messaging port to forward onto contacts.</param>
-        public AutomaticUdpNetwork(LocalNode node, int discoveryPort, int messagingPort)
+        public AutomaticUdpNetwork(ILocalNode node, int discoveryPort, int messagingPort)
         {
             this.Node = node;
             this.DiscoveryPort = discoveryPort;
@@ -231,10 +229,9 @@ namespace Process4.Networks
                                 udp.Send(wbytes, wbytes.Length, other);
 
                                 // Add the contact so that each node knows each other.
-                                Data4.Contact contact = new Data4.Contact(
-                                    Data4.ID.FromString(data[2]),
-                                    new IPEndPoint(other.Address, Convert.ToInt32(data[3]))
-                                    );
+                                var contact = new Contact(
+                                    ID.FromString(data[2]),
+                                    new IPEndPoint(other.Address, Convert.ToInt32(data[3])));
                                 this.Node.Contacts.Add(contact);
                             }
                         }
@@ -242,10 +239,9 @@ namespace Process4.Networks
                         {
                             // Handle the response to the contact request.
                             string[] data = s.Split(new char[] { '|' });
-                            Data4.Contact contact = new Data4.Contact(
-                                Data4.ID.FromString(data[1]),
-                                new IPEndPoint(other.Address, Convert.ToInt32(data[2]))
-                                );
+                            var contact = new Contact(
+                                ID.FromString(data[1]),
+                                new IPEndPoint(other.Address, Convert.ToInt32(data[2])));
                             if (contact.Identifier != this.Node.ID)
                                 this.Node.Contacts.Add(contact);
                         }
@@ -253,13 +249,12 @@ namespace Process4.Networks
                         {
                             // Handle the contact left request by removing them from our contacts.
                             string[] data = s.Split(new char[] { '|' });
-                            Data4.Contact contact = new Data4.Contact(
-                                Data4.ID.FromString(data[1]),
-                                new IPEndPoint(other.Address, Convert.ToInt32(data[2]))
-                                );
+                            var contact = new Contact(
+                                ID.FromString(data[1]),
+                                new IPEndPoint(other.Address, Convert.ToInt32(data[2])));
                             if (contact.Identifier != this.Node.ID)
                             {
-                                Contact actual = this.Node.Contacts.Where(value => value.Identifier == contact.Identifier).FirstOrDefault();
+                                var actual = this.Node.Contacts.Where(value => value.Identifier == contact.Identifier).FirstOrDefault();
                                 if (actual != null)
                                     this.Node.Contacts.Remove(actual);
                             }

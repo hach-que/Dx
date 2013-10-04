@@ -1,12 +1,11 @@
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
+using Dx.Runtime;
 using Mono.Cecil;
-using Process4.Task.Statements;
 using Mono.Cecil.Cil;
 using Mono.Collections.Generic;
-using System.IO;
+using Process4.Task.Statements;
 
 namespace Process4.Task.Wrappers
 {
@@ -31,7 +30,6 @@ namespace Process4.Task.Wrappers
             this.m_Type = method.DeclaringType;
             this.m_Module = method.Module;
         }
-
 
         private TypeDefinition GenerateDirectInvokeClass()
         {
@@ -72,7 +70,7 @@ namespace Process4.Task.Wrappers
             this.m_Type.NestedTypes.Add(idc);
 
             // Add the IDirectInvoke interface.
-            idc.Interfaces.Add(this.m_Module.Import(typeof(Process4.Interfaces.IDirectInvoke)));
+            idc.Interfaces.Add(this.m_Module.Import(typeof(IDirectInvoke)));
 
             // Create the System.Object::.ctor method reference.
             MethodReference objctor = new MethodReference(".ctor", this.m_Type.Module.Import(typeof(void)), this.m_Type.Module.Import(typeof(object)));
@@ -289,34 +287,34 @@ namespace Process4.Task.Wrappers
             this.ImplementDirectInvokeClass(idc, dg, md.Parameters, md.ReturnType);
             
             // Create the Process4.Providers.DpmEntrypoint::GetProperty method reference.
-            MethodReference getproperty = new MethodReference("GetProperty", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference getproperty = new MethodReference("GetProperty", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             getproperty.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             getproperty.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
 
             // Create the Process4.Providers.DpmEntrypoint::SetProperty method reference.
-            MethodReference setproperty = new MethodReference("SetProperty", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference setproperty = new MethodReference("SetProperty", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             setproperty.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             setproperty.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
 
             // Create the Process4.Providers.DpmEntrypoint::Invoke method reference.
-            MethodReference invoke = new MethodReference("Invoke", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference invoke = new MethodReference("Invoke", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             invoke.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             invoke.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
 
             // Create the Process4.Providers.DpmEntrypoint::AddEvent method reference.
-            MethodReference addevent = new MethodReference("AddEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference addevent = new MethodReference("AddEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             addevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             addevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
 
             // Create the Process4.Providers.DpmEntrypoint::RemoveEvent method reference.
-            MethodReference removeevent = new MethodReference("RemoveEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference removeevent = new MethodReference("RemoveEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
 
             // Extract the base generic DTask type.
-            GenericInstanceType generic = new GenericInstanceType((this.m_Type.Module.Import(typeof(Process4.DTask<bool>)) as GenericInstanceType).ElementType);
-            generic.GenericParameters.Add(new GenericParameter("!0", generic));
-            generic.GenericArguments.Add(generic.GenericParameters[0]);
+            //GenericInstanceType generic = new GenericInstanceType((this.m_Type.Module.Import(typeof(Process4.DTask<bool>)) as GenericInstanceType).ElementType);
+            //generic.GenericParameters.Add(new GenericParameter("!0", generic));
+            //generic.GenericArguments.Add(generic.GenericParameters[0]);
 
             // Generate the local variables like:
             // * 0 - MultitypeDelegate

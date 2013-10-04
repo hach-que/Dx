@@ -1,4 +1,4 @@
-namespace Data4.Inspector
+namespace Dx.Runtime
 {
     partial class InspectorForm
     {

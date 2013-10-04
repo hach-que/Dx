@@ -9,16 +9,21 @@
     <Reference Include="Microsoft.CSharp" />
   </References>
   <Files>
-    <Compile Include="Processing\Asynchronous\DEvent.cs" />
-    <Compile Include="Processing\Asynchronous\DTask.cs" />
+    <Compile Include="DefaultDxFactory.cs" />
+    <Compile Include="EnumerableExtensions.cs" />
+    <Compile Include="ID.cs" />
+    <Compile Include="IDxFactory.cs" />
+    <Compile Include="Processing\Attributes\Architecture.cs" />
     <Compile Include="Processing\Attributes\AsynchronousAttribute.cs" />
+    <Compile Include="Processing\Attributes\Caching.cs" />
     <Compile Include="Processing\Attributes\ClientCallableAttribute.cs" />
     <Compile Include="Processing\Attributes\ClientIgnorableAttribute.cs" />
     <Compile Include="Processing\Attributes\DistributedAttribute.cs" />
     <Compile Include="Processing\Attributes\LocalAttribute.cs" />
     <Compile Include="Processing\Attributes\ProcessedAttribute.cs" />
     <Compile Include="Processing\Collections\Distributed.cs" />
-    <Compile Include="Processing\Collections\DList.cs" />
+    <Compile Include="Processing\ILocalNode.cs" />
+    <Compile Include="Processing\INode.cs" />
     <Compile Include="Processing\Inspector\InspectorForm.cs" />
     <Compile Include="Processing\Inspector\InspectorForm.Designer.cs" />
     <Compile Include="Processing\Interfaces\IContactProvider.cs" />
@@ -30,7 +35,6 @@
     <Compile Include="Processing\Interfaces\ITransparent.cs" />
     <Compile Include="Processing\LocalNode.cs" />
     <Compile Include="Processing\Networks\AutomaticUdpNetwork.cs" />
-    <Compile Include="Processing\Node.cs" />
     <Compile Include="Processing\Providers\DhtWrapper.cs" />
     <Compile Include="Processing\Providers\Dpm.cs" />
     <Compile Include="Processing\Remoting\AddEventMessage.cs" />
@@ -50,15 +54,14 @@
     <Compile Include="Storage\Dht.cs" />
     <Compile Include="Storage\EntriesRequestedEventArgs.cs" />
     <Compile Include="Storage\Entry.cs" />
-    <Compile Include="Storage\ID.cs" />
     <Compile Include="Storage\Message.cs" />
     <Compile Include="Storage\MessageEventArgs.cs" />
-    <Compile Include="Storage\Messages\BroadcastMessage.cs" />
     <Compile Include="Storage\Messages\ConfirmationMessage.cs" />
     <Compile Include="Storage\Messages\DirectMessage.cs" />
     <Compile Include="Storage\Messages\FetchConfirmationMessage.cs" />
     <Compile Include="Storage\Messages\FetchMessage.cs" />
     <Compile Include="Storage\SerializationPair.cs" />
+    <None Include="Processing\Collections\DList.cs" />
     <None Include="Processing\Inspector\InspectorForm.resources" />
     <None Include="Processing\Inspector\InspectorForm.resx" />
   </Files>

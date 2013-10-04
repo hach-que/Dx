@@ -1,15 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Process4.Attributes;
-using Process4.Interfaces;
-using System.Collections;
-using Data4;
 using System.Runtime.Serialization;
-using Process4.Remoting;
 
-namespace Process4.Collections
+namespace Dx.Runtime
 {
     [Distributed, Serializable]
     public class DList<T> : IList<T>, ITransparent, ISerializable
@@ -18,24 +13,24 @@ namespace Process4.Collections
 
         public DList()
         {
-            Process4.Providers.DpmEntrypoint.Construct(this);
+            DpmEntrypoint.Construct(this);
         }
 
         public DList(int capacity)
         {
-            Process4.Providers.DpmEntrypoint.Construct(this);
+            DpmEntrypoint.Construct(this);
 
             this.m_List = new List<T>(capacity);
         }
 
         public DList(IEnumerable<T> collection)
         {
-            Process4.Providers.DpmEntrypoint.Construct(this);
+            DpmEntrypoint.Construct(this);
 
             this.m_List = new List<T>(collection);
         }
 
-        private Node Owner
+        private INode Owner
         {
             get
             {

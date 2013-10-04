@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace Data4
+namespace Dx.Runtime
 {
     [Serializable]
     public class Entry : ISerializable

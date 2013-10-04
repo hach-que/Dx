@@ -1,37 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Process4.Interfaces;
-using System.Runtime.CompilerServices;
-using System.Net;
-using Data4;
 using System.Reflection;
-using System.Threading;
 using System.Runtime.Serialization;
-using Process4.Collections;
-using Process4.Remoting;
-using Process4.Attributes;
 
-namespace Process4.Providers
+namespace Dx.Runtime
 {
     internal class Dpm : IProcessorProvider
     {
-        private LocalNode m_Node = null;
-
-        /// <summary>
-        /// The DHT in use by the associated node.
-        /// </summary>
-        private Dht Dht
-        {
-            get
-            {
-                if (this.m_Node.Storage is DhtWrapper)
-                    return (this.m_Node.Storage as DhtWrapper).Dht;
-                else
-                    throw new InvalidOperationException("The default processing provider can only be used in conjunction with the default storage provider.");
-            }
-        }
+        private ILocalNode m_Node = null;
 
         /// <summary>
         /// A list of "agreed references"; that is IDs set for external or
@@ -48,7 +25,7 @@ namespace Process4.Providers
         /// specified node.
         /// </summary>
         /// <param name="node">The local node to associate with.</param>
-        public Dpm(LocalNode node)
+        public Dpm(ILocalNode node)
         {            
             this.m_Node = node;
             this.AgreedReferences = new Dictionary<ID, object>();
@@ -68,11 +45,6 @@ namespace Process4.Providers
         {
         }
 
-        internal void InspectorLog(string message, string type)
-        {
-            (this.m_Node.Storage as DhtWrapper).InspectorLog(message, type);
-        }
-
         #region IProcessorProvider Members
 
         public void AddEvent(EventTransport transport)
@@ -82,12 +54,9 @@ namespace Process4.Providers
             Contact owner = this.m_Node.Storage.FetchOwner(transport.SourceObjectNetworkName);
             if (owner == null)
             {
-                this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
                 throw new ObjectVanishedException(transport.SourceObjectNetworkName);
             }
-            else
-                this.InspectorLog("Retrieved owner of object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
-
+            
             // Check to see if we own the property.
             if (owner.Identifier == this.m_Node.ID)
             {
@@ -95,12 +64,9 @@ namespace Process4.Providers
                 ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
                 if (obj == null)
                 {
-                    this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
                     throw new ObjectVanishedException(transport.SourceObjectNetworkName);
                 }
-                else
-                    this.InspectorLog("Retrieved transparent proxy to object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
-
+                
                 // Get a reference to the event adder.
                 MethodInfo mi = obj.GetType().GetMethod("add_" + transport.SourceEventName + "__Distributed0", BindingFlagsCombined.All);
                 if (mi == null)
@@ -108,7 +74,7 @@ namespace Process4.Providers
 
                 // Create an EventHandler that will automatically remote the event callback
                 // across the network to the node that originally registered it.
-                EventHandler handler = transport.CreateRemotedDelegate();
+                EventHandler handler = transport.CreateRemotedDelegate(this.m_Node);
 
                 // Invoke the event adder.
                 DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { handler });
@@ -116,12 +82,12 @@ namespace Process4.Providers
 
                 // Now also synchronise the object with the DHT.
                 if (obj.GetType().GetMethod("add_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
-                    LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                    this.m_Node.Storage.Store(obj.NetworkName, obj);
             }
             else
             {
                 // Invoke the event adder remotely.
-                RemoteNode rnode = new RemoteNode(owner);
+                RemoteNode rnode = new RemoteNode(this.m_Node, owner);
                 rnode.AddEvent(transport);
             }
         }
@@ -133,12 +99,9 @@ namespace Process4.Providers
             Contact owner = this.m_Node.Storage.FetchOwner(transport.SourceObjectNetworkName);
             if (owner == null)
             {
-                this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
                 throw new ObjectVanishedException(transport.SourceObjectNetworkName);
             }
-            else
-                this.InspectorLog("Retrieved owner of object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
-
+            
             // Check to see if we own the property.
             if (owner.Identifier == this.m_Node.ID)
             {
@@ -146,12 +109,9 @@ namespace Process4.Providers
                 ITransparent obj = this.m_Node.Storage.Fetch(transport.SourceObjectNetworkName) as ITransparent;
                 if (obj == null)
                 {
-                    this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
                     throw new ObjectVanishedException(transport.SourceObjectNetworkName);
                 }
-                else
-                    this.InspectorLog("Retrieved transparent proxy to object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
-
+                
                 // Get a reference to the event adder.
                 MethodInfo mi = obj.GetType().GetMethod("remove_" + transport.SourceEventName + "__Distributed0", BindingFlagsCombined.All);
                 if (mi == null)
@@ -159,7 +119,7 @@ namespace Process4.Providers
 
                 // Create an EventHandler that will automatically remote the event callback
                 // across the network to the node that originally registered it.
-                EventHandler handler = transport.CreateRemotedDelegate();
+                EventHandler handler = transport.CreateRemotedDelegate(this.m_Node);
 
                 // Invoke the event adder.
                 DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { handler });
@@ -167,12 +127,12 @@ namespace Process4.Providers
 
                 // Now also synchronise the object with the DHT.
                 if (obj.GetType().GetMethod("remove_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
-                    LocalNode.Singleton.Storage.Store(obj.NetworkName, obj);
+                    this.m_Node.Storage.Store(obj.NetworkName, obj);
             }
             else
             {
                 // Invoke the event adder remotely.
-                RemoteNode rnode = new RemoteNode(owner);
+                RemoteNode rnode = new RemoteNode(this.m_Node, owner);
                 rnode.RemoveEvent(transport);
             }
         }
@@ -184,12 +144,9 @@ namespace Process4.Providers
             object obj = (object.ReferenceEquals(kv, null)) ? null : kv.Value;
             if (obj == null)
             {
-                this.InspectorLog("Object '" + transport.SourceObjectNetworkName + "' has vanished from the network.", "object_vanished");
                 throw new ObjectVanishedException(transport.SourceObjectNetworkName);
             }
-            else
-                this.InspectorLog("Retrieved transparent proxy to object '" + transport.SourceObjectNetworkName + "' from network.", "retrieved_success");
-
+            
             // Invoke the target method.
             MethodInfo mi = obj.GetType().GetMethod(transport.ListenerMethod, BindingFlagsCombined.All);
             if (mi == null)
@@ -203,12 +160,9 @@ namespace Process4.Providers
             ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
             if (obj == null)
             {
-                this.InspectorLog("Object '" + id + "' has vanished from the network.", "object_vanished");
                 throw new ObjectVanishedException(id);
             }
-            else
-                this.InspectorLog("Retrieved transparent proxy to object '" + id + "' from network.", "retrieved_success");
-
+            
             if (this.m_Node.Architecture == Architecture.PeerToPeer)
             {
                 // In peer-to-peer modes, methods are always invoked locally.
@@ -244,36 +198,13 @@ namespace Process4.Providers
                     // to remote it to the server.
                     Contact owner = this.m_Node.Storage.FetchOwner(id);
                     if (owner == null) throw new ObjectVanishedException(id);
-                    RemoteNode rnode = new RemoteNode(owner);
+                    RemoteNode rnode = new RemoteNode(this.m_Node, owner);
                     object r = rnode.Invoke(id, method, targs, args);
                     return r;
                 }
             }
             else
                 throw new NotSupportedException("Unsupported network architecture detected.");
-        }
-
-        public DTask<object> InvokeAsync(string id, string method, Type[] targs, object[] args, Delegate callback)
-        {
-            if (this.m_Node.Architecture == Architecture.PeerToPeer)
-            {
-                DTask<object> task = new DTask<object>();
-                ITransparent obj = this.m_Node.Storage.Fetch(id) as ITransparent;
-                if (obj == null) throw new ObjectVanishedException(id);
-
-                MethodInfo mi = obj.GetType().GetMethod(method, BindingFlagsCombined.All);
-                if (mi == null)
-                    throw new MissingMethodException(obj.GetType().FullName, method);
-                new Thread(() =>
-                {
-                    task.Value = mi.Invoke(obj, args);
-                    task.Completed = true;
-                    callback.DynamicInvoke(null);
-                }).Start();
-                return task;
-            }
-            else
-                throw new NotSupportedException("Asynchronous invocation of methods is not supported in network architectures other than peer-to-peer.");
         }
 
         #endregion
@@ -328,7 +259,8 @@ namespace Process4.Providers
         public static object SetProperty(Delegate d, object[] args)
         {
             // Invoke directly if not networked.
-            if (LocalNode.Singleton == null)
+            var node = (d.Target as ITransparent).Node;
+            if (node == null)
                 return DpmEntrypoint.InvokeDynamic(d, args);
 
             // Get the network name of the object.
@@ -338,7 +270,7 @@ namespace Process4.Providers
             string propertyName = d.Method.Name.Substring(4, d.Method.Name.LastIndexOf("__Distributed") - 4);
 
             // Get our local node and invoke the set property.
-            LocalNode.Singleton.SetProperty(objectName, propertyName, args[0]);
+            node.SetProperty(objectName, propertyName, args[0]);
 
             return null;
         }
@@ -346,7 +278,8 @@ namespace Process4.Providers
         public static object GetProperty(Delegate d, object[] args)
         {
             // Invoke directly if not networked.
-            if (LocalNode.Singleton == null)
+            var node = (d.Target as ITransparent).Node;
+            if (node == null)
                 return DpmEntrypoint.InvokeDynamic(d, args);
 
             // Get the network name of the object.
@@ -356,13 +289,14 @@ namespace Process4.Providers
             string propertyName = d.Method.Name.Substring(4, d.Method.Name.LastIndexOf("__Distributed") - 4);
 
             // Get our local node and invoke the get property.
-            return LocalNode.Singleton.GetProperty(objectName, propertyName);
+            return node.GetProperty(objectName, propertyName);
         }
 
         public static object AddEvent(Delegate d, object[] args)
         {
             // Invoke directly if not networked.
-            if (LocalNode.Singleton == null)
+            var node = (d.Target as ITransparent).Node;
+            if (node == null)
                 return DpmEntrypoint.InvokeDynamic(d, args);
 
             // Get the network name of the object.
@@ -373,7 +307,7 @@ namespace Process4.Providers
             Delegate handler = args[0] as Delegate;
             ID agreedref = null;
             if (handler.Target != null)
-                agreedref = EventTransport.GetAgreedReference(LocalNode.Singleton.Processor.AgreedReferences, handler.Target);
+                agreedref = EventTransport.GetAgreedReference(node.Processor.AgreedReferences, handler.Target);
 
             // Construct the event transport information.
             EventTransport ev = new EventTransport
@@ -382,13 +316,13 @@ namespace Process4.Providers
                 SourceEventName = eventName,
                 SourceEventType = handler.Method.GetParameters()[1].ParameterType.FullName,
                 ListenerAgreedReference = agreedref,
-                ListenerNodeID = LocalNode.Singleton.ID,
+                ListenerNodeID = node.ID,
                 ListenerType = handler.Method.DeclaringType.FullName,
                 ListenerMethod = handler.Method.Name
             };
 
             // Get our local node and invoke the add event.
-            LocalNode.Singleton.AddEvent(ev);
+            node.AddEvent(ev);
 
             return null;
         }
@@ -396,7 +330,8 @@ namespace Process4.Providers
         public static object RemoveEvent(Delegate d, object[] args)
         {
             // Invoke directly if not networked.
-            if (LocalNode.Singleton == null)
+            var node = (d.Target as ITransparent).Node;
+            if (node == null)
                 return DpmEntrypoint.InvokeDynamic(d, args);
 
             // Get the network name of the object and the name of the method.
@@ -407,7 +342,7 @@ namespace Process4.Providers
             Delegate handler = args[0] as Delegate;
             ID agreedref = null;
             if (handler.Target != null)
-                agreedref = EventTransport.GetAgreedReference(LocalNode.Singleton.Processor.AgreedReferences, handler);
+                agreedref = EventTransport.GetAgreedReference(node.Processor.AgreedReferences, handler);
 
             // Construct the event transport information.
             EventTransport ev = new EventTransport
@@ -416,13 +351,13 @@ namespace Process4.Providers
                 SourceEventName = eventName,
                 SourceEventType = handler.Method.GetParameters()[1].ParameterType.FullName,
                 ListenerAgreedReference = agreedref,
-                ListenerNodeID = LocalNode.Singleton.ID,
+                ListenerNodeID = node.ID,
                 ListenerType = handler.Method.DeclaringType.FullName,
                 ListenerMethod = handler.Method.Name
             };
 
             // Get our local node and invoke the remove event.
-            LocalNode.Singleton.RemoveEvent(ev);
+            node.RemoveEvent(ev);
 
             return null;
         }
@@ -430,7 +365,8 @@ namespace Process4.Providers
         public static object Invoke(Delegate d, object[] args)
         {
             // Invoke directly if not networked.
-            if (LocalNode.Singleton == null)
+            var node = (d.Target as ITransparent).Node;
+            if (node == null)
                 return DpmEntrypoint.InvokeDynamic(d, args);
 
             // Get the network name of the object and the name of the method.
@@ -438,14 +374,25 @@ namespace Process4.Providers
             string methodName = d.Method.Name;
 
             // Get our local node and invoke the method.
-            object o = LocalNode.Singleton.Invoke(objectName, methodName, d.Method.GetGenericArguments(), args);
+            object o = node.Invoke(objectName, methodName, d.Method.GetGenericArguments(), args);
             return o;
         }
 
         public static void Construct(object obj)
         {
+            // We need to use some sort of thread static variable; when the post-processor
+            // wraps methods, it also needs to update them so that calls to new are adjusted
+            // so the thread static variable gets set to the object's current node.  Then we
+            // pull the information out here to reassign it.
+            //
+            // If there's no node context in the thread static variable, then that means someone
+            // is new'ing up a distributed object from outside a distributed scope, and they
+            // haven't used the Distributed<> class to create it.
+            // FIXME
+        
             // Skip if not networked.
-            if (LocalNode.Singleton == null)
+            var node = (obj as ITransparent).Node;
+            if (node == null)
                 return;
 
             // Check to see if we've already got a NetworkName; if we have
@@ -458,7 +405,7 @@ namespace Process4.Providers
             (obj as ITransparent).NetworkName = "autoid-" + ID.NewRandom().ToString();
 
             // Store the object in the Dht.
-            LocalNode.Singleton.Storage.Store((obj as ITransparent).NetworkName, obj);
+            node.Storage.Store((obj as ITransparent).NetworkName, obj);
         }
 
         public static void Serialize(object obj, SerializationInfo info, StreamingContext context)

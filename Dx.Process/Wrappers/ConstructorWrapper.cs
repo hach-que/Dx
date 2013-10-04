@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Mono.Cecil;
-using Process4.Task.Statements;
-using Mono.Cecil.Cil;
-using Mono.Collections.Generic;
 using System.IO;
+using Dx.Runtime;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 namespace Process4.Task.Wrappers
 {
@@ -40,7 +35,7 @@ namespace Process4.Task.Wrappers
             this.Log.WriteLine("  + m " + this.m_Constructor.Name);
 
             // Create the Process4.Providers.DpmEntrypoint::Construct method reference.
-            MethodReference construct = new MethodReference("Construct", this.m_Type.Module.Import(typeof(void)), this.m_Type.Module.Import(typeof(Process4.Providers.DpmEntrypoint)));
+            MethodReference construct = new MethodReference("Construct", this.m_Type.Module.Import(typeof(void)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             construct.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object))));
 
             // Prepend instructions.

@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Process4.Interfaces
+namespace Dx.Runtime
 {
     /// <summary>
     /// Defines required information for distributed objects.  The post-processor
@@ -12,6 +7,6 @@ namespace Process4.Interfaces
     public interface ITransparent
     {
         string NetworkName { get; set; }
-        bool IsImmutablyPushed { get; set; }
+        ILocalNode Node { get; set; }
     }
 }

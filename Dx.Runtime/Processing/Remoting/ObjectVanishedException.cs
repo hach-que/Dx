@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Process4.Remoting
+namespace Dx.Runtime
 {
     public class ObjectVanishedException : NullReferenceException
     {

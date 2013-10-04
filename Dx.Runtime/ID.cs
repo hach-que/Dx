@@ -1,28 +1,13 @@
-// 
-//  Copyright 2010  Trust4 Developers
-// 
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-// 
-//        http://www.apache.org/licenses/LICENSE-2.0
-// 
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Data4
+namespace Dx.Runtime
 {
-    [Serializable()]
+    [Serializable]
     public class ID : ISerializable
     {
         private byte[] m_Bytes;
@@ -44,7 +29,7 @@ namespace Data4
 
         public ID(Guid a, Guid b, Guid c, Guid d)
         {
-            List<byte> bytes = new List<byte>();
+            var bytes = new List<byte>();
             bytes.AddRange(a.ToByteArray());
             bytes.AddRange(b.ToByteArray());
             bytes.AddRange(c.ToByteArray());
@@ -54,9 +39,9 @@ namespace Data4
 
         public ID(SerializationInfo info, StreamingContext context)
         {
-            List<byte> bytes = new List<byte>();
+            var bytes = new List<byte>();
             for (int i = 0; i < 64; i += 1)
-                bytes.Add(info.GetByte("k" + i.ToString()));
+                bytes.Add(info.GetByte("k" + i));
             this.m_Bytes = bytes.ToArray();
         }
 
@@ -115,21 +100,24 @@ namespace Data4
             return !same;
         }
 
-        public override string ToString()
+        public static ID operator +(ID a, int value)
         {
-            if (this.m_Bytes == null)
-                return new Guid().ToString() + " " + new Guid().ToString() + " " + new Guid().ToString() + " " + new Guid().ToString();
+            var b = new byte[a.m_Bytes.Length];
+            a.m_Bytes.CopyTo(b, 0);
 
-            return new Guid(this.m_Bytes.Skip(0).Take(16).ToArray()).ToString() + " " +
-                new Guid(this.m_Bytes.Skip(16).Take(16).ToArray()).ToString() + " " +
-                new Guid(this.m_Bytes.Skip(32).Take(16).ToArray()).ToString() + " " +
-                new Guid(this.m_Bytes.Skip(48).Take(16).ToArray()).ToString();
-        }
+            for (int i = b.Length - 1; i >= 0; i--)
+            {
+                int v = b[i] + value;
+                if (v > byte.MaxValue)
+                {
+                    b[i] = (byte)(value % byte.MaxValue);
+                    value -= byte.MaxValue * b[i];
+                }
+                else
+                    b[i] = (byte)v;
+            }
 
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            for (int i = 0; i < 64; i += 1)
-                info.AddValue("k" + i.ToString(), this.m_Bytes[i]);
+            return new ID(b);
         }
 
         /*
@@ -153,6 +141,23 @@ namespace Data4
                 return null;
             return new ID(new Guid(ss[0]), new Guid(ss[1]), new Guid(ss[2]), new Guid(ss[3]));
         }
+        
+        public override string ToString()
+        {
+            if (this.m_Bytes == null)
+                return new Guid() + " " + new Guid() + " " + new Guid() + " " + new Guid();
+
+            return new Guid(this.m_Bytes.Skip(0).Take(16).ToArray()) + " " +
+                new Guid(this.m_Bytes.Skip(16).Take(16).ToArray()) + " " +
+                new Guid(this.m_Bytes.Skip(32).Take(16).ToArray()) + " " +
+                new Guid(this.m_Bytes.Skip(48).Take(16).ToArray());
+        }
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            for (int i = 0; i < 64; i += 1)
+                info.AddValue("k" + i, this.m_Bytes[i]);
+        }
 
         public ID GetHashedKey()
         {
@@ -163,8 +168,7 @@ namespace Data4
             byte[] b = hasher.ComputeHash(
                     this
                     .GetBytes()
-                    .ToArray()
-                    )
+                    .ToArray())
                 .Append(hasher.ComputeHash(unhashedKey1.GetBytes().ToArray()))
                 .Append(hasher.ComputeHash(unhashedKey2.GetBytes().ToArray()))
                 .Append(hasher.ComputeHash(unhashedKey3.GetBytes().ToArray()))
@@ -174,26 +178,6 @@ namespace Data4
                 throw new Exception("Length of array should be " + 512 + " bits or more");
 
             return new ID(b.Take(512));
-        }
-
-        public static ID operator +(ID a, int value)
-        {
-            byte[] b = new byte[a.m_Bytes.Length];
-            a.m_Bytes.CopyTo(b, 0);
-
-            for (int i = b.Length - 1; i >= 0; i--)
-            {
-                int v = b[i] + value;
-                if (v > byte.MaxValue)
-                {
-                    b[i] = (byte) ( value % byte.MaxValue );
-                    value -= byte.MaxValue * b[i];
-                }
-                else
-                    b[i] = (byte) v;
-            }
-
-            return new ID(b);
         }
 
         /// <summary>
@@ -208,9 +192,8 @@ namespace Data4
         public override bool Equals(object other)
         {
             if (other is ID)
-                return (this == (other as ID));
-            else
-                return false;
+                return this == (other as ID);
+            return false;
         }
 
         public override int GetHashCode()
@@ -221,16 +204,4 @@ namespace Data4
             }
         }
     }
-
-    public static class EnumerableExtensions
-    {
-        public static IEnumerable<T> Append<T>(this IEnumerable<T> before, IEnumerable<T> after)
-        {
-            foreach (var item in before)
-                yield return item;
-            foreach (var item in after)
-                yield return item;
-        }
-    }
 }
-

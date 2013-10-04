@@ -1,18 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Data4;
 using System.Net;
 
-namespace Process4.Interfaces
+namespace Dx.Runtime
 {
     public interface INetworkProvider
     {
         /// <summary>
         /// The node this network provider is associated with.
         /// </summary>
-        LocalNode Node { get; }
+        ILocalNode Node { get; }
 
         /// <summary>
         /// The network identifier.
