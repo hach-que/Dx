@@ -13,7 +13,6 @@
     <Compile Include="ConstructionTests.cs" />
     <Compile Include="ContactTests.cs" />
     <Compile Include="EnumerableExtensionsTests.cs" />
-    <Compile Include="GenericTests.cs" />
     <Compile Include="IDTests.cs" />
     <Compile Include="InternalDxFactory.cs" />
     <Compile Include="InternalTestNetwork.cs" />

@@ -122,14 +122,10 @@ namespace Dx.Runtime.Tests
             var network = this.SetupNetwork();
             try
             {
-                // Create on node A.
-                new Distributed<GenericType<string, int, short>>(network.NodeA, "test");
-
-                // Retrieve and use on node B.
-                var testB = (GenericType<string, int, short>)
-                    new Distributed<GenericType<string, int, short>>(network.NodeB, "test");
-                testB.Test();
-                Assert.Equal(testB.Return("hello"), "hello");
+                var testA = (GenericType<string, int, short>)
+                    new Distributed<GenericType<string, int, short>>(network.NodeA, "test");
+                testA.Test();
+                Assert.Equal(testA.Return("hello"), "hello");
             }
             finally
             {
@@ -148,13 +144,9 @@ namespace Dx.Runtime.Tests
             var network = this.SetupNetwork();
             try
             {
-                // Create on node A.
-                new Distributed<GenericTypeAndMethod<string, int>>(network.NodeA, "test");
-
-                // Retrieve and use on node B.
-                var testB = (GenericTypeAndMethod<string, int>)
-                    new Distributed<GenericTypeAndMethod<string, int>>(network.NodeB, "test");
-                Assert.Equal(testB.Return<short, uint, ushort>("hello", 1, 2, 3, 4), "hello");
+                var testA = (GenericTypeAndMethod<string, int>)
+                    new Distributed<GenericTypeAndMethod<string, int>>(network.NodeA, "test");
+                Assert.Equal(testA.Return<short, uint, ushort>("hello", 1, 2, 3, 4), "hello");
             }
             finally
             {
@@ -173,12 +165,8 @@ namespace Dx.Runtime.Tests
             var network = this.SetupNetwork();
             try
             {
-                // Create on node A.
-                new Distributed<GenericMethod>(network.NodeA, "test");
-
-                // Retrieve and use on node B.
-                var testB = (GenericMethod)new Distributed<GenericMethod>(network.NodeB, "test");
-                Assert.Equal(testB.Return("hello", 5), "hello");
+                var testA = (GenericMethod)new Distributed<GenericMethod>(network.NodeA, "test");
+                Assert.Equal(testA.Return("hello", 5), "hello");
             }
             finally
             {
