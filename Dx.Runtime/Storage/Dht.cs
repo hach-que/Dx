@@ -23,6 +23,7 @@ namespace Dx.Runtime
         private List<Entry> p_OwnedEntries = new List<Entry>();
         private object p_OwnedEntriesLock = new object();
         private object p_YieldingLock = new object();
+        private bool m_Stopping = false;
 
         public const int TIMEOUT = 5;
 
@@ -48,49 +49,63 @@ namespace Dx.Runtime
                 {
                     try
                     {
-                        Socket client = this.m_TcpListener.AcceptSocket();
+                        if (!this.m_TcpListener.Pending())
+                        {
+                            if (this.m_Stopping)
+                            {
+                                this.m_TcpListener.Stop();
+                                return;
+                            }
+                            Thread.Sleep(0);
+                            continue;
+                        }
+                        
+                        var client = this.m_TcpListener.AcceptTcpClient();
                         new Thread(() =>
                         {
-                            while (true)
+                            using (client)
                             {
-                                try
+                                while (true)
                                 {
-                                    int received = 0;
-                                    int total = sizeof(Int32);
-                                    byte[] size = new byte[sizeof(Int32)];
-                                    while (received < total)
-                                        received += client.Receive(size, received, sizeof(Int32) - received, SocketFlags.None);
-                                    if (BitConverter.ToInt32(size, 0) == 0)
-                                        throw new InvalidDataException("Length of received message must be greater than 0.");
-                                    received = 0;
-                                    total = BitConverter.ToInt32(size, 0);
-                                    byte[] result = new byte[total];
-                                    while (received < total)
-                                        received += client.Receive(result, received, total - received, SocketFlags.None);
-                                    this.LogI(LogType.DEBUG, "Received a message from " + client.RemoteEndPoint.ToString());
-                                    Thread handler = new Thread(a =>
-                                        {
-                                            this.OnReceive(((ThreadInformation)a).Endpoint, ((ThreadInformation)a).Result);
-                                        });
-                                    handler.Name = "Message Handling Thread";
-                                    handler.IsBackground = true;
-                                    handler.Start(new ThreadInformation { Endpoint = client.RemoteEndPoint as IPEndPoint, Result = result.Clone() as byte[] });
-                                }
-                                catch (SocketException ex)
-                                {
-                                    if (ex.SocketErrorCode == SocketError.ConnectionAborted ||
-                                        ex.SocketErrorCode == SocketError.ConnectionReset ||
-                                        ex.SocketErrorCode == SocketError.TimedOut)
-                                        return; // Other host disconnected.
-                                    else
+                                    try
+                                    {
+                                        int received = 0;
+                                        int total = sizeof(Int32);
+                                        byte[] size = new byte[sizeof(Int32)];
+                                        while (received < total)
+                                            received += client.Client.Receive(size, received, sizeof(Int32) - received, SocketFlags.None);
+                                        if (BitConverter.ToInt32(size, 0) == 0)
+                                            throw new InvalidDataException("Length of received message must be greater than 0.");
+                                        received = 0;
+                                        total = BitConverter.ToInt32(size, 0);
+                                        byte[] result = new byte[total];
+                                        while (received < total)
+                                            received += client.Client.Receive(result, received, total - received, SocketFlags.None);
+                                        this.LogI(LogType.DEBUG, "Received a message from " + client.Client.RemoteEndPoint.ToString());
+                                        Thread handler = new Thread(a =>
+                                            {
+                                                this.OnReceive(((ThreadInformation)a).Endpoint, ((ThreadInformation)a).Result);
+                                            });
+                                        handler.Name = "Message Handling Thread";
+                                        handler.IsBackground = true;
+                                        handler.Start(new ThreadInformation { Endpoint = client.Client.RemoteEndPoint as IPEndPoint, Result = result.Clone() as byte[] });
+                                    }
+                                    catch (SocketException ex)
+                                    {
+                                        if (ex.SocketErrorCode == SocketError.ConnectionAborted ||
+                                            ex.SocketErrorCode == SocketError.ConnectionReset ||
+                                            ex.SocketErrorCode == SocketError.TimedOut)
+                                            return; // Other host disconnected.
+                                        else
+                                            throw;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        if (ex is ThreadAbortException)
+                                            return;
+                                        Console.WriteLine(ex.ToString());
                                         throw;
-                                }
-                                catch (Exception ex)
-                                {
-                                    if (ex is ThreadAbortException)
-                                        return;
-                                    Console.WriteLine(ex.ToString());
-                                    throw;
+                                    }
                                 }
                             }
                         }) { IsBackground = true }.Start();
@@ -305,9 +320,23 @@ namespace Dx.Runtime
 
         public void Close()
         {
-            // We no longer abort the thread here since it may be waiting on
-            // a kernel call and thus will not be forced to stop.
-            this.m_TcpListener.Stop();
+            this.m_Stopping = true;
+            while (this.m_TcpThread.IsAlive)
+            {
+                Console.WriteLine("Waiting for listening thread to close...");
+                Thread.Sleep(0);
+            }
+            
+            // Wait until all contact connections have also closed.
+            foreach (var contact in this.p_Contacts)
+            {
+                while (ContactPool.ConnectionIsOpen(contact.EndPoint))
+                {
+                    ContactPool.AttemptToCloseConnection(contact.EndPoint);
+                    Console.WriteLine("Waiting for connection to " + contact.Identifier + " to close...");
+                    Thread.Sleep(0);
+                }
+            }
         }
 
         public IFormatter Formatter

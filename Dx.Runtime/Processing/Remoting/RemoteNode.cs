@@ -6,6 +6,7 @@ namespace Dx.Runtime
     internal class RemoteNode : INode
     {
         private Contact m_Target;
+        private ILocalNode m_LocalNode;
         private Dht m_LocalDht;
         
         public ID ID { get; set; }
@@ -20,6 +21,7 @@ namespace Dx.Runtime
                 throw new ArgumentException("The remote node's target can not be null.", "target");
             this.m_Target = target;
             this.m_LocalDht = (localNode.Storage as DhtWrapper).Dht;
+            this.m_LocalNode = localNode;
         }
 
         public void SetProperty(string id, string property, object value)
@@ -91,6 +93,8 @@ namespace Dx.Runtime
                 gpm.ResultReceived -= ev;
 
             // Return the result.
+            if (gpm.Result is ITransparent)
+                (gpm.Result as ITransparent).Node = this.m_LocalNode;
             return gpm.Result;
         }
 
@@ -198,6 +202,8 @@ namespace Dx.Runtime
                 fm.ResultReceived -= ev;
 
             // Return the result.
+            if (fm.Result is ITransparent)
+                (fm.Result as ITransparent).Node = this.m_LocalNode;
             return fm.Result;
         }
 

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Name="Dx.Runtime.Tests.Data" Path="Dx.Runtime.Tests.Data" Type="Library">
+  <Properties>
+    <PostProcessWithDx>True</PostProcessWithDx>
+  </Properties>
+  <References>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Dx.Runtime" />
+    <Reference Include="Dx.Process" />
+  </References>
+  <Files>
+    <Compile Include="Bar.cs" />
+    <Compile Include="Baz.cs" />
+    <Compile Include="Foo.cs" />
+    <Compile Include="InterceptNewInstructionTest.cs" />
+  </Files>
+</Project>

@@ -49,6 +49,8 @@ namespace Dx.Runtime
                 node.Storage.Store(this.m_Name, this.m_Data);
                 typeof(T).GetConstructor(Type.EmptyTypes).Invoke(this.m_Data, null);
             }
+            else if (typeof(T).GetInterface("ITransparent") != null)
+                (this.m_Data as ITransparent).Node = node;
         }
 
         /// <summary>
@@ -94,7 +96,7 @@ namespace Dx.Runtime
             // This class does not have ITransparent implement, likely because
             // it does not have the Distributed attribute or the post-processor
             // hasn't been run correctly.
-            throw new NotSupportedException("Attempting to perform distributed erasure on a reference type that does not have ITransparent implemented.  "
+            throw new NotSupportedException("Attempting to perform distributed erasure on a " + typeof(T).FullName + " that does not have ITransparent implemented.  "
                                             + "If this class does have the Distributed attribute set, ensure the post-processor is being executed during build.");
         }
 

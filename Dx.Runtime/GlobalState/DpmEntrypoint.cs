@@ -175,6 +175,13 @@ namespace Dx.Runtime
 
         public static void Construct(object obj)
         {
+            // Check to see if we've already got a NetworkName; if we have
+            // then we're a named distributed instance that doesn't need the
+            // autoid assigned.
+            if ((obj as ITransparent).NetworkName != null &&
+                (obj as ITransparent).Node != null)
+                return;
+                
             // We need to use some sort of thread static variable; when the post-processor
             // wraps methods, it also needs to update them so that calls to new are adjusted
             // so the thread static variable gets set to the object's current node.  Then we
@@ -191,12 +198,6 @@ namespace Dx.Runtime
                     "from a local context, use the Distributed<> class.");
         
             var node = DpmConstructContext.LocalNodeContext;
-
-            // Check to see if we've already got a NetworkName; if we have
-            // then we're a named distributed instance that doesn't need the
-            // autoid assigned.
-            if ((obj as ITransparent).NetworkName != null)
-                return;
 
             // Allocate a randomly generated NetworkName.
             (obj as ITransparent).Node = DpmConstructContext.LocalNodeContext;

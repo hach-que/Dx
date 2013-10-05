@@ -10,15 +10,17 @@ namespace Dx.Runtime
 {
     internal class DhtWrapper : IStorageProvider, IContactProvider
     {
-        private Dht p_Dht = null;
-        private ILocalNode m_Node = null;
-        private Dictionary<ID, object> p_CachedEntries = new Dictionary<ID, object>();
+        private Dht m_Dht;
+        private ILocalNode m_Node;
+        private Dictionary<ID, object> m_CachedEntries = new Dictionary<ID, object>();
+        private bool m_Started;
 
         public DhtWrapper(ILocalNode node)
         {
             // Store our reference to our node so we can use the IProcessorProvider
             // later on.
             this.m_Node = node;
+            this.m_Started = false;
         }
 
         /// <summary>
@@ -27,11 +29,13 @@ namespace Dx.Runtime
         public void Start()
         {
             // Creates our new DHT node with the specified ID and endpoint.
-            this.p_Dht = new Dht(this.m_Node.ID, new IPEndPoint(this.m_Node.Network.IPAddress, this.m_Node.Network.MessagingPort));
+            this.m_Dht = new Dht(this.m_Node.ID, new IPEndPoint(this.m_Node.Network.IPAddress, this.m_Node.Network.MessagingPort));
 
             // Register the message listener on the DHT which we will use to
             // detect InvokeMessage, SetPropertyMessage and GetPropertyMessage.
-            this.p_Dht.OnReceived += new EventHandler<MessageEventArgs>(p_Dht_OnReceived);
+            this.m_Dht.OnReceived += new EventHandler<MessageEventArgs>(DhtOnReceived);
+            
+            this.m_Started = true;
         }
 
         /// <summary>
@@ -39,14 +43,28 @@ namespace Dx.Runtime
         /// </summary>
         public void Stop()
         {
-            this.p_Dht.Close();
+            this.m_Dht.Close();
+        }
+        
+        private void WalkAndUpdate(object obj, ILocalNode node)
+        {
+            if (obj is ITransparent)
+                (obj as ITransparent).Node = node;
+            var type = obj.GetType();
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var f in fields)
+            {
+                var val = f.GetValue(obj);
+                if (val != null)
+                    this.WalkAndUpdate(val, node);
+            }
         }
 
         /// <summary>
         /// This event is raised when the DHT has received a message and we should
         /// check to see if it is any of the types we want to handle.
         /// </summary>
-        void p_Dht_OnReceived(object sender, MessageEventArgs e)
+        void DhtOnReceived(object sender, MessageEventArgs e)
         {
             if (e.Message is InvokeMessage ||
                 e.Message is SetPropertyMessage ||
@@ -65,7 +83,7 @@ namespace Dx.Runtime
                     // Tell the node to invoke the method.
                     InvokeMessage i = (e.Message as InvokeMessage);
                     object r = this.m_Node.Invoke(i.ObjectID, i.ObjectMethod, i.TypeArguments, i.Arguments);
-                    InvokeConfirmationMessage icm = new InvokeConfirmationMessage(this.p_Dht, i, r);
+                    InvokeConfirmationMessage icm = new InvokeConfirmationMessage(this.m_Dht, i, r);
                     try
                     {
                         icm.Send();
@@ -103,9 +121,9 @@ namespace Dx.Runtime
                             if (obj == null) return;
                             try
                             {
-                                lock (this.p_CachedEntries)
+                                lock (this.m_CachedEntries)
                                 {
-                                    this.p_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
+                                    this.m_CachedEntries.Add(ID.NewHash(i.ObjectID), obj);
                                 }
                             }
                             catch (ArgumentException) { }
@@ -140,7 +158,7 @@ namespace Dx.Runtime
                     // Tell the node to get the property.
                     GetPropertyMessage i = (e.Message as GetPropertyMessage);
                     object r = this.m_Node.GetProperty(i.ObjectID, i.ObjectProperty);
-                    GetPropertyConfirmationMessage gpcm = new GetPropertyConfirmationMessage(this.p_Dht, i, r);
+                    GetPropertyConfirmationMessage gpcm = new GetPropertyConfirmationMessage(this.m_Dht, i, r);
                     try
                     {
                         gpcm.Send();
@@ -189,11 +207,11 @@ namespace Dx.Runtime
         /// Handles providing any cached entries to the DHT when operating in StoreOnDemand
         /// mode (since we need to pass along entries which we didn't originally own).
         /// </summary>
-        void p_Dht_OnEntriesRequested(object sender, EntriesRequestedEventArgs e)
+        void DhtOnEntriesRequested(object sender, EntriesRequestedEventArgs e)
         {
-            lock (this.p_CachedEntries)
+            lock (this.m_CachedEntries)
             {
-                foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
+                foreach (KeyValuePair<ID, object> kv in this.m_CachedEntries)
                     e.Entries.Add(kv.Key, kv.Value);
             }
         }
@@ -207,17 +225,17 @@ namespace Dx.Runtime
 
         public void Add(Contact contact)
         {
-            this.p_Dht.Contacts.Add(contact);
+            this.m_Dht.Contacts.Add(contact);
         }
 
         public void Remove(Contact contact)
         {
-            this.p_Dht.Contacts.Remove(contact);
+            this.m_Dht.Contacts.Remove(contact);
         }
 
         public void Clear()
         {
-            this.p_Dht.Contacts.Clear();
+            this.m_Dht.Contacts.Clear();
         }
 
         #endregion
@@ -226,7 +244,7 @@ namespace Dx.Runtime
 
         public IEnumerator<Contact> GetEnumerator()
         {
-            return this.p_Dht.Contacts.GetEnumerator();
+            return this.m_Dht.Contacts.GetEnumerator();
         }
 
         #endregion
@@ -235,7 +253,7 @@ namespace Dx.Runtime
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
-            return (this.p_Dht.Contacts as System.Collections.IEnumerable).GetEnumerator();
+            return (this.m_Dht.Contacts as System.Collections.IEnumerable).GetEnumerator();
         }
 
         #endregion
@@ -400,9 +418,9 @@ namespace Dx.Runtime
                         {
                             obj = this.Fetch(id) as ITransparent;
                             if (obj == null) throw new ObjectVanishedException(id);
-                            lock (this.p_CachedEntries)
+                            lock (this.m_CachedEntries)
                             {
-                                this.p_CachedEntries.Add(ID.NewHash(id), obj);
+                                this.m_CachedEntries.Add(ID.NewHash(id), obj);
                             }
                         } 
 
@@ -457,9 +475,9 @@ namespace Dx.Runtime
         public object FetchCached(string idh)
         {
             ID id = ID.NewHash(idh);
-            lock (this.p_CachedEntries)
+            lock (this.m_CachedEntries)
             {
-                foreach (KeyValuePair<ID, object> kv in this.p_CachedEntries)
+                foreach (KeyValuePair<ID, object> kv in this.m_CachedEntries)
                     if (kv.Key == id)
                         return kv.Value;
             }
@@ -480,7 +498,12 @@ namespace Dx.Runtime
         /// </summary>
         internal Dht Dht
         {
-            get { return this.p_Dht; }
+            get
+            {
+                if (!this.m_Started)
+                    throw new InvalidOperationException("You must join a network before performing distributed actions.");
+                return this.m_Dht;
+            }
         }
     }
 }

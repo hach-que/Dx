@@ -6,32 +6,21 @@ using System.Linq;
 using Xunit;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Dx.Runtime.Tests.Data;
 
 namespace Dx.Runtime.Tests
 {
     public class ProcessorTests
     {
-        private AssemblyDefinition ProcessAssembly()
+        private AssemblyDefinition GetAssembly()
         {
-            var current = Assembly.GetExecutingAssembly().Location;
-            var temp = Path.GetTempFileName();
-            File.Copy(current, temp, true);
-            File.Copy(
-                typeof(ID).Assembly.Location,
-                new FileInfo(temp).Directory.FullName + "/" + typeof(ID).Assembly.GetName().Name + ".dll",
-                true);
-            
-            var processor = new DxProcessor();
-            processor.AssemblyFile = temp;
-            Assert.True(processor.Execute());
-            
-            return AssemblyDefinition.ReadAssembly(temp);
+            return AssemblyDefinition.ReadAssembly(typeof(InterceptNewInstructionTest).Assembly.Location);
         }
         
-        [Fact]
+        [Fact, Trait("Type", "Processor")]
         public void InterceptsNewInstruction()
         {
-            var assembly = this.ProcessAssembly();
+            var assembly = this.GetAssembly();
             var type = assembly.Modules.First().Types.FirstOrDefault(x => x.Name == "InterceptNewInstructionTest");
             Assert.NotNull(type);
             
@@ -55,6 +44,19 @@ namespace Dx.Runtime.Tests
             Assert.Equal(OpCodes.Br, pureInstructions[4].OpCode);
             Assert.Equal(OpCodes.Ldloc_0, pureInstructions[5].OpCode);
             Assert.Equal(OpCodes.Ret, pureInstructions[6].OpCode);
+        }
+        
+        [Fact, Trait("Type", "Processor")]
+        public void PlacesNonSerializedAttributeOnNodeField()
+        {
+            var assembly = this.GetAssembly();
+            var type = assembly.Modules.First().Types.FirstOrDefault(x => x.Name == "InterceptNewInstructionTest");
+            Assert.NotNull(type);
+            
+            var nodeBackingField = type.Fields.FirstOrDefault(x => x.Name == "<Node>k__BackingField");
+            Assert.NotNull(nodeBackingField);
+            
+            Assert.True(nodeBackingField.CustomAttributes.Any(x => x.AttributeType.Name == "NonSerializedAttribute"));
         }
     }
 }

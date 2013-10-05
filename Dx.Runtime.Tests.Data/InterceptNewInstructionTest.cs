@@ -1,4 +1,4 @@
-namespace Dx.Runtime.Tests
+namespace Dx.Runtime.Tests.Data
 {
     [Distributed]
     public class InterceptNewInstructionTest
@@ -9,4 +9,3 @@ namespace Dx.Runtime.Tests
         }
     }
 }
-

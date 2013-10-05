@@ -7,13 +7,18 @@
     <Reference Include="Microsoft.Build.Framework" />
     <Reference Include="Dx.Runtime" />
     <Reference Include="Dx.Process" />
+    <Reference Include="Dx.Runtime.Tests.Data" />
   </References>
   <Files>
+    <Compile Include="ConstructionTests.cs" />
     <Compile Include="ContactTests.cs" />
     <Compile Include="EnumerableExtensionsTests.cs" />
     <Compile Include="IDTests.cs" />
-    <Compile Include="ProcessorClasses\InterceptNewInstructionTest.cs" />
+    <Compile Include="InternalDxFactory.cs" />
+    <Compile Include="InternalTestNetwork.cs" />
+    <Compile Include="NetworkingTests.cs" />
     <Compile Include="ProcessorTests.cs" />
+    <Compile Include="Program.cs" />
     <None Include="packages.config" />
   </Files>
 </Project>

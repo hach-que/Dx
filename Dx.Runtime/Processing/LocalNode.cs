@@ -1,11 +1,13 @@
 using System;
-using System.Reflection;
-using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 
 namespace Dx.Runtime
 {
-    internal class LocalNode : ILocalNode
+    [Serializable]
+    internal class LocalNode : ILocalNode, ISerializable
     {
+        private bool m_Fake = false;
+    
         /// <summary>
         /// The provider which gives this node it's network representation.
         /// </summary>
@@ -64,6 +66,9 @@ namespace Dx.Runtime
         {
             get
             {
+                if (this.m_Fake)
+                    throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+                
                 if (this.Architecture == Architecture.ServerClient)
                     return this.Network.IsFirst;
                 else
@@ -88,6 +93,9 @@ namespace Dx.Runtime
         /// <param name="network">The network ID.</param>
         public void Join(Guid network)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+                
             this.Join(new ID(network, network, network, network));
         }
 
@@ -97,6 +105,9 @@ namespace Dx.Runtime
         /// <param name="network">The network ID.</param>
         public void Join(ID network)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+                
             if (this.Contacts.StorageStartRequired)
             {
                 this.Storage.Start();
@@ -115,6 +126,9 @@ namespace Dx.Runtime
         /// </summary>
         public void Leave()
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+                
             this.Processor.Stop();
             if (this.Contacts.StorageStartRequired)
             {
@@ -134,34 +148,59 @@ namespace Dx.Runtime
 
         public void SetProperty(string id, string property, object value)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
             this.Storage.SetProperty(id, property, value);
         }
 
         public object GetProperty(string id, string property)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
             return this.Storage.GetProperty(id, property);
         }
 
         public void AddEvent(EventTransport transport)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
             this.Processor.AddEvent(transport);
         }
 
         public void RemoveEvent(EventTransport transport)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
             this.Processor.RemoveEvent(transport);
         }
 
         public void InvokeEvent(EventTransport transport, object sender, EventArgs e)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
             this.Processor.InvokeEvent(transport, sender, e);
         }
 
         public object Invoke(string id, string method, Type[] targs, object[] args)
         {
+            if (this.m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
             return this.Processor.Invoke(id, method, targs, args);
         }
 
+        #endregion
+        
+        #region Fake Serialization
+        
+        protected LocalNode(SerializationInfo info, StreamingContext context)
+        {
+            this.m_Fake = true;
+        }
+  
+        public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+        }
+        
         #endregion
     }
 }
