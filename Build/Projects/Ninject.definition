@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ExternalProject Name="Ninject">
+ 
+  <Binary
+    Name="Ninject" 
+    Path="Ninject/Ninject.dll" />
+  <Binary
+    Name="Ninject.Extensions.Factory"
+    Path="Ninject/Ninject.Extensions.Factory.dll" />
+  <Binary
+    Name="Ninject.Extensions.Interception"
+    Path="Ninject/Ninject.Extensions.Interception.dll" />
+  <Binary
+    Name="Ninject.Extensions.Interception.DynamicProxy"
+    Path="Ninject/Ninject.Extensions.Interception.DynamicProxy.dll" />
+  <Binary
+    Name="Castle.Core"
+    Path="Ninject/Castle.Core.dll" />
+
+</ExternalProject>

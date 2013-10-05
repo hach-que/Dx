@@ -42,17 +42,17 @@ namespace Dx.Process
         /// The method to be wrapped.
         /// </summary>
         private readonly MethodDefinition m_Method;
-        
+
         /// <summary>
         /// The type on which the method to be wrapped is defined.
         /// </summary>
         private readonly TypeDefinition m_Type;
-        
+
         /// <summary>
         /// The module containing the method to be wrapped.
         /// </summary>
         private readonly ModuleDefinition m_Module;
-        
+
         /// <summary>
         /// The trace source on which logging will be done.
         /// </summary>
@@ -80,13 +80,13 @@ namespace Dx.Process
             {
                 return;
             }
-            
+
             // Generate the direct invocation class.
             TypeDefinition idc = this.GenerateDirectInvokeClass();
-            
+
             // Get a list of existing instructions.
             Collection<Instruction> instructions = this.m_Method.Body.Instructions;
-            
+
             // Get a reference to the context setting method.
             var assignNodeContext = new MethodReference("AssignNodeContext", this.m_Type.Module.Import(typeof(void)), this.m_Type.Module.Import(typeof(DpmConstructContext)));
             assignNodeContext.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object))));
@@ -104,25 +104,25 @@ namespace Dx.Process
                     md.Body.Instructions.Add(Instruction.Create(OpCodes.Ldarg_0));
                     md.Body.Instructions.Add(Instruction.Create(OpCodes.Call, assignNodeContext));
                 }
-                
+
                 md.Body.Instructions.Add(ii);
             }
-            
+
             foreach (VariableDefinition l in this.m_Method.Body.Variables)
             {
                 md.Body.Variables.Add(l);
             }
-            
+
             foreach (ExceptionHandler ex in this.m_Method.Body.ExceptionHandlers)
             {
                 md.Body.ExceptionHandlers.Add(ex);
             }
-            
+
             foreach (ParameterDefinition p in this.m_Method.Parameters)
             {
                 md.Parameters.Add(p);
             }
-            
+
             foreach (GenericParameter gp in this.m_Method.GenericParameters)
             {
                 GenericParameter gpn = new GenericParameter(gp.Name, md);
@@ -131,10 +131,10 @@ namespace Dx.Process
                 {
                     gpn.Constraints.Add(tr);
                 }
-                
+
                 md.GenericParameters.Add(gpn);
             }
-            
+
             this.m_Type.Methods.Add(md);
             Utility.AddAttribute(md, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), this.m_Module);
 
@@ -155,7 +155,7 @@ namespace Dx.Process
 
             // Implement the Invoke method in the DirectInvoke class.
             this.ImplementDirectInvokeClass(idc, dg, md.Parameters, md.ReturnType);
-            
+
             // Create the Process4.Providers.DpmEntrypoint::GetProperty method reference.
             MethodReference getproperty = new MethodReference("GetProperty", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             getproperty.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
@@ -195,7 +195,7 @@ namespace Dx.Process
             {
                 this.m_Method.Body.Variables.Add(v_2);
             }
-        
+
             // Force local variables to be initalized.
             this.m_Method.Body.InitLocals = true;
             this.m_Method.Body.MaxStackSize = 10;
@@ -210,10 +210,10 @@ namespace Dx.Process
             GenericInstanceType bti = null;
             if (this.m_Type.HasGenericParameters)
             {
-                bti = (GenericInstanceType)Utility.MakeGenericType(this.m_Type, this.m_Type.GenericParameters.ToArray()); 
+                bti = (GenericInstanceType)Utility.MakeGenericType(this.m_Type, this.m_Type.GenericParameters.ToArray());
                 bmr = Utility.MakeGeneric(bmr, bti.GenericArguments.ToArray());
             }
-            
+
             if (this.m_Method.HasGenericParameters)
             {
                 GenericInstanceMethod gim = new GenericInstanceMethod(bmr);
@@ -221,20 +221,20 @@ namespace Dx.Process
                 {
                     gim.GenericArguments.Add(gp);
                 }
-                
+
                 bmr = gim;
             }
 
-            foreach (GenericParameter gp in this.m_Type.GenericParameters)
+            foreach (var gp in this.m_Type.GenericParameters)
             {
-                (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(gp);
+                ((GenericInstanceType)ct.DeclaringType).GenericArguments.Add(gp);
             }
-            
-            foreach (GenericParameter gp in this.m_Method.GenericParameters)
+
+            foreach (var gp in this.m_Method.GenericParameters)
             {
-                (ct.DeclaringType as GenericInstanceType).GenericArguments.Add(gp);
+                ((GenericInstanceType)ct.DeclaringType).GenericArguments.Add(gp);
             }
-            
+
             // Initialize the delegate.
             processor.Add(new InitDelegateStatement(ct, bmr, v_0));
 
@@ -243,7 +243,7 @@ namespace Dx.Process
             {
                 il.Append(Instruction.Create(OpCodes.Ldloc_0));
             }
-            
+
             processor.Add(
                 new InitArrayStatement(
                     this.m_Module.Import(typeof(object)),
@@ -257,7 +257,7 @@ namespace Dx.Process
                         {
                             return;
                         }
-                        
+
                         // Create IL to copy the value from the parameter directly
                         // into the array, boxing the value if needed.
                         p.Append(Instruction.Create(OpCodes.Ldloc, v_1));
@@ -267,7 +267,7 @@ namespace Dx.Process
                         {
                             p.Append(Instruction.Create(OpCodes.Box, pd.ParameterType));
                         }
-                        
+
                         p.Append(Instruction.Create(OpCodes.Stelem_Ref));
                     })));
 
@@ -307,7 +307,7 @@ namespace Dx.Process
             {
                 genericAppendix = "`" + this.m_Method.GenericParameters.Count;
             }
-            
+
             // Create a new type.
             var idc = new TypeDefinition(
                 string.Empty,
@@ -330,10 +330,10 @@ namespace Dx.Process
                         gpn.Constraints.Add(tr);
                     }
                 }
-                
+
                 idc.GenericParameters.Add(gpn);
             }
-            
+
             foreach (var gp in this.m_Method.GenericParameters)
             {
                 var gpn = new GenericParameter(gp.Name, idc);
@@ -349,10 +349,10 @@ namespace Dx.Process
                         gpn.Constraints.Add(tr);
                     }
                 }
-                
+
                 idc.GenericParameters.Add(gpn);
             }
-            
+
             this.m_Type.NestedTypes.Add(idc);
 
             // Add the IDirectInvoke interface.
@@ -399,7 +399,7 @@ namespace Dx.Process
                 gdg.GenericArguments.Add(gdg.GenericParameters[gi]);
                 gi++;
             }
-            
+
             TypeReference ret = tret;
             if (ret is GenericInstanceType)
             {
@@ -458,13 +458,13 @@ namespace Dx.Process
                         GenericParameterType.Type,
                         this.m_Module);
                 }
-                
+
                 invokedelegate.Parameters.Add(new ParameterDefinition(
                     pd.Name,
                     pd.Attributes,
                     propType));
             }
-            
+
             invokedelegate.HasThis = true;
 
             // Force local variables to be initalized.
@@ -499,7 +499,7 @@ namespace Dx.Process
                         GenericParameterType.Type,
                         this.m_Module);
                 }
-                
+
                 il.Append(Instruction.Create(OpCodes.Ldarg_3));
                 il.Append(Instruction.Create(OpCodes.Ldc_I4, i));
                 il.Append(Instruction.Create(OpCodes.Ldelem_Ref));
@@ -511,7 +511,7 @@ namespace Dx.Process
                 {
                     il.Append(Instruction.Create(OpCodes.Castclass, propType));
                 }
-                
+
                 i += 1;
             }
 
@@ -525,14 +525,14 @@ namespace Dx.Process
             {
                 il.Append(Instruction.Create(OpCodes.Box, ret));
             }
-            
+
             var ii_stloc = Instruction.Create(OpCodes.Stloc, v_1);
             var ii_ldloc = Instruction.Create(OpCodes.Ldloc, v_1);
             il.Append(ii_stloc);
             il.Append(ii_ldloc);
             il.Append(Instruction.Create(OpCodes.Ret));
             il.InsertAfter(ii_stloc, Instruction.Create(OpCodes.Br_S, ii_ldloc));
-            
+
             idc.Methods.Insert(0, invoke);
         }
     }

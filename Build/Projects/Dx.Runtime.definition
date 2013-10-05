@@ -32,7 +32,9 @@
     <Compile Include="Processing\Collections\Distributed.cs" />
     <Compile Include="Processing\ILocalNode.cs" />
     <Compile Include="Processing\INode.cs" />
-    <Compile Include="Processing\Inspector\InspectorForm.cs" />
+    <Compile Include="Processing\Inspector\InspectorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Processing\Inspector\InspectorForm.Designer.cs" />
     <Compile Include="Processing\Interfaces\IContactProvider.cs" />
     <Compile Include="Processing\Interfaces\IDirectInvoke.cs" />

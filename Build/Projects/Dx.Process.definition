@@ -14,8 +14,13 @@
     <Reference Include="Microsoft.Build.Framework" />
     <Reference Include="Microsoft.Build.Utilites.v4.0" />
     <Reference Include="Dx.Runtime" />
+    <Reference Include="Ninject" />
   </References>
   <Files>
+    <Compile Include="DefaultDelegateEmitter.cs" />
+    <Compile Include="DxProcessNinjectModule.cs" />
+    <Compile Include="DxProcessor.cs" />
+    <Compile Include="IDelegateEmitter.cs" />
     <Compile Include="IWrapper.cs" />
     <Compile Include="PostProcessingException.cs" />
     <Compile Include="Program.cs" />

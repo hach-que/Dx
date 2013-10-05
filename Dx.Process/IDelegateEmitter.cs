@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------
-// <copyright file="Program.cs" company="Redpoint Software">
+// <copyright file="IDelegateEmitter.cs" company="Redpoint Software">
 // The MIT License (MIT)
 //
 // Copyright (c) 2013 James Rhodes
@@ -25,20 +25,23 @@
 //-----------------------------------------------------------------------
 namespace Dx.Process
 {
+    using Mono.Cecil;
+
     /// <summary>
-    /// The program class.
+    /// An interface which provides the ability to emit delegate definitions based
+    /// on the signature of an existing method.
     /// </summary>
-    public static class Program
+    public interface IDelegateEmitter
     {
         /// <summary>
-        /// The entry point of the program, where the program control starts and ends.
+        /// Emits a delegate that matches the signature of a method being processed.  The delegate
+        /// definition is added to the same type that the method is declared on.
         /// </summary>
-        /// <param name="args">The command-line arguments.</param>
-        public static void Main(string[] args)
-        {
-            var p = new DxProcessor();
-            p.AssemblyFile = args[0];
-            p.Execute();
-        }
+        /// <returns>The type definition of the delegate.</returns>
+        /// <param name="method">The method on which to base the new delegate.</param>
+        /// <param name="delegateCtor">A reference to the constructor that can be used to create an instance of the delegate.</param>
+        TypeDefinition EmitDelegate(
+            MethodDefinition method,
+            out MethodReference delegateCtor);
     }
 }

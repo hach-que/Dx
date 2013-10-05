@@ -12,8 +12,17 @@
   </References>
   <Files>
     <Compile Include="Bar.cs" />
+    <Compile Include="BaseType.cs" />
     <Compile Include="Baz.cs" />
     <Compile Include="Foo.cs" />
+    <Compile Include="GenericMethod.cs" />
+    <Compile Include="GenericType.cs" />
+    <Compile Include="GenericTypeAndMethod.cs" />
     <Compile Include="InterceptNewInstructionTest.cs" />
+    <Compile Include="NonDistributedObject.cs" />
+    <Compile Include="OtherType.cs" />
+    <Compile Include="Preprocessed\PreprocessedGenericMethod.cs" />
+    <Compile Include="Preprocessed\PreprocessedGenericType.cs" />
+    <Compile Include="Preprocessed\PreprocessedGenericTypeAndMethod.cs" />
   </Files>
 </Project>

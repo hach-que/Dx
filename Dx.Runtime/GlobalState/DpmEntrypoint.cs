@@ -1,7 +1,7 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
-using System.Linq;
 
 namespace Dx.Runtime
 {
@@ -20,7 +20,7 @@ namespace Dx.Runtime
         {
             if (targs == null || targs.Any(x => x == null))
                 throw new ArgumentNullException("targs");
-        
+
             foreach (Type nt in dt.GetNestedTypes(BindingFlags.NonPublic))
             {
                 if (mi.Name.IndexOf("__") == -1)
@@ -45,6 +45,8 @@ namespace Dx.Runtime
                     throw new InvalidOperationException("Generic parameter not resolved before invocation of method.");
             if (dt.ContainsGenericParameters)
                 dt = dt.MakeGenericType(tparams);
+            if (mi.ContainsGenericParameters)
+                mi = mi.MakeGenericMethod(targs);
             IDirectInvoke di = dt.GetConstructor(Type.EmptyTypes).Invoke(null) as IDirectInvoke;
             object o = di.Invoke(mi, target, args);
             return o;
@@ -181,7 +183,7 @@ namespace Dx.Runtime
             if ((obj as ITransparent).NetworkName != null &&
                 (obj as ITransparent).Node != null)
                 return;
-                
+
             // We need to use some sort of thread static variable; when the post-processor
             // wraps methods, it also needs to update them so that calls to new are adjusted
             // so the thread static variable gets set to the object's current node.  Then we
@@ -196,7 +198,7 @@ namespace Dx.Runtime
                     "You can only new distributed objects directly from inside other " +
                     "distributed objects.  For construction of a distributed object " +
                     "from a local context, use the Distributed<> class.");
-        
+
             var node = DpmConstructContext.LocalNodeContext;
 
             // Allocate a randomly generated NetworkName.
@@ -205,7 +207,7 @@ namespace Dx.Runtime
 
             // Store the object in the Dht.
             node.Storage.Store((obj as ITransparent).NetworkName, obj);
-            
+
             // Reset the context automatically.
             DpmConstructContext.LocalNodeContext = null;
         }

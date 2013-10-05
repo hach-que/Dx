@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------
-// <copyright file="Program.cs" company="Redpoint Software">
+// <copyright file="DxProcessNinjectModule.cs" company="Redpoint Software">
 // The MIT License (MIT)
 //
 // Copyright (c) 2013 James Rhodes
@@ -25,20 +25,18 @@
 //-----------------------------------------------------------------------
 namespace Dx.Process
 {
+    using Ninject.Modules;
+
     /// <summary>
-    /// The program class.
+    /// The Dx processor's Ninject module.
     /// </summary>
-    public static class Program
+    public class DxProcessNinjectModule : NinjectModule
     {
         /// <summary>
-        /// The entry point of the program, where the program control starts and ends.
+        /// Loads the module into the kernel.
         /// </summary>
-        /// <param name="args">The command-line arguments.</param>
-        public static void Main(string[] args)
+        public override void Load()
         {
-            var p = new DxProcessor();
-            p.AssemblyFile = args[0];
-            p.Execute();
         }
     }
 }

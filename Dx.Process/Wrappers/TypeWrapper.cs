@@ -40,12 +40,12 @@ namespace Dx.Process
         /// The type to be wrapped.
         /// </summary>
         private readonly TypeDefinition m_Type;
-        
+
         /// <summary>
         /// The module containing the type.
         /// </summary>
         private readonly ModuleDefinition m_Module;
-        
+
         /// <summary>
         /// The trace source on which logging will be done.
         /// </summary>
@@ -101,27 +101,27 @@ namespace Dx.Process
             {
                 (new PropertyWrapper(p) { Exclusions = exclusions }).Wrap();
             }
-            
+
             foreach (var p in this.m_Type.Properties.Where(value => exclusions.Contains(value.Name)).ToList())
             {
                 this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Skipping property wrapping on {0} because it is an excluded property", p.Name);
             }
-            
+
             foreach (var m in this.m_Type.Methods.Where(value => !exclusions.Contains(value.Name) && !value.IsStatic && value.Name != ".ctor").ToList())
             {
                 (new MethodWrapper(m)).Wrap();
             }
-            
+
             foreach (var m in this.m_Type.Methods.Where(value => (exclusions.Contains(value.Name) || value.IsStatic) && value.Name != ".ctor").ToList())
             {
                 this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Skipping method wrapping on {0} because it is an excluded method", m.Name);
             }
-            
+
             foreach (var m in this.m_Type.Methods.Where(value => value.Name == ".ctor").ToList())
             {
                 (new ConstructorWrapper(m)).Wrap();
             }
-            
+
             foreach (var f in this.m_Type.Fields.ToList())
             {
                 (new FieldWrapper(f)).Wrap();

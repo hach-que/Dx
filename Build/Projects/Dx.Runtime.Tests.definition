@@ -13,11 +13,13 @@
     <Compile Include="ConstructionTests.cs" />
     <Compile Include="ContactTests.cs" />
     <Compile Include="EnumerableExtensionsTests.cs" />
+    <Compile Include="GenericTests.cs" />
     <Compile Include="IDTests.cs" />
     <Compile Include="InternalDxFactory.cs" />
     <Compile Include="InternalTestNetwork.cs" />
     <Compile Include="NetworkingTests.cs" />
     <Compile Include="ProcessorTests.cs" />
+    <Compile Include="ProcessorUtilities.cs" />
     <Compile Include="Program.cs" />
     <None Include="packages.config" />
   </Files>

@@ -51,7 +51,7 @@ namespace Dx.Process
         private readonly TraceSource m_TraceSource;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Process4.Task.Wrappers.PropertyWrapper"/> class.
+        /// Initializes a new instance of the <see cref="Dx.Process.PropertyWrapper"/> class.
         /// </summary>
         /// <param name="property">The property to wrap.</param>
         public PropertyWrapper(PropertyDefinition property)
@@ -73,7 +73,21 @@ namespace Dx.Process
         public void Wrap()
         {
             // Check to ensure property type has a distributed attribute or is a value type.
-            if (this.m_Property.PropertyType.IsValueType ||
+            if (this.m_Property.PropertyType.Resolve() == null)
+            {
+                // Not sure what to do with this?
+                var warning = 
+                    "Property {0} has type {1} which does not resolve to a full type.  If this is a " +
+                    "generic type, ensure that the generic type is restricted to value types or other " +
+                    "distributed types.  If a non-distributed type is used, runtime exceptions may occur.";
+                this.m_TraceSource.TraceEvent(
+                    TraceEventType.Warning, 
+                    0,
+                    warning,
+                    this.m_Property.Name,
+                    this.m_Property.PropertyType.Name);
+            }
+            else if (this.m_Property.PropertyType.IsValueType ||
                 this.m_Property.PropertyType.IsArray ||
                 this.m_Property.PropertyType.Resolve().IsInterface ||
                 this.m_Property.PropertyType.FullName == "System.String" ||

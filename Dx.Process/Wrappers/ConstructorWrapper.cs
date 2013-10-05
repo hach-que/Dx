@@ -64,10 +64,25 @@ namespace Dx.Process
             var construct = new MethodReference("Construct", this.m_Type.Module.Import(typeof(void)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             construct.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object))));
 
+            // It's technically not valid to call a method on this before the base constructor
+            // has been called.  To ensure the code is valid, we find the call to the base constructor and place
+            // our Construct call right after it.
+            Instruction instr = null;
+            for (var i = 0; i < this.m_Constructor.Body.Instructions.Count; i++)
+            {
+                instr = this.m_Constructor.Body.Instructions[i];
+                if (instr.OpCode == OpCodes.Call &&
+                    instr.Operand is MethodReference &&
+                    ((MethodReference)instr.Operand).Name == ".ctor")
+                {
+                    break;
+                }
+            }
+
             // Prepend instructions.
             var il = this.m_Constructor.Body.GetILProcessor();
-            il.InsertBefore(this.m_Constructor.Body.Instructions[0], Instruction.Create(OpCodes.Ldarg_0));
-            il.InsertAfter(this.m_Constructor.Body.Instructions[0], Instruction.Create(OpCodes.Call, construct));
+            il.InsertAfter(instr, Instruction.Create(OpCodes.Call, construct));
+            il.InsertAfter(instr, Instruction.Create(OpCodes.Ldarg_0));
         }
     }
 }
