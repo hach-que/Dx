@@ -1,5 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Name="Dx.Runtime" Path="Dx.Runtime" Type="Library">
+  <Properties>
+    <CustomDefinitions>
+      <Platform Name="Linux">TRACE;PLATFORM_LINUX;</Platform>
+      <Platform Name="MacOS">TRACE;PLATFORM_MACOS;</Platform>
+      <Platform Name="Windows">TRACE;PLATFORM_WINDOWS;</Platform>
+    </CustomDefinitions>
+  </Properties>
   <References>
     <Reference Include="System" />
     <Reference Include="System.Core" />

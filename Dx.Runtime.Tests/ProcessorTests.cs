@@ -45,19 +45,6 @@ namespace Dx.Runtime.Tests
             Assert.Equal(OpCodes.Ldloc_0, pureInstructions[5].OpCode);
             Assert.Equal(OpCodes.Ret, pureInstructions[6].OpCode);
         }
-        
-        [Fact, Trait("Type", "Processor")]
-        public void PlacesNonSerializedAttributeOnNodeField()
-        {
-            var assembly = this.GetAssembly();
-            var type = assembly.Modules.First().Types.FirstOrDefault(x => x.Name == "InterceptNewInstructionTest");
-            Assert.NotNull(type);
-            
-            var nodeBackingField = type.Fields.FirstOrDefault(x => x.Name == "<Node>k__BackingField");
-            Assert.NotNull(nodeBackingField);
-            
-            Assert.True(nodeBackingField.CustomAttributes.Any(x => x.AttributeType.Name == "NonSerializedAttribute"));
-        }
     }
 }
 

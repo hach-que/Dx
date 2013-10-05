@@ -3,8 +3,8 @@ using System.IO;
 using Microsoft.Build.Framework;
 using Mono.Cecil;
 using Mono.Collections.Generic;
-using Process4.Task.Wrappers;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace Dx.Process
 {
@@ -12,11 +12,6 @@ namespace Dx.Process
     {
         [Required]
         public string AssemblyFile { get; set; }
-
-        /// <summary>
-        /// The log file to write to.
-        /// </summary>
-        public StreamWriter Log { get; set; }
 
         static void Main(string[] args)
         {
@@ -34,14 +29,14 @@ namespace Dx.Process
         {
             Directory.SetCurrentDirectory(Path.GetDirectoryName(this.AssemblyFile));
 
-            this.Log = new StreamWriter("./Process4.Task.Output.txt", false);
-            this.Log.WriteLine("== BEGIN (" + DateTime.Now.ToString() + ") ==");
+            var source = new TraceSource("Processor", SourceLevels.All);
+            source.TraceEvent(TraceEventType.Information, 0, "Processor started at {0:G}", DateTime.Now);
 
             try
             {
                 // Get the assembly based on the path.
                 AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(
-                    this.AssemblyFile,
+                    Path.GetFileName(this.AssemblyFile),
                     new ReaderParameters
                     {
                         ReadSymbols = File.Exists(this.AssemblyFile + ".mdb"),
@@ -54,7 +49,7 @@ namespace Dx.Process
                     // Skip the module and Program classes.
                     if (type.Name == "<Module>" || type.Name == "Program")
                     {
-                        this.Log.WriteLine("- " + type.Name);
+                        source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it is a module", type.Name);
                         continue;
                     }
 
@@ -62,7 +57,7 @@ namespace Dx.Process
                     // attached to it.
                     if (!DxProcessor.HasAttribute(type, "DistributedAttribute"))
                     {
-                        this.Log.WriteLine("- " + type.Name);
+                        source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it does not have DistributedAttribute", type.Name);
                         continue;
                     }
 
@@ -70,47 +65,58 @@ namespace Dx.Process
                     // attached to it.
                     if (DxProcessor.HasAttributeSpecific(type, "ProcessedAttribute"))
                     {
-                        this.Log.WriteLine("+ " + type.Name + " (already processed)");
+                        source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it has already been processed", type.Name);
                         continue;
                     }
 
                     // This type is marked as distributed, so we need to perform
                     // wrapping on it.
-                    this.Log.WriteLine("+ " + type.Name);
-                    TypeWrapper wrapper = new TypeWrapper(type);
-                    wrapper.Log = this.Log;
+                    source.TraceEvent(TraceEventType.Information, 0, "Starting processing of {0}", type.Name);
+                    var wrapper = new TypeWrapper(type);
                     wrapper.Wrap();
+                    source.TraceEvent(TraceEventType.Information, 0, "Finished processing of {0}", type.Name);
                 }
 
-                assembly.Write(this.AssemblyFile, new WriterParameters { WriteSymbols = true });
-                this.Log.WriteLine("== SUCCESS ==");
-                this.Log.Close();
+                assembly.Write(Path.GetFileName(this.AssemblyFile), new WriterParameters { WriteSymbols = true });
+                source.TraceEvent(TraceEventType.Information, 0, "Processor completed successfully at {0:G}", DateTime.Now);
 
                 return true;
             }
             catch (PostProcessingException e)
             {
-                this.Log.WriteLine("Post Processing Exception Occurred!");
-                this.Log.WriteLine(e.OffendingMember + " in " + e.OffendingType + " caused:");
-                this.Log.WriteLine(e.GetType().FullName);
-                this.Log.WriteLine(e.Message);
-                this.Log.WriteLine(e.StackTrace);
-                this.Log.WriteLine("== ERROR: EXIT ==");
+                source.TraceEvent(
+                    TraceEventType.Critical,
+                    0,
+@"Post Processing Exception Occurred!
+{0} in {1} caused:
+{2}
+{3}
+{4}",
+                    e.OffendingMember, 
+                    e.OffendingType,
+                    e.GetType().FullName,
+                    e.Message,
+                    e.StackTrace);
+                source.TraceEvent(TraceEventType.Stop, 0, "Processor failed at {0:G}", DateTime.Now);
                 if (this.BuildEngine != null)
                     this.BuildEngine.LogErrorEvent(new BuildErrorEventArgs("Post Processing", "E0002", e.OffendingType + "." + e.OffendingMember, 0, 0, 0, 0, e.Message, "", ""));
-                this.Log.Close();
                 return false;
             }
             catch (Exception e)
             {
-                this.Log.WriteLine("Exception Occurred!");
-                this.Log.WriteLine(e.GetType().FullName);
-                this.Log.WriteLine(e.Message);
-                this.Log.WriteLine(e.StackTrace);
-                this.Log.WriteLine("== FATAL: EXIT ==");
+                source.TraceEvent(
+                    TraceEventType.Critical,
+                    0,
+@"Exception Occurred!
+{0}
+{1}
+{2}",
+                    e.GetType().FullName,
+                    e.Message,
+                    e.StackTrace);
+                source.TraceEvent(TraceEventType.Stop, 0, "Processor failed at {0:G}", DateTime.Now);
                 if (this.BuildEngine != null)
                     this.BuildEngine.LogErrorEvent(new BuildErrorEventArgs("General", "E0001", "", 0, 0, 0, 0, e.Message, "", ""));
-                this.Log.Close();
                 return false;
             }
         }

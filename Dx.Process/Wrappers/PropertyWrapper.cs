@@ -1,36 +1,71 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Mono.Cecil;
-using System.IO;
-using Dx.Process;
-
-namespace Process4.Task.Wrappers
+//-----------------------------------------------------------------------
+// <copyright file="PropertyWrapper.cs" company="Redpoint Software">
+// The MIT License (MIT)
+//
+// Copyright (c) 2013 James Rhodes
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+// </copyright>
+//-----------------------------------------------------------------------
+namespace Dx.Process
 {
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using Dx.Process;
+    using Mono.Cecil;
+
+    /// <summary>
+    /// Wraps a property for distributed behaviour.
+    /// </summary>
     internal class PropertyWrapper : IWrapper
     {
-        private readonly PropertyDefinition m_Property = null;
-        private readonly TypeDefinition m_Type = null;
-        private readonly ModuleDefinition m_Module = null;
-
         /// <summary>
-        /// The log file this wrapper should use.
+        /// The property being wrapped.
         /// </summary>
-        public StreamWriter Log { get; set; }
-
-        public List<string> Exclusions { get; set; }
+        private readonly PropertyDefinition m_Property;
+        
+        /// <summary>
+        /// The type that declares the property being wrapped.
+        /// </summary>
+        private readonly TypeDefinition m_Type;
+        
+        /// <summary>
+        /// The trace source on which logging will be done.
+        /// </summary>
+        private readonly TraceSource m_TraceSource;
 
         /// <summary>
-        /// Creates a new property wrapper which will wrap the specified property.
+        /// Initializes a new instance of the <see cref="Process4.Task.Wrappers.PropertyWrapper"/> class.
         /// </summary>
         /// <param name="property">The property to wrap.</param>
         public PropertyWrapper(PropertyDefinition property)
         {
             this.m_Property = property;
             this.m_Type = property.DeclaringType;
-            this.m_Module = property.Module;
+            this.m_TraceSource = new TraceSource("PropertyWrapper");
         }
+        
+        /// <summary>
+        /// Gets or sets the exclusions where automatically implemented methods of localised properties will be appended.
+        /// </summary>
+        /// <value>The exclusions where automatically implemented methods of localised properties will be appended.</value>
+        public List<string> Exclusions { get; set; }
 
         /// <summary>
         /// Wraps the property.
@@ -45,19 +80,27 @@ namespace Process4.Task.Wrappers
                 DxProcessor.HasAttribute(this.m_Property.PropertyType.Resolve(), "DistributedAttribute"))
             {
                 // This is a valid type.
-                this.Log.WriteLine("  + p " + this.m_Property.Name);
+                this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Recognised {0} as valid property", this.m_Property.Name);
             }
             else if (DxProcessor.HasAttribute(this.m_Property.CustomAttributes, "LocalAttribute"))
             {
                 // This is a localized property; add the get and set methods to our
                 // exclusion list.
+                this.m_TraceSource.TraceEvent(
+                    TraceEventType.Verbose,
+                    0,
+                    "Adding getter / setters of {0} to exclusions list because the property is marked with LocalAttribute",
+                    this.m_Property.Name);
                 this.Exclusions.Add(this.m_Property.GetMethod.Name);
                 this.Exclusions.Add(this.m_Property.SetMethod.Name);
             }
             else
             {
                 // This is an invalid type (throw an exception).
-                throw new PostProcessingException(this.m_Type.FullName, this.m_Property.Name,
+                this.m_TraceSource.TraceEvent(TraceEventType.Error, 0, "Property {0} isn't of a valid type", this.m_Property.Name);
+                throw new PostProcessingException(
+                    this.m_Type.FullName,
+                    this.m_Property.Name,
                     "The property '" + this.m_Property.Name + "' is of type '" + this.m_Property.PropertyType.Name + "', but it is not a distributed or value type.  Distributed types may only contain properties that are value types or types which are also distributed.");
             }
         }

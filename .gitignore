@@ -5,3 +5,4 @@ Old/*
 *.userprefs
 *.sln
 *.csproj
+StyleCop.Cache

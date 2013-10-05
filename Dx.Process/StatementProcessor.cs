@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Mono.Cecil.Cil;
 
-namespace Process4.Task
+namespace Dx.Process
 {
     internal class StatementProcessor
     {

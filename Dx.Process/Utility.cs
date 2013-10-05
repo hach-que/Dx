@@ -4,7 +4,7 @@ using Dx.Runtime;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-namespace Process4.Task
+namespace Dx.Process
 {
     internal static class Utility
     {

@@ -1,3 +1,28 @@
+//-----------------------------------------------------------------------
+// <copyright file="FieldWrapper.cs" company="Redpoint Software">
+// The MIT License (MIT)
+//
+// Copyright (c) 2013 James Rhodes
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+// </copyright>
+//-----------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,19 +30,20 @@ using System.Text;
 using Mono.Cecil;
 using System.IO;
 using Dx.Process;
+using System.Diagnostics;
 
-namespace Process4.Task.Wrappers
+namespace Dx.Process
 {
     internal class FieldWrapper : IWrapper
     {
         private readonly FieldDefinition m_Field = null;
         private readonly TypeDefinition m_Type = null;
         private readonly ModuleDefinition m_Module = null;
-
+        
         /// <summary>
-        /// The log file this wrapper should use.
+        /// The trace source on which logging will be done.
         /// </summary>
-        public StreamWriter Log { get; set; }
+        private readonly TraceSource m_TraceSource;
 
         /// <summary>
         /// Creates a new field wrapper which will wrap the specified field.
@@ -28,6 +54,7 @@ namespace Process4.Task.Wrappers
             this.m_Field = field;
             this.m_Type = field.DeclaringType;
             this.m_Module = field.Module;
+            this.m_TraceSource = new TraceSource("FieldWrapper");
         }
 
         /// <summary>
