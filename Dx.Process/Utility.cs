@@ -3,6 +3,7 @@ using System.Linq;
 using Dx.Runtime;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Collections.Generic;
 
 namespace Dx.Process
 {
@@ -277,6 +278,50 @@ namespace Dx.Process
                 reference.GenericParameters.Add(new GenericParameter(generic_parameter.Name, reference));
 
             return reference;
+        }
+
+        public static bool HasAttribute(TypeDefinition type, string name)
+        {
+            while (type != null)
+            {
+                if (HasAttributeSpecific(type, name))
+                    return true;
+                if (type.BaseType != null)
+                    type = type.BaseType.Resolve();
+                else
+                    type = null;
+            }
+            return false;
+        }
+
+        public static bool HasAttribute(Collection<CustomAttribute> attributes, string name)
+        {
+            foreach (CustomAttribute ca in attributes)
+            {
+                if (AttributeMatches(ca.AttributeType, name))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool HasAttributeSpecific(TypeDefinition type, string name)
+        {
+            foreach (CustomAttribute ca in type.CustomAttributes)
+            {
+                if (AttributeMatches(ca.AttributeType, name))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool AttributeMatches(TypeReference type, string name)
+        {
+            if (type.Name == name)
+                return true;
+            else if (type.Name == "Attribute")
+                return (name == "Attribute");
+            else
+                return AttributeMatches(type.Resolve().BaseType, name);
         }
     }
 }

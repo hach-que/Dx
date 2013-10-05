@@ -34,6 +34,7 @@
     <Compile Include="Wrappers\FieldWrapper.cs" />
     <Compile Include="Wrappers\MethodWrapper.cs" />
     <Compile Include="Wrappers\PropertyWrapper.cs" />
+    <Compile Include="Wrappers\SynchronisationWrapper.cs" />
     <Compile Include="Wrappers\TypeWrapper.cs" />
     <None Include="App.config" />
     <None Include="packages.config" />

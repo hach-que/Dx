@@ -44,10 +44,13 @@ namespace Dx.Process
                         source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it is a module", type.Name);
                         continue;
                     }
+                    
+                    // Apply synchronisation wrapper.
+                    new SynchronisationWrapper(type).Wrap();
 
                     // Check to see whether this type has a DistributedAttribute
                     // attached to it.
-                    if (!DxProcessor.HasAttribute(type, "DistributedAttribute"))
+                    if (!Utility.HasAttribute(type, "DistributedAttribute"))
                     {
                         source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it does not have DistributedAttribute", type.Name);
                         continue;
@@ -55,7 +58,7 @@ namespace Dx.Process
 
                     // Check to see whether this type has a ProcessedAttribute
                     // attached to it.
-                    if (DxProcessor.HasAttributeSpecific(type, "ProcessedAttribute"))
+                    if (Utility.HasAttributeSpecific(type, "ProcessedAttribute"))
                     {
                         source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it has already been processed", type.Name);
                         continue;
@@ -64,8 +67,7 @@ namespace Dx.Process
                     // This type is marked as distributed, so we need to perform
                     // wrapping on it.
                     source.TraceEvent(TraceEventType.Information, 0, "Starting processing of {0}", type.Name);
-                    var wrapper = new TypeWrapper(type);
-                    wrapper.Wrap();
+                    new TypeWrapper(type).Wrap();
                     source.TraceEvent(TraceEventType.Information, 0, "Finished processing of {0}", type.Name);
                 }
 
@@ -112,54 +114,6 @@ namespace Dx.Process
                 return false;
             }
         }
-
-        #region Utility Functions
-
-        internal static bool HasAttribute(TypeDefinition type, string name)
-        {
-            while (type != null)
-            {
-                if (DxProcessor.HasAttributeSpecific(type, name))
-                    return true;
-                if (type.BaseType != null)
-                    type = type.BaseType.Resolve();
-                else
-                    type = null;
-            }
-            return false;
-        }
-
-        internal static bool HasAttribute(Collection<CustomAttribute> attributes, string name)
-        {
-            foreach (CustomAttribute ca in attributes)
-            {
-                if (DxProcessor.AttributeMatches(ca.AttributeType, name))
-                    return true;
-            }
-            return false;
-        }
-
-        private static bool HasAttributeSpecific(TypeDefinition type, string name)
-        {
-            foreach (CustomAttribute ca in type.CustomAttributes)
-            {
-                if (DxProcessor.AttributeMatches(ca.AttributeType, name))
-                    return true;
-            }
-            return false;
-        }
-
-        private static bool AttributeMatches(TypeReference type, string name)
-        {
-            if (type.Name == name)
-                return true;
-            else if (type.Name == "Attribute")
-                return (name == "Attribute");
-            else
-                return DxProcessor.AttributeMatches(type.Resolve().BaseType, name);
-        }
-
-        #endregion
 
         #region ITask Members
 

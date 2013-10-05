@@ -190,6 +190,14 @@ namespace Dx.Runtime
 
         #endregion
         
+        #region Synchronisation
+        
+        public void Synchronise(object target)
+        {
+        }
+        
+        #endregion
+        
         #region Fake Serialization
         
         protected LocalNode(SerializationInfo info, StreamingContext context)

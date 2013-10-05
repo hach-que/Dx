@@ -56,6 +56,15 @@ namespace Dx.Runtime
         /// Leaves the network and closes the node.
         /// </summary>
         void Leave();
+        
+        /// <summary>
+        /// Applies values from the synchronisation store to the target
+        /// object.  One or more properties of the target must have the
+        /// [Synchronised] attribute for this function to do anything
+        /// useful.
+        /// </summary>
+        /// <param name="target">The target to synchronise.</param>
+        void Synchronise(object target);
     }
 }
 

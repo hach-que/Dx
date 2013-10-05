@@ -91,12 +91,12 @@ namespace Dx.Process
                 this.m_Property.PropertyType.IsArray ||
                 this.m_Property.PropertyType.Resolve().IsInterface ||
                 this.m_Property.PropertyType.FullName == "System.String" ||
-                DxProcessor.HasAttribute(this.m_Property.PropertyType.Resolve(), "DistributedAttribute"))
+                Utility.HasAttribute(this.m_Property.PropertyType.Resolve(), "DistributedAttribute"))
             {
                 // This is a valid type.
                 this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Recognised {0} as valid property", this.m_Property.Name);
             }
-            else if (DxProcessor.HasAttribute(this.m_Property.CustomAttributes, "LocalAttribute"))
+            else if (Utility.HasAttribute(this.m_Property.CustomAttributes, "LocalAttribute"))
             {
                 // This is a localized property; add the get and set methods to our
                 // exclusion list.

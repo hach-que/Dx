@@ -71,6 +71,9 @@
     <Compile Include="Storage\Messages\FetchConfirmationMessage.cs" />
     <Compile Include="Storage\Messages\FetchMessage.cs" />
     <Compile Include="Storage\SerializationPair.cs" />
+    <Compile Include="Synchronisation\ISynchronised.cs" />
+    <Compile Include="Synchronisation\SynchronisationStore.cs" />
+    <Compile Include="Synchronisation\SynchronisedAttribute.cs" />
     <None Include="Processing\Collections\DList.cs" />
     <None Include="Processing\Inspector\InspectorForm.resources" />
     <None Include="Processing\Inspector\InspectorForm.resx" />
