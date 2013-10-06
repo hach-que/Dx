@@ -64,7 +64,7 @@ namespace Dx.Runtime
         /// useful.
         /// </summary>
         /// <param name="target">The target to synchronise.</param>
-        void Synchronise(object target);
+        void Synchronise(object target, string name, bool authoritive);
     }
 }
 

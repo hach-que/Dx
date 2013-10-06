@@ -176,6 +176,43 @@ namespace Dx.Runtime.Tests
 
             this.AssertNoActiveConnections();
         }
+
+        [Fact]
+        public void SynchronisedClassBehavesCorrectly()
+        {
+            this.AssertNoActiveConnections();
+
+            var network = this.SetupNetwork();
+            try
+            {
+                // Create object and synchronise it on node A.
+                var testA = new SynchronisedTest();
+                testA.X = 3;
+                testA.Y = 4;
+                testA.Z = 5;
+                network.NodeA.Synchronise(testA, "test", true);
+                Assert.Equal(3, testA.X);
+                Assert.Equal(4, testA.Y);
+                Assert.Equal(5, testA.Z);
+                
+                // Create object and synchronise it on node B.
+                var testB = new SynchronisedTest();
+                Assert.Equal(0, testB.X);
+                Assert.Equal(0, testB.Y);
+                Assert.Equal(0, testB.Z);
+                network.NodeB.Synchronise(testB, "test", false);
+                Assert.Equal(3, testB.X);
+                Assert.Equal(4, testB.Y);
+                Assert.Equal(5, testB.Z);
+            }
+            finally
+            {
+                network.NodeA.Leave();
+                network.NodeB.Leave();
+            }
+
+            this.AssertNoActiveConnections();
+        }
     }
 }
 

@@ -7,6 +7,7 @@ namespace Dx.Runtime
     internal class LocalNode : ILocalNode, ISerializable
     {
         private bool m_Fake = false;
+        private readonly SynchronisationEngine m_SyncEngine = new SynchronisationEngine();
     
         /// <summary>
         /// The provider which gives this node it's network representation.
@@ -192,8 +193,13 @@ namespace Dx.Runtime
         
         #region Synchronisation
         
-        public void Synchronise(object target)
+        public void Synchronise(object target, string name, bool authoritive)
         {
+            var sync = target as ISynchronised;
+            if (sync == null)
+                throw new InvalidOperationException("The object of type " + target.GetType() + " is not a synchronised object.");
+            var store = sync.GetSynchronisationStore(this, name);
+            this.m_SyncEngine.Apply(sync, store, authoritive);
         }
         
         #endregion

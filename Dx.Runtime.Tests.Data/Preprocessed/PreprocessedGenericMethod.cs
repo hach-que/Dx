@@ -46,7 +46,7 @@ namespace Dx.Runtime.Tests.Data
         {
             return val;
         }
-        protected PreprocessedGenericMethod(SerializationInfo info, StreamingContext context)
+        protected PreprocessedGenericMethod(SerializationInfo info, StreamingContext context) : this()
         {
             DpmEntrypoint.Deserialize(this, info, context);
         }

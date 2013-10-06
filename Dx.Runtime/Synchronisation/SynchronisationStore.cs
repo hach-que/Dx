@@ -1,5 +1,8 @@
+using System;
+
 namespace Dx.Runtime
 {
+    [Distributed]
     public class SynchronisationStore
     {
         public virtual string[] GetNames()
@@ -7,9 +10,9 @@ namespace Dx.Runtime
             return new string[0];
         }
         
-        public virtual object[] GetValues()
+        public virtual Type[] GetTypes()
         {
-            return new object[0];
+            return new Type[0];
         }
     }
 }

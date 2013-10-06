@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using Microsoft.Build.Framework;
 using Mono.Cecil;
-using Mono.Collections.Generic;
 using System.Diagnostics;
+using Ninject;
 
 namespace Dx.Process
 {
@@ -19,6 +19,10 @@ namespace Dx.Process
         /// <returns>Whether the build task succeeded.</returns>
         public bool Execute()
         {
+            var kernel = new StandardKernel();
+            kernel.Load<DxProcessNinjectModule>();
+            var wrapperFactory = kernel.Get<IWrapperFactory>();
+        
             Directory.SetCurrentDirectory(Path.GetDirectoryName(this.AssemblyFile));
 
             var source = new TraceSource("Processor", SourceLevels.All);
@@ -44,23 +48,23 @@ namespace Dx.Process
                         source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it is a module", type.Name);
                         continue;
                     }
-                    
-                    // Apply synchronisation wrapper.
-                    new SynchronisationWrapper(type).Wrap();
-
-                    // Check to see whether this type has a DistributedAttribute
-                    // attached to it.
-                    if (!Utility.HasAttribute(type, "DistributedAttribute"))
-                    {
-                        source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it does not have DistributedAttribute", type.Name);
-                        continue;
-                    }
 
                     // Check to see whether this type has a ProcessedAttribute
                     // attached to it.
                     if (Utility.HasAttributeSpecific(type, "ProcessedAttribute"))
                     {
                         source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it has already been processed", type.Name);
+                        continue;
+                    }
+                    
+                    // Apply synchronisation wrapper.
+                    wrapperFactory.CreateSynchronisationWrapper(type).Wrap();
+
+                    // Check to see whether this type has a DistributedAttribute
+                    // attached to it.
+                    if (!Utility.HasAttribute(type, "DistributedAttribute"))
+                    {
+                        source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it does not have DistributedAttribute", type.Name);
                         continue;
                     }
 

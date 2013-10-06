@@ -2,7 +2,7 @@ namespace Dx.Runtime
 {
     public interface ISynchronised
     {
-        SynchronisationStore GetSynchronisationStore();
+        SynchronisationStore GetSynchronisationStore(ILocalNode node, string name);
     }
 }
 

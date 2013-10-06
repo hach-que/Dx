@@ -17,11 +17,16 @@
     <Reference Include="Ninject" />
   </References>
   <Files>
+    <Compile Include="Builders\DefaultMethodBuilder.cs" />
+    <Compile Include="Builders\DefaultTypeBuilder.cs" />
+    <Compile Include="Builders\IMethodBuilder.cs" />
+    <Compile Include="Builders\ITypeBuilder.cs" />
     <Compile Include="DefaultDelegateEmitter.cs" />
     <Compile Include="DxProcessNinjectModule.cs" />
     <Compile Include="DxProcessor.cs" />
     <Compile Include="IDelegateEmitter.cs" />
     <Compile Include="IWrapper.cs" />
+    <Compile Include="IWrapperFactory.cs" />
     <Compile Include="PostProcessingException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="StatementProcessor.cs" />

@@ -24,6 +24,7 @@
     <Compile Include="Preprocessed\PreprocessedGenericMethod.cs" />
     <Compile Include="Preprocessed\PreprocessedGenericType.cs" />
     <Compile Include="Preprocessed\PreprocessedGenericTypeAndMethod.cs" />
+    <Compile Include="Preprocessed\PreprocessedSynchronisedStore.cs" />
     <Compile Include="SynchronisedTest.cs" />
   </Files>
 </Project>

@@ -75,11 +75,9 @@ namespace Dx.Process
         /// </summary>
         public void Wrap()
         {
-            this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Modifying {0} for distributed processing", this.m_Method.Name);
             if (this.m_Method.CustomAttributes.Any(c => c.AttributeType.Name == "LocalAttribute"))
-            {
                 return;
-            }
+            this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Modifying {0} for distributed processing", this.m_Method.Name);
 
             // Generate the direct invocation class.
             TypeDefinition idc = this.GenerateDirectInvokeClass();

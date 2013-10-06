@@ -15,8 +15,7 @@ namespace Dx.Runtime.Tests.Data
         
         public void Update(ILocalNode node)
         {
-            node.Synchronise(this);
+            node.Synchronise(this, "test", true);
         }
     }
 }
-

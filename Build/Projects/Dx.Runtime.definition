@@ -72,6 +72,9 @@
     <Compile Include="Storage\Messages\FetchMessage.cs" />
     <Compile Include="Storage\SerializationPair.cs" />
     <Compile Include="Synchronisation\ISynchronised.cs" />
+    <Compile Include="Synchronisation\Strategies\AssignmentStrategy.cs" />
+    <Compile Include="Synchronisation\Strategies\IStrategy.cs" />
+    <Compile Include="Synchronisation\SynchronisationEngine.cs" />
     <Compile Include="Synchronisation\SynchronisationStore.cs" />
     <Compile Include="Synchronisation\SynchronisedAttribute.cs" />
     <None Include="Processing\Collections\DList.cs" />

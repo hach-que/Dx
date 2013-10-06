@@ -75,20 +75,28 @@ namespace Dx.Process
         /// </summary>
         public static void AddAutoProperty(TypeDefinition t, string name, Type type)
         {
+            AddAutoProperty(t, name, t.Module.Import(type));
+        }
+        
+        /// <summary>
+        /// Adds an automatic property to the specified class with the specified property name and type.
+        /// </summary>
+        public static void AddAutoProperty(TypeDefinition t, string name, TypeReference typeRef)
+        {
             // Create the field definition.
-            FieldDefinition fd = new FieldDefinition("<" + name + ">k__BackingField", FieldAttributes.Private, t.Module.Import(type));
+            FieldDefinition fd = new FieldDefinition("<" + name + ">k__BackingField", FieldAttributes.Private, typeRef);
             Utility.AddAttribute(fd, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), t.Module);
 
             // Define the getter and setter methods.
             MethodAttributes attribs = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName
                                         | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final;
-            MethodDefinition mgd = new MethodDefinition("get_" + name, attribs, t.Module.Import(type));
+            MethodDefinition mgd = new MethodDefinition("get_" + name, attribs, typeRef);
             MethodDefinition msd = new MethodDefinition("set_" + name, attribs, t.Module.Import(typeof(void)));
             mgd.SemanticsAttributes = MethodSemanticsAttributes.Getter;
-            mgd.Body.Variables.Add(new VariableDefinition(t.Module.Import(type)));
+            mgd.Body.Variables.Add(new VariableDefinition(typeRef));
             mgd.Body.InitLocals = true;
             msd.SemanticsAttributes = MethodSemanticsAttributes.Setter;
-            msd.Parameters.Add(new ParameterDefinition("value", ParameterAttributes.None, t.Module.Import(type)));
+            msd.Parameters.Add(new ParameterDefinition("value", ParameterAttributes.None, typeRef));
             Utility.AddAttribute(mgd, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), t.Module);
             Utility.AddAttribute(msd, typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), t.Module);
 
@@ -109,7 +117,7 @@ namespace Dx.Process
             msdi.Append(Instruction.Create(OpCodes.Ret));
 
             // Create the property definition.
-            PropertyDefinition pd = new PropertyDefinition(name, PropertyAttributes.None, t.Module.Import(type));
+            PropertyDefinition pd = new PropertyDefinition(name, PropertyAttributes.None, typeRef);
             pd.HasThis = true;
             pd.GetMethod = mgd;
             pd.SetMethod = msd;
@@ -140,6 +148,10 @@ namespace Dx.Process
             ctor.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.StreamingContext))));
 
             // Define the method body.
+            // FIXME: What is the right behaviour here?  We can't call the base constructor in
+            // case it calls DpmEntrypoint::Construct.  Unfortunately not calling the base
+            // constructor as the first instruction results in 'peverify' complaining about the
+            // deserialization constructor.
             ILProcessor il = ctor.Body.GetILProcessor();
             il.Append(Instruction.Create(OpCodes.Ldarg_0));
             il.Append(Instruction.Create(OpCodes.Ldarg_1));

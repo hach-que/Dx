@@ -25,6 +25,7 @@
 //-----------------------------------------------------------------------
 namespace Dx.Process
 {
+    using Ninject.Extensions.Factory;
     using Ninject.Modules;
 
     /// <summary>
@@ -37,6 +38,9 @@ namespace Dx.Process
         /// </summary>
         public override void Load()
         {
+            this.Bind<IWrapperFactory>().ToFactory();
+            this.Bind<ITypeBuilder>().To<DefaultTypeBuilder>();
+            this.Bind<IMethodBuilder>().To<DefaultMethodBuilder>();
         }
     }
 }
