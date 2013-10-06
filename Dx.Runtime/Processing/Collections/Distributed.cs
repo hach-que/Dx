@@ -99,14 +99,5 @@ namespace Dx.Runtime
             throw new NotSupportedException("Attempting to perform distributed erasure on a " + typeof(T).FullName + " that does not have ITransparent implemented.  "
                                             + "If this class does have the Distributed attribute set, ensure the post-processor is being executed during build.");
         }
-
-        #region Manual Cast Method
-
-        internal T ManualDistributedErasure()
-        {
-            return (T)this;
-        }
-
-        #endregion
     }
 }
