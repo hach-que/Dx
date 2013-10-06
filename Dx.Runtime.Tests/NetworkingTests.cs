@@ -324,6 +324,34 @@ namespace Dx.Runtime.Tests
 
             this.AssertNoActiveConnections();
         }
+        
+        [Fact]
+        public void DistributedListStoresItemsCorrectly()
+        {
+            this.AssertNoActiveConnections();
+
+            var network = this.SetupNetwork();
+            try
+            {
+                // Create list and store it on node A.
+                var listA = (DList<string>)new Distributed<DList<string>>(network.NodeA, "list");
+                listA.Add("hello");
+                listA.Add("world");
+                
+                // Retrieve the list from node B.
+                var listB = (DList<string>)new Distributed<DList<string>>(network.NodeA, "list");
+                Assert.Equal(2, listB.Count);
+                Assert.Contains("hello", listB);
+                Assert.Contains("world", listB);
+            }
+            finally
+            {
+                network.NodeA.Leave();
+                network.NodeB.Leave();
+            }
+
+            this.AssertNoActiveConnections();
+        }
     }
 }
 

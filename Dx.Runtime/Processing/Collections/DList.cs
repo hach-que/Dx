@@ -35,22 +35,22 @@ namespace Dx.Runtime
             get
             {
                 if (this.LocallyOwned || this.NetworkName == null)
-                    return LocalNode.Singleton;
-                else
+                    return this.Node;
+                    
+                Contact owner = this.Node.Storage.FetchOwner(this.NetworkName);
+                while (owner == null)
+                    owner = this.Node.Storage.FetchOwner(this.NetworkName);
+                if (this.Node.ID == owner.Identifier)
                 {
-                    Contact owner = LocalNode.Singleton.Storage.FetchOwner(this.NetworkName);
-                    while (owner == null)
-                        owner = LocalNode.Singleton.Storage.FetchOwner(this.NetworkName);
-                    if (LocalNode.Singleton.ID == owner.Identifier)
-                    {
-                        // We are locally owned, but the variable isn't set.  Speed up
-                        // future requests by setting us as locally owned.
-                        this.LocallyOwned = true;
-                        return LocalNode.Singleton;
-                    }
-                    else
-                        return new RemoteNode(LocalNode.Singleton.Contacts.First(value => value.Identifier == owner.Identifier));
+                    // We are locally owned, but the variable isn't set.  Speed up
+                    // future requests by setting us as locally owned.
+                    this.LocallyOwned = true;
+                    return this.Node;
                 }
+                
+                return new RemoteNode(
+                    this.Node,
+                    this.Node.Contacts.First(value => value.Identifier == owner.Identifier));
             }
         }
 
@@ -64,43 +64,22 @@ namespace Dx.Runtime
 
         #region ITransparent Members
 
-        private string m_NetworkName;
         public string NetworkName
         {
-            get
-            {
-                return this.m_NetworkName;
-            }
-            set
-            {
-                this.m_NetworkName = value;
-            }
+            get;
+            set;
         }
 
-        private bool m_LocallyOwned;
         public bool LocallyOwned
         {
-            get
-            {
-                return this.m_LocallyOwned;
-            }
-            set
-            {
-                this.m_LocallyOwned = value;
-            }
+            get;
+            set;
         }
 
-        private bool m_IsImmutablyPushed;
-        public bool IsImmutablyPushed
+        public ILocalNode Node
         {
-            get
-            {
-                return this.m_IsImmutablyPushed;
-            }
-            set
-            {
-                this.m_IsImmutablyPushed = value;
-            }
+            get;
+            set;
         }
 
         #endregion
@@ -109,12 +88,12 @@ namespace Dx.Runtime
 
         protected DList(SerializationInfo info, StreamingContext context)
         {
-            Process4.Providers.DpmEntrypoint.Deserialize(this, info, context);
+            DpmEntrypoint.Deserialize(this, info, context);
         }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            Process4.Providers.DpmEntrypoint.Serialize(this, info, context);
+            DpmEntrypoint.Serialize(this, info, context);
         }
 
         #endregion

@@ -30,6 +30,7 @@
     <Compile Include="Processing\Attributes\LocalAttribute.cs" />
     <Compile Include="Processing\Attributes\ProcessedAttribute.cs" />
     <Compile Include="Processing\Collections\Distributed.cs" />
+    <Compile Include="Processing\Collections\DList.cs" />
     <Compile Include="Processing\ILocalNode.cs" />
     <Compile Include="Processing\INode.cs" />
     <Compile Include="Processing\Inspector\InspectorForm.cs">
@@ -77,7 +78,6 @@
     <Compile Include="Synchronisation\SynchronisationEngine.cs" />
     <Compile Include="Synchronisation\SynchronisationStore.cs" />
     <Compile Include="Synchronisation\SynchronisedAttribute.cs" />
-    <None Include="Processing\Collections\DList.cs" />
     <None Include="Processing\Inspector\InspectorForm.resources" />
     <None Include="Processing\Inspector\InspectorForm.resx" />
   </Files>
