@@ -17,6 +17,7 @@
     <Reference Include="Ninject" />
   </References>
   <Files>
+    <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Builders\DefaultMethodBuilder.cs" />
     <Compile Include="Builders\DefaultTypeBuilder.cs" />
     <Compile Include="Builders\IMethodBuilder.cs" />

@@ -16,6 +16,7 @@
     <Reference Include="Microsoft.CSharp" />
   </References>
   <Files>
+    <Compile Include="AssemblyInfo.cs" />
     <Compile Include="DefaultDxFactory.cs" />
     <Compile Include="EnumerableExtensions.cs" />
     <Compile Include="GlobalState\DpmConstructContext.cs" />
