@@ -68,25 +68,44 @@ namespace Dx.Runtime
         /// </summary>
         public EventHandler CreateRemotedDelegate(ILocalNode localNode)
         {
-            return (sender, e) =>
-                {
-                    // Check to see if we are the target that the event should invoke on.
-                    if (localNode.ID == this.ListenerNodeID)
-                    {
-                        // Invoke locally.
-                        localNode.Processor.InvokeEvent(this, sender, e);
-                    }
-                    else
-                    {
-                        // Locate the contact to invoke the event callbacks on.
-                        var c = localNode.Contacts.FirstOrDefault(value => value.Identifier == this.ListenerNodeID);
-                        if (c == null) return;
+            var handler = new EventTransportHandler
+            {
+                ListenerNodeID = this.ListenerNodeID,
+                LocalNode = localNode,
+                Transport = this
+            };
+            return handler.Handle;
+        }
+    }
+    
+    [Serializable]
+    public class EventTransportHandler
+    {
+        [NonSerialized]
+        public ID ListenerNodeID;
+        [NonSerialized]
+        public ILocalNode LocalNode;
+        [NonSerialized]
+        public EventTransport Transport;
+        
+        public void Handle(object sender, EventArgs e)
+        {
+            // Check to see if we are the target that the event should invoke on.
+            if (LocalNode.ID == this.ListenerNodeID)
+            {
+                // Invoke locally.
+                LocalNode.Processor.InvokeEvent(Transport, sender, e);
+            }
+            else
+            {
+                // Locate the contact to invoke the event callbacks on.
+                var c = LocalNode.Contacts.FirstOrDefault(value => value.Identifier == this.ListenerNodeID);
+                if (c == null) return;
 
-                        // Get the remote node and invoke the event.
-                        var node = new RemoteNode(localNode, c);
-                        node.InvokeEvent(this, sender, e);
-                    }
-                };
+                // Get the remote node and invoke the event.
+                var node = new RemoteNode(LocalNode, c);
+                node.InvokeEvent(Transport, sender, e);
+            }
         }
     }
 }

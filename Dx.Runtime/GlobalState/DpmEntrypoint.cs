@@ -13,7 +13,7 @@ namespace Dx.Runtime
     {
         public static object InvokeDynamic(Delegate d, object[] args)
         {
-            return DpmEntrypoint.InvokeDynamicBase(d.GetType().DeclaringType, d.Method, d.Target, d.Method.GetGenericArguments(), args);
+            return DpmEntrypoint.InvokeDynamic(d.GetType().DeclaringType, d.Method, d.Target, d.Method.GetGenericArguments(), args);
         }
 
         public static object InvokeDynamic(Type dt, MethodInfo mi, object target, Type[] targs, object[] args)
