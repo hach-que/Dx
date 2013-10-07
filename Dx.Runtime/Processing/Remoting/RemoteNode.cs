@@ -262,11 +262,11 @@ namespace Dx.Runtime
                                 (elem as ITransparent).Node = this.m_LocalNode;
                         }
                     }
-                    else if (!result.GetType().GetElementType().IsValueType)
-                        throw new InvalidOperationException("Unable to assign local node to result data");
+                    else if (!result.GetType().GetElementType().IsValueType && result.GetType() != typeof(string))
+                        throw new InvalidOperationException("Unable to assign local node to result data for " + result.GetType().GetElementType().FullName);
                 }
-                else if (!result.GetType().IsValueType)
-                    throw new InvalidOperationException("Unable to assign local node to result data");
+                else if (!result.GetType().IsValueType && result.GetType() != typeof(string))
+                    throw new InvalidOperationException("Unable to assign local node to result data for " + result.GetType().FullName);
             }
         }
     }
