@@ -285,7 +285,6 @@ namespace Dx.Runtime
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, "set_" + property + "__Distributed0");
                     DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { value });
-                    //mi.Invoke(obj, new object[] { value });
 
                     // Now also synchronise the object with the DHT.
                     if (obj.GetType().GetMethod("set_" + property, BindingFlagsCombined.All).GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() != 0)

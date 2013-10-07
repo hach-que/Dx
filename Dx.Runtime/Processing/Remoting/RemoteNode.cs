@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Collections;
 
 namespace Dx.Runtime
 {
@@ -92,9 +93,10 @@ namespace Dx.Runtime
             if (!received)
                 gpm.ResultReceived -= ev;
 
+            // Assign the local node to the result.
+            this.Apply(gpm.Result);
+            
             // Return the result.
-            if (gpm.Result is ITransparent)
-                (gpm.Result as ITransparent).Node = this.m_LocalNode;
             return gpm.Result;
         }
 
@@ -201,9 +203,10 @@ namespace Dx.Runtime
             if (!received)
                 fm.ResultReceived -= ev;
 
+            // Apply the local node to the result.
+            this.Apply(fm.Result);
+            
             // Return the result.
-            if (fm.Result is ITransparent)
-                (fm.Result as ITransparent).Node = this.m_LocalNode;
             return fm.Result;
         }
 
@@ -241,6 +244,30 @@ namespace Dx.Runtime
             // until confirmation).
             if (!received)
                 fm.ConfirmationReceived -= ev;
+        }
+        
+        private void Apply(object result)
+        {
+            if (result != null)
+            {
+                if (result is ITransparent)
+                    (result as ITransparent).Node = this.m_LocalNode;
+                else if (result.GetType().IsArray)
+                {
+                    if (typeof(ITransparent).IsAssignableFrom(result.GetType().GetElementType()))
+                    {
+                        foreach (var elem in (IEnumerable)result)
+                        {
+                            if (elem != null)
+                                (elem as ITransparent).Node = this.m_LocalNode;
+                        }
+                    }
+                    else if (!result.GetType().GetElementType().IsValueType)
+                        throw new InvalidOperationException("Unable to assign local node to result data");
+                }
+                else if (!result.GetType().IsValueType)
+                    throw new InvalidOperationException("Unable to assign local node to result data");
+            }
         }
     }
 }

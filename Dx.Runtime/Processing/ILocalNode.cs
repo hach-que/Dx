@@ -25,6 +25,13 @@ namespace Dx.Runtime
         IProcessorProvider Processor { get; set; }
 
         /// <summary>
+        /// Gets or sets the profiler endpoint.  If you set this value, Hit() will
+        /// be called whenever an operation occurs against the local node.
+        /// </summary>
+        /// <value>The profiler endpoint.</value>
+        INetworkProfilerEndpoint ProfilerEndpoint { get; set; }
+
+        /// <summary>
         /// The network architecture.
         /// </summary>
         Architecture Architecture { get; set; }

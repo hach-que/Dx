@@ -30,6 +30,8 @@ namespace Dx.Runtime
         public Distributed(ILocalNode node, string name, bool preventCreate)
         {
             this.m_Name = name;
+            if (node is LocalNode && (node as LocalNode).m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
 
             // Get the object from the DHT.
             this.m_Data = (T)node.Storage.Fetch(name);
@@ -49,7 +51,7 @@ namespace Dx.Runtime
                 node.Storage.Store(this.m_Name, this.m_Data);
                 typeof(T).GetConstructor(Type.EmptyTypes).Invoke(this.m_Data, null);
             }
-            else if (typeof(T).GetInterface("ITransparent") != null)
+            else if (this.m_Data != null && typeof(T).GetInterface("ITransparent") != null)
                 (this.m_Data as ITransparent).Node = node;
         }
 

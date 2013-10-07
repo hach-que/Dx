@@ -23,6 +23,7 @@
     <Compile Include="GlobalState\DpmEntrypoint.cs" />
     <Compile Include="ID.cs" />
     <Compile Include="IDxFactory.cs" />
+    <Compile Include="INetworkProfilerEndpoint.cs" />
     <Compile Include="Processing\Attributes\Architecture.cs" />
     <Compile Include="Processing\Attributes\Caching.cs" />
     <Compile Include="Processing\Attributes\ClientCallableAttribute.cs" />

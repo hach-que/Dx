@@ -6,7 +6,7 @@ namespace Dx.Runtime
     [Serializable]
     internal class LocalNode : ILocalNode, ISerializable
     {
-        private bool m_Fake = false;
+        internal bool m_Fake = false;
         private readonly SynchronisationEngine m_SyncEngine = new SynchronisationEngine();
     
         /// <summary>
@@ -28,6 +28,13 @@ namespace Dx.Runtime
         /// The processing provider which invokes methods on this node's behalf.
         /// </summary>
         public IProcessorProvider Processor { get; set; }
+
+        /// <summary>
+        /// Gets or sets the profiler endpoint.  If you set this value, Hit() will
+        /// be called whenever an operation occurs against the local node.
+        /// </summary>
+        /// <value>The profiler endpoint.</value>
+        public INetworkProfilerEndpoint ProfilerEndpoint { get; set; }
 
         /// <summary>
         /// The network architecture.
@@ -151,6 +158,8 @@ namespace Dx.Runtime
         {
             if (this.m_Fake)
                 throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+            if (this.ProfilerEndpoint != null)
+                this.ProfilerEndpoint.Hit(NetworkProfilerEndpointType.SetProperty, id, property);
             this.Storage.SetProperty(id, property, value);
         }
 
@@ -158,6 +167,8 @@ namespace Dx.Runtime
         {
             if (this.m_Fake)
                 throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+            if (this.ProfilerEndpoint != null)
+                this.ProfilerEndpoint.Hit(NetworkProfilerEndpointType.GetProperty, id, property);
             return this.Storage.GetProperty(id, property);
         }
 
@@ -165,6 +176,8 @@ namespace Dx.Runtime
         {
             if (this.m_Fake)
                 throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+            if (this.ProfilerEndpoint != null)
+                this.ProfilerEndpoint.Hit(NetworkProfilerEndpointType.AddEvent, transport.SourceObjectNetworkName, transport.SourceEventName);
             this.Processor.AddEvent(transport);
         }
 
@@ -172,6 +185,8 @@ namespace Dx.Runtime
         {
             if (this.m_Fake)
                 throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+            if (this.ProfilerEndpoint != null)
+                this.ProfilerEndpoint.Hit(NetworkProfilerEndpointType.RemoveEvent, transport.SourceObjectNetworkName, transport.SourceEventName);
             this.Processor.RemoveEvent(transport);
         }
 
@@ -186,6 +201,8 @@ namespace Dx.Runtime
         {
             if (this.m_Fake)
                 throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+            if (this.ProfilerEndpoint != null)
+                this.ProfilerEndpoint.Hit(NetworkProfilerEndpointType.Invoke, id, method);
             return this.Processor.Invoke(id, method, targs, args);
         }
 
