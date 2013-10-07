@@ -25,7 +25,12 @@ namespace Dx.Runtime
         private object p_YieldingLock = new object();
         private bool m_Stopping = false;
 
-        public const int TIMEOUT = 5;
+        // TODO: This is 60 seconds for the moment to account for large parameters or
+        // result data.  When the data is being sent or received, this counts towards
+        // the timeout, even though in reality we should be aware that we've started
+        // to receive a response from a node and therefore just have to wait until it
+        // completes.
+        public const int TIMEOUT = 60;
 
         public event EventHandler<MessageEventArgs> OnReceived;
         public event EventHandler<EntriesRequestedEventArgs> OnEntriesRequested;
