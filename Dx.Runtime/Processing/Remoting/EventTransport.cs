@@ -66,45 +66,41 @@ namespace Dx.Runtime
         /// Creates a delegate that will invoke this event transport when the delegate
         /// is called (by the event).
         /// </summary>
-        public EventHandler CreateRemotedDelegate(ILocalNode localNode)
+        public EventHandler CreateRemotedDelegate()
         {
-            var handler = new EventTransportHandler
-            {
-                ListenerNodeID = this.ListenerNodeID,
-                LocalNode = localNode,
-                Transport = this
-            };
-            return handler.Handle;
+            return this.Handle;
         }
-    }
-    
-    [Serializable]
-    public class EventTransportHandler
-    {
-        [NonSerialized]
-        public ID ListenerNodeID;
-        [NonSerialized]
-        public ILocalNode LocalNode;
-        [NonSerialized]
-        public EventTransport Transport;
         
         public void Handle(object sender, EventArgs e)
         {
+            var transparent = sender as ITransparent;
+            if (transparent == null)
+                throw new InvalidOperationException("The sender of the event is not a distributed object, so the event can not be fired.");
+                
+            // If we don't have a node on the distributed object, invoke locally.
+            if (transparent.Node == null)
+                transparent.Node.Processor.InvokeEvent(this, sender, e);
+            
+            // Ensure the object graph has been deserialized correctly.
+            if (transparent.Node is LocalNode && ((LocalNode)transparent.Node).m_Fake)
+                throw new InvalidOperationException("Object graph has not been deserialized correctly.");
+                
             // Check to see if we are the target that the event should invoke on.
-            if (LocalNode.ID == this.ListenerNodeID)
+            if (transparent.Node.ID == this.ListenerNodeID)
             {
                 // Invoke locally.
-                LocalNode.Processor.InvokeEvent(Transport, sender, e);
+                transparent.Node.Processor.InvokeEvent(this, sender, e);
             }
             else
             {
                 // Locate the contact to invoke the event callbacks on.
-                var c = LocalNode.Contacts.FirstOrDefault(value => value.Identifier == this.ListenerNodeID);
-                if (c == null) return;
+                var c = transparent.Node.Contacts.FirstOrDefault(value => value.Identifier == this.ListenerNodeID);
+                if (c == null)
+                    throw new InvalidOperationException("Unable to locate the remote node to invoke the event handler on.");
 
                 // Get the remote node and invoke the event.
-                var node = new RemoteNode(LocalNode, c);
-                node.InvokeEvent(Transport, sender, e);
+                var node = new RemoteNode(transparent.Node, c);
+                node.InvokeEvent(this, sender, e);
             }
         }
     }

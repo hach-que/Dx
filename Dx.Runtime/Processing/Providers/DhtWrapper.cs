@@ -460,7 +460,9 @@ namespace Dx.Runtime
         {
             Entry e = this.Dht.Get(ID.NewHash(id)).DefaultIfEmpty(null).First();
             if (e == null) return null;
-            return e.Value;
+            var val = e.Value;
+            GraphWalker.Apply(val, this.m_Node);
+            return val;
         }
 
         public object FetchLocal(string idh)
@@ -468,7 +470,9 @@ namespace Dx.Runtime
             ID id = ID.NewHash(idh);
             Entry e = this.Dht.OwnedEntries.ToArray().Where(value => value.Key == id).DefaultIfEmpty(null).First();
             if (e == null) return null;
-            return e.Value;
+            var val = e.Value;
+            GraphWalker.Apply(val, this.m_Node);
+            return val;
         }
 
         public object FetchCached(string idh)

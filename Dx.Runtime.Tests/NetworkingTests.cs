@@ -14,12 +14,12 @@ namespace Dx.Runtime.Tests
 
         private TwoNodes SetupNetwork()
         {
-            var id = ID.NewRandom();
+            var id = ID.NewHash("test");
             var result = new TwoNodes();
             var factory = new InternalDxFactory();
-            result.NodeA = factory.CreateLocalNode();
+            result.NodeA = factory.CreateLocalNode(InternalTestNetwork.NodeAID);
             factory.CreateNodeB = true;
-            result.NodeB = factory.CreateLocalNode();
+            result.NodeB = factory.CreateLocalNode(InternalTestNetwork.NodeBID);
             result.NodeA.Join(id);
             result.NodeB.Join(id);
             return result;
@@ -339,10 +339,43 @@ namespace Dx.Runtime.Tests
                 listA.Add("world");
                 
                 // Retrieve the list from node B.
-                var listB = (DList<string>)new Distributed<DList<string>>(network.NodeA, "list");
+                var listB = (DList<string>)new Distributed<DList<string>>(network.NodeB, "list");
                 Assert.Equal(2, listB.Count);
                 Assert.Contains("hello", listB);
                 Assert.Contains("world", listB);
+            }
+            finally
+            {
+                network.NodeA.Leave();
+                network.NodeB.Leave();
+            }
+
+            this.AssertNoActiveConnections();
+        }
+        
+        [Fact]
+        public void DistributedEventsFireCorrectly()
+        {
+            this.AssertNoActiveConnections();
+
+            var network = this.SetupNetwork();
+            try
+            {
+                // Create event test and store it on node A.
+                var hitA = false;
+                var eventA = (EventTest)new Distributed<EventTest>(network.NodeA, "event");
+                eventA.Test += (sender, e) => hitA = true;
+                eventA.Fire();
+                Assert.True(hitA);
+                hitA = false;
+                
+                // Retrieve the event test from node B.
+                var hitB = false;
+                var eventB = (EventTest)new Distributed<EventTest>(network.NodeB, "event");
+                eventB.Test += (sender, e) => hitB = true;
+                eventB.Fire();
+                Assert.True(hitB);
+                Assert.True(hitA);
             }
             finally
             {

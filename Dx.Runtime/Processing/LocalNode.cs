@@ -46,12 +46,12 @@ namespace Dx.Runtime
         /// </summary>
         public Caching Caching { get; set; }
         
-        public ID ID { get; set; }
+        public ID ID { get; private set; }
 
-        public LocalNode(IDxFactory factory, Caching caching, Architecture architecture)
+        public LocalNode(IDxFactory factory, ID id, Caching caching, Architecture architecture)
         {
-            // Generate a unique ID.
-            this.ID = ID.NewRandom();
+            // Assign or generate the ID.
+            this.ID = id ?? ID.NewRandom();
 
             // Assign caching and architecture.
             this.Caching = caching;

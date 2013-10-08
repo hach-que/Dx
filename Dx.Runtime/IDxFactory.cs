@@ -1,8 +1,13 @@
 namespace Dx.Runtime
 {
     public interface IDxFactory
-    {
+    {    
         ILocalNode CreateLocalNode(
+            Caching caching = Caching.PullOnDemand,
+            Architecture architecture = Architecture.PeerToPeer);
+            
+        ILocalNode CreateLocalNode(
+            ID id,
             Caching caching = Caching.PullOnDemand,
             Architecture architecture = Architecture.PeerToPeer);
         

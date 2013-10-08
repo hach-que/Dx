@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization;
 
 namespace Dx.Runtime
 {
@@ -74,11 +73,10 @@ namespace Dx.Runtime
 
                 // Create an EventHandler that will automatically remote the event callback
                 // across the network to the node that originally registered it.
-                EventHandler handler = transport.CreateRemotedDelegate(this.m_Node);
+                EventHandler handler = transport.CreateRemotedDelegate();
 
                 // Invoke the event adder.
                 DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { handler });
-                //mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
                 if (obj.GetType().GetMethod("add_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
@@ -119,11 +117,10 @@ namespace Dx.Runtime
 
                 // Create an EventHandler that will automatically remote the event callback
                 // across the network to the node that originally registered it.
-                EventHandler handler = transport.CreateRemotedDelegate(this.m_Node);
+                EventHandler handler = transport.CreateRemotedDelegate();
 
                 // Invoke the event adder.
                 DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { handler });
-                //mi.Invoke(obj, new object[] { handler });
 
                 // Now also synchronise the object with the DHT.
                 if (obj.GetType().GetMethod("remove_" + transport.SourceEventName, BindingFlagsCombined.All).GetMethodImplementationFlags() == MethodImplAttributes.Synchronized)
@@ -152,7 +149,6 @@ namespace Dx.Runtime
             if (mi == null)
                 throw new MissingMethodException(obj.GetType().FullName, transport.ListenerMethod);
             DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { sender, e });
-            //mi.Invoke(obj, new object[] { sender, e });
         }
 
         public object Invoke(string id, string method, Type[] targs, object[] args)
@@ -170,7 +166,6 @@ namespace Dx.Runtime
                 if (mi == null)
                     throw new MissingMethodException(obj.GetType().FullName, method);
                 return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, targs, args);
-                //return mi.Invoke(obj, args);
             }
             else if (this.m_Node.Architecture == Architecture.ServerClient)
             {
@@ -181,7 +176,6 @@ namespace Dx.Runtime
                     if (mi == null)
                         throw new MissingMethodException(obj.GetType().FullName, method);
                     return DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, targs, args);
-                    //return mi.Invoke(obj, args);
                 }
                 else
                 {

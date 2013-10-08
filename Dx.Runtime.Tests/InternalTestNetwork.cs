@@ -5,13 +5,13 @@ namespace Dx.Runtime.Tests
 {
     public class InternalTestNetwork : INetworkProvider
     {
-        private static readonly ID NodeAID =
+        public static readonly ID NodeAID =
             new ID(
                 Guid.Parse("4549ab05-2032-4eb2-bc53-7881bc6e3795"),
                 Guid.Parse("e3c3eb59-1ec8-4779-a623-980912afe007"),
                 Guid.Parse("b896ec52-8903-4b84-ad48-ed5c444ba2c7"),
                 Guid.Parse("e5213727-1781-4b46-beb7-9bc552e31481"));
-        private static readonly ID NodeBID =
+        public static readonly ID NodeBID =
             new ID(
                 Guid.Parse("6872125f-9ebe-4e8a-ad84-632c26a7058f"),
                 Guid.Parse("2770f4d6-e96d-469d-b809-7fb5603c2e33"),
