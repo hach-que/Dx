@@ -2,7 +2,7 @@ using System;
 
 namespace Dx.Runtime
 {
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class SynchronisedAttribute : Attribute
     {
         public Type StrategyType { get; set; }

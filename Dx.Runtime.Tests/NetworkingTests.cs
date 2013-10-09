@@ -385,6 +385,43 @@ namespace Dx.Runtime.Tests
 
             this.AssertNoActiveConnections();
         }
+
+        [Fact]
+        public void SynchronisedFieldsBehaveCorrectly()
+        {
+            this.AssertNoActiveConnections();
+
+            var network = this.SetupNetwork();
+            try
+            {
+                // Create object and synchronise it on node A.
+                var testA = new SynchronisedSimpleFieldTest();
+                testA.Public = 3;
+                testA.SetProtected(4);
+                testA.SetPrivate(5);
+                network.NodeA.Synchronise(testA, "test", true);
+                Assert.Equal(3, testA.Public);
+                Assert.Equal(4, testA.GetProtected());
+                Assert.Equal(5, testA.GetPrivate());
+                
+                // Create object and synchronise it on node B.
+                var testB = new SynchronisedSimpleFieldTest();
+                Assert.Equal(0, testB.Public);
+                Assert.Equal(0, testB.GetProtected());
+                Assert.Equal(0, testB.GetPrivate());
+                network.NodeB.Synchronise(testB, "test", false);
+                Assert.Equal(3, testB.Public);
+                Assert.Equal(4, testB.GetProtected());
+                Assert.Equal(5, testB.GetPrivate());
+            }
+            finally
+            {
+                network.NodeA.Leave();
+                network.NodeB.Leave();
+            }
+
+            this.AssertNoActiveConnections();
+        }
     }
 }
 

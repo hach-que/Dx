@@ -41,6 +41,7 @@ namespace Dx.Process
             this.Bind<IWrapperFactory>().ToFactory();
             this.Bind<ITypeBuilder>().To<DefaultTypeBuilder>();
             this.Bind<IMethodBuilder>().To<DefaultMethodBuilder>();
+            this.Bind<ISynchronisationTypeTranslator>().To<DefaultSynchronisationTypeTranslator>();
         }
     }
 }

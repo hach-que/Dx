@@ -34,6 +34,16 @@ namespace Dx.Runtime.Tests.Data
                     typeof(Bar)
                 };
             }
+            
+            public override bool[] GetIsFields()
+            {
+                return new bool[]
+                {
+                    false,
+                    true,
+                    false
+                };
+            }
         }
     }
 }

@@ -14,6 +14,11 @@ namespace Dx.Runtime
         {
             return new Type[0];
         }
+        
+        public virtual bool[] GetIsFields()
+        {
+            return new bool[0];
+        }
     }
 }
 

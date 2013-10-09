@@ -13,6 +13,8 @@ namespace Dx.Process
         private readonly ITypeBuilder m_TypeBuilder;
         
         private readonly IMethodBuilder m_MethodBuilder;
+        
+        private readonly ISynchronisationTypeTranslator m_SynchronisationTypeTranslator;
     
         /// <summary>
         /// The type on which synchronisation may be applied.
@@ -27,32 +29,48 @@ namespace Dx.Process
         public SynchronisationWrapper(
             ITypeBuilder typeBuilder,
             IMethodBuilder methodBuilder,
+            ISynchronisationTypeTranslator synchronisationTypeTranslator,
             TypeDefinition type)
         {
             this.m_TypeBuilder = typeBuilder;
             this.m_MethodBuilder = methodBuilder;
+            this.m_SynchronisationTypeTranslator = synchronisationTypeTranslator;
             this.m_Type = type;
             this.m_TraceSource = new TraceSource("SynchronisationWrapper");
         }
         
+        private class FieldOrPropertyDefinition
+        {
+            public PropertyDefinition Property { get; set; }
+            public FieldDefinition Field { get; set; }
+            public bool IsField { get; set; }
+        }
+        
         public void Wrap()
         {
-            var synchronisedProperties = new List<PropertyDefinition>();
+            var synchronisedFieldsOrProperties = new List<FieldOrPropertyDefinition>();
             foreach (var property in this.m_Type.Properties)
             {
                 if (Utility.HasAttribute(property.CustomAttributes, "SynchronisedAttribute"))
                 {
-                    synchronisedProperties.Add(property);
+                    synchronisedFieldsOrProperties.Add(new FieldOrPropertyDefinition { Property = property, IsField = false });
+                }
+            }
+            foreach (var field in this.m_Type.Fields)
+            {
+                if (Utility.HasAttribute(field.CustomAttributes, "SynchronisedAttribute"))
+                {
+                    synchronisedFieldsOrProperties.Add(new FieldOrPropertyDefinition { Field = field, IsField = true });
                 }
             }
             
-            if (synchronisedProperties.Count == 0)
+            if (synchronisedFieldsOrProperties.Count == 0)
                 return;
                 
             this.m_TraceSource.TraceEvent(
                 TraceEventType.Information,
                 0,
-                "Detected synchronisation attribute on one or more properties of {0}",
+                "Detected synchronisation attribute on one or more fields / properties of {0}",
                 this.m_Type.FullName);
                 
             // Mark as processed.
@@ -81,8 +99,19 @@ namespace Dx.Process
                     this.m_Type.Module.Import(typeof(DistributedAttribute))) { HasThis = true }));
                 
             // Create copies of all synchronised properties in the synchronisation store.
-            foreach (var prop in synchronisedProperties)
-                Utility.AddAutoProperty(nestedClass, prop.Name, prop.PropertyType);
+            foreach (var prop in synchronisedFieldsOrProperties)
+            {
+                if (prop.IsField)
+                    Utility.AddAutoProperty(
+                        nestedClass,
+                        prop.Field.Name,
+                        this.m_SynchronisationTypeTranslator.GetDistributedType(prop.Field.FieldType));
+                else
+                    Utility.AddAutoProperty(
+                        nestedClass,
+                        prop.Property.Name,
+                        this.m_SynchronisationTypeTranslator.GetDistributedType(prop.Property.PropertyType));
+            }
             
             // Create default constructor.
             var ctor = this.m_MethodBuilder.CreateConstructor(nestedClass);
@@ -100,6 +129,10 @@ namespace Dx.Process
                 nestedClass,
                 "GetTypes",
                 nestedClass.Module.Import(typeof(Type[])));
+            var getIsFields = this.m_MethodBuilder.CreateOverride(
+                nestedClass,
+                "GetIsFields",
+                nestedClass.Module.Import(typeof(bool[])));
             
             // Mark the methods as local so the distributed processor doesn't
             // intercept them at all.
@@ -111,18 +144,25 @@ namespace Dx.Process
                 ".ctor",
                 this.m_Type.Module.Import(typeof(void)),
                 this.m_Type.Module.Import(typeof(LocalAttribute))) { HasThis = true }));
+            getIsFields.CustomAttributes.Add(new CustomAttribute(new MethodReference(
+                ".ctor",
+                this.m_Type.Module.Import(typeof(void)),
+                this.m_Type.Module.Import(typeof(LocalAttribute))) { HasThis = true }));
             
             // Emit opcodes to produce GetNames.
             getNames.Body.Variables.Add(new VariableDefinition(
                 this.m_Type.Module.Import(typeof(string[]))));
             var getNamesIL = getNames.Body.GetILProcessor();
-            getNamesIL.Append(Instruction.Create(OpCodes.Ldc_I4, synchronisedProperties.Count));
+            getNamesIL.Append(Instruction.Create(OpCodes.Ldc_I4, synchronisedFieldsOrProperties.Count));
             getNamesIL.Append(Instruction.Create(OpCodes.Newarr, this.m_Type.Module.Import(typeof(string))));
-            for (var i = 0; i < synchronisedProperties.Count; i++)
+            for (var i = 0; i < synchronisedFieldsOrProperties.Count; i++)
             {
+                var name = synchronisedFieldsOrProperties[i].IsField ?
+                    synchronisedFieldsOrProperties[i].Field.Name :
+                    synchronisedFieldsOrProperties[i].Property.Name;
                 getNamesIL.Append(Instruction.Create(OpCodes.Dup));
                 getNamesIL.Append(Instruction.Create(OpCodes.Ldc_I4, i));
-                getNamesIL.Append(Instruction.Create(OpCodes.Ldstr, synchronisedProperties[i].Name));
+                getNamesIL.Append(Instruction.Create(OpCodes.Ldstr, name));
                 getNamesIL.Append(Instruction.Create(OpCodes.Stelem_Ref));
             }
             getNamesIL.Append(Instruction.Create(OpCodes.Stloc_0));
@@ -141,15 +181,16 @@ namespace Dx.Process
             getTypes.Body.Variables.Add(new VariableDefinition(
                 this.m_Type.Module.Import(typeof(Type[]))));
             var getTypesIL = getTypes.Body.GetILProcessor();
-            getTypesIL.Append(Instruction.Create(OpCodes.Ldc_I4, synchronisedProperties.Count));
+            getTypesIL.Append(Instruction.Create(OpCodes.Ldc_I4, synchronisedFieldsOrProperties.Count));
             getTypesIL.Append(Instruction.Create(OpCodes.Newarr, this.m_Type.Module.Import(typeof(Type))));
-            for (var i = 0; i < synchronisedProperties.Count; i++)
+            for (var i = 0; i < synchronisedFieldsOrProperties.Count; i++)
             {
+                var type = synchronisedFieldsOrProperties[i].IsField ?
+                    synchronisedFieldsOrProperties[i].Field.FieldType :
+                    synchronisedFieldsOrProperties[i].Property.PropertyType;
                 getTypesIL.Append(Instruction.Create(OpCodes.Dup));
                 getTypesIL.Append(Instruction.Create(OpCodes.Ldc_I4, i));
-                getTypesIL.Append(Instruction.Create(
-                    OpCodes.Ldtoken,
-                    this.m_Type.Module.Import(synchronisedProperties[i].PropertyType)));
+                getTypesIL.Append(Instruction.Create(OpCodes.Ldtoken, this.m_Type.Module.Import(type)));
                 getTypesIL.Append(Instruction.Create(OpCodes.Call, getTypeFromHandle));
                 getTypesIL.Append(Instruction.Create(OpCodes.Stelem_Ref));
             }
@@ -157,17 +198,34 @@ namespace Dx.Process
             getTypesIL.Append(Instruction.Create(OpCodes.Ldloc_0));
             getTypesIL.Append(Instruction.Create(OpCodes.Ret));
             
+            // Emit opcodes to produce GetNames.
+            getIsFields.Body.Variables.Add(new VariableDefinition(
+                this.m_Type.Module.Import(typeof(bool[]))));
+            var getIsFieldsIL = getIsFields.Body.GetILProcessor();
+            getIsFieldsIL.Append(Instruction.Create(OpCodes.Ldc_I4, synchronisedFieldsOrProperties.Count));
+            getIsFieldsIL.Append(Instruction.Create(OpCodes.Newarr, this.m_Type.Module.Import(typeof(bool))));
+            for (var i = 0; i < synchronisedFieldsOrProperties.Count; i++)
+            {
+                getIsFieldsIL.Append(Instruction.Create(OpCodes.Dup));
+                getIsFieldsIL.Append(Instruction.Create(OpCodes.Ldc_I4, i));
+                getIsFieldsIL.Append(Instruction.Create(OpCodes.Ldc_I4, synchronisedFieldsOrProperties[i].IsField ? 1 : 0));
+                getIsFieldsIL.Append(Instruction.Create(OpCodes.Stelem_I1));
+            }
+            getIsFieldsIL.Append(Instruction.Create(OpCodes.Stloc_0));
+            getIsFieldsIL.Append(Instruction.Create(OpCodes.Ldloc_0));
+            getIsFieldsIL.Append(Instruction.Create(OpCodes.Ret));
+            
             // Create the field on the original type to hold an instance of
             // the nested class.
-            var field = new FieldDefinition(
+            var syncField = new FieldDefinition(
                 "<>_SynchronisationField",
                 FieldAttributes.Private,
                 nestedClass);
-            field.CustomAttributes.Add(new CustomAttribute(new MethodReference(
+            syncField.CustomAttributes.Add(new CustomAttribute(new MethodReference(
                 ".ctor",
                 this.m_Type.Module.Import(typeof(void)),
                 this.m_Type.Module.Import(typeof(CompilerGeneratedAttribute))) { HasThis = true }));
-            this.m_Type.Fields.Add(field);
+            this.m_Type.Fields.Add(syncField);
             
             // Implement the ISynchronised interface on the original class.
             var syncMethod = new MethodDefinition(
@@ -208,7 +266,7 @@ namespace Dx.Process
             var il = syncMethod.Body.GetILProcessor();
             
             il.Append(Instruction.Create(OpCodes.Ldarg_0));
-            var beforeCheck = Instruction.Create(OpCodes.Ldfld, field);
+            var beforeCheck = Instruction.Create(OpCodes.Ldfld, syncField);
             il.Append(beforeCheck);
             // Brtrue to be inserted here
             il.Append(Instruction.Create(OpCodes.Ldarg_0));
@@ -216,10 +274,10 @@ namespace Dx.Process
             il.Append(Instruction.Create(OpCodes.Ldarg_2));
             il.Append(Instruction.Create(OpCodes.Newobj, distributedNestedCtor));
             il.Append(Instruction.Create(OpCodes.Call, distributedNestedCast));
-            il.Append(Instruction.Create(OpCodes.Stfld, field));
+            il.Append(Instruction.Create(OpCodes.Stfld, syncField));
             var skip = Instruction.Create(OpCodes.Ldarg_0);
             il.Append(skip);
-            il.Append(Instruction.Create(OpCodes.Ldfld, field));
+            il.Append(Instruction.Create(OpCodes.Ldfld, syncField));
             il.Append(Instruction.Create(OpCodes.Ret));
                         
             // Insert brtrue.

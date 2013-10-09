@@ -5,7 +5,7 @@ namespace Dx.Runtime.Tests
         public static void Main(string[] args)
         {
             var networkingTests = new NetworkingTests();
-            networkingTests.DistributedEventsFireCorrectly();
+            networkingTests.SynchronisedFieldsBehaveCorrectly();
         }
     }
 }

@@ -23,9 +23,11 @@
     <Compile Include="Builders\IMethodBuilder.cs" />
     <Compile Include="Builders\ITypeBuilder.cs" />
     <Compile Include="DefaultDelegateEmitter.cs" />
+    <Compile Include="DefaultSynchronisationTypeTranslator.cs" />
     <Compile Include="DxProcessNinjectModule.cs" />
     <Compile Include="DxProcessor.cs" />
     <Compile Include="IDelegateEmitter.cs" />
+    <Compile Include="ISynchronisationTypeTranslator.cs" />
     <Compile Include="IWrapper.cs" />
     <Compile Include="IWrapperFactory.cs" />
     <Compile Include="PostProcessingException.cs" />
