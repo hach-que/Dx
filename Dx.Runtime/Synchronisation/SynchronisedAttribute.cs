@@ -6,8 +6,13 @@ namespace Dx.Runtime
     public class SynchronisedAttribute : Attribute
     {
         public Type StrategyType { get; set; }
-        
-        public SynchronisedAttribute(Type strategyType = null)
+
+        public SynchronisedAttribute()
+        {
+            this.StrategyType = typeof(AssignmentStrategy);
+        }
+
+        public SynchronisedAttribute(Type strategyType)
         {
             if (strategyType == null)
                 strategyType = typeof(AssignmentStrategy);
