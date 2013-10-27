@@ -16,11 +16,6 @@ namespace Dx.Runtime
         ID ID { get; }
 
         /// <summary>
-        /// The discovery port that the UDP network (INetworkProvider) is listening on.
-        /// </summary>
-        int DiscoveryPort { get; }
-
-        /// <summary>
         /// The messaging port that the TCP network (IStorageProvider) is listening on.
         /// </summary>
         int MessagingPort { get; }
