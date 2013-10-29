@@ -23,14 +23,6 @@ namespace Dx.Runtime
         }
 
         /// <summary>
-        /// Sends the direct message to it's recipient.
-        /// </summary>
-        public DirectMessage Send()
-        {
-            return base.Send(this.Target) as DirectMessage;
-        }
-
-        /// <summary>
         /// Clones the direct message.
         /// </summary>
         protected override Message Clone()

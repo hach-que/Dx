@@ -24,6 +24,8 @@ namespace Dx.Runtime
         private object p_OwnedEntriesLock = new object();
         private object p_YieldingLock = new object();
         private bool m_Stopping = false;
+        private List<Message> m_ExpectingConfirmation = new List<Message>();
+        private object m_ExpectingConfirmationLock = new object();
 
         // TODO: This is 60 seconds for the moment to account for large parameters or
         // result data.  When the data is being sent or received, this counts towards
@@ -86,7 +88,7 @@ namespace Dx.Runtime
                                         byte[] result = new byte[total];
                                         while (received < total)
                                             received += client.Client.Receive(result, received, total - received, SocketFlags.None);
-                                        this.LogI(LogType.DEBUG, "Received a message from " + client.Client.RemoteEndPoint.ToString());
+                                        this.LogI(LogType.DEBUG, "Received - (from " + client.Client.RemoteEndPoint + ")");
                                         Thread handler = new Thread(a =>
                                             {
                                                 this.OnReceive(((ThreadInformation)a).Endpoint, ((ThreadInformation)a).Result);
@@ -137,6 +139,14 @@ namespace Dx.Runtime
         {
             public IPEndPoint Endpoint;
             public byte[] Result;
+        }
+        
+        public void AwaitForConfirmation(Message message)
+        {
+            lock (this.m_ExpectingConfirmationLock)
+            {
+                this.m_ExpectingConfirmation.Add(message);
+            }
         }
 
         /// <summary>
@@ -215,7 +225,7 @@ namespace Dx.Runtime
             {
                 FetchMessage fm = new FetchMessage(this, c, key);
                 fm.ResultReceived += ev;
-                fm.Send();
+                fm.Send(fm.Target);
             }
 
             // Wait a little bit for the first entry to
@@ -259,7 +269,30 @@ namespace Dx.Runtime
                 MessageEventArgs e = new MessageEventArgs(message);
                 message.Dht = this;
                 message.Sender = this.FindContactByEndPoint(endpoint);
+                this.LogI(Dht.LogType.DEBUG, "          Message - " + message);
 
+                // Check waiting confirmation messages.
+                if (message is ConfirmationMessage)
+                {
+                    var toRemove = new List<Message>();
+                    lock (this.m_ExpectingConfirmationLock)
+                    {
+                        foreach (var confirm in this.m_ExpectingConfirmation)
+                        {
+                            if (confirm.Identifier == message.Identifier)
+                            {
+                                toRemove.Add(confirm);
+                                confirm.OnConfirm(this, e);
+                            }
+                        }
+                        foreach (var @remove in toRemove)
+                        {
+                            this.m_ExpectingConfirmation.Remove(@remove);
+                        }
+                    }
+                }
+
+                // Fire OnReceived event.
                 if (this.OnReceived != null)
                     this.OnReceived(this, e);
 
@@ -273,13 +306,13 @@ namespace Dx.Runtime
                     {
                         // Handle the fetch request.
                         FetchConfirmationMessage fcm = new FetchConfirmationMessage(this, message, this.OnFetch(e.Message as FetchMessage));
-                        fcm.Send();
+                        fcm.Send(fcm.Target);
                     }
-                    else if (e.SendConfirmation && !(e.Message is ConfirmationMessage))
+                    else if (e.Message.SendBasicConfirmation && !(e.Message is ConfirmationMessage))
                     {
                         // Send confirmation message.
                         ConfirmationMessage cm = new ConfirmationMessage(this, message, "");
-                        cm.Send();
+                        cm.Send(cm.Target);
                     }
                 }
                 catch (SocketException ex)
@@ -375,45 +408,47 @@ namespace Dx.Runtime
         public void LogI(LogType type, string msg)
         {
             string id = (this.p_Self.EndPoint != null) ? this.p_Self.EndPoint.ToString() + " :" : "";
+            string tid = Thread.CurrentThread.ManagedThreadId.ToString();
             switch (type)
             {
                 case LogType.ERROR:
-                    Console.WriteLine("ERROR  : " + id + " " + msg);
+                    Console.WriteLine("ERROR  : " + tid + " : " + id + " " + msg);
                     break;
                 case LogType.WARNING:
-                    Console.WriteLine("WARNING: " + id + " " + msg);
+                    Console.WriteLine("WARNING: " + tid + " : " + id + " " + msg);
                     break;
                 case LogType.INFO:
-                    Console.WriteLine("INFO   : " + id + " " + msg);
+                    Console.WriteLine("INFO   : " + tid + " : " + id + " " + msg);
                     break;
                 case LogType.DEBUG:
                     if (this.p_ShowDebug)
-                        Console.WriteLine("DEBUG  : " + id + " " + msg);
+                        Console.WriteLine("DEBUG  : " + tid + " : " + id + " " + msg);
                     break;
                 default:
-                    Console.WriteLine("UNKNOWN: " + id + " " + msg);
+                    Console.WriteLine("UNKNOWN: " + tid + " : " + id + " " + msg);
                     break;
             }
         }
 
         public static void LogS(LogType type, string msg)
         {
+            string tid = Thread.CurrentThread.ManagedThreadId.ToString();
             switch (type)
             {
                 case LogType.ERROR:
-                    Console.WriteLine("ERROR  : " + msg);
+                    Console.WriteLine("ERROR  : " + tid + " : " + msg);
                     break;
                 case LogType.WARNING:
-                    Console.WriteLine("WARNING: " + msg);
+                    Console.WriteLine("WARNING: " + tid + " : " + msg);
                     break;
                 case LogType.INFO:
-                    Console.WriteLine("INFO   : " + msg);
+                    Console.WriteLine("INFO   : " + tid + " : " + msg);
                     break;
                 case LogType.DEBUG:
-                    Console.WriteLine("DEBUG  : " + msg);
+                    Console.WriteLine("DEBUG  : " + tid + " : " + msg);
                     break;
                 default:
-                    Console.WriteLine("UNKNOWN: " + msg);
+                    Console.WriteLine("UNKNOWN: " + tid + " : " + msg);
                     break;
             }
         }

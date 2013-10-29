@@ -12,16 +12,12 @@ namespace Dx.Runtime
             : base(dht, target, null)
         {
             this.p_EventTransport = transport;
-
-            this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
         public RemoveEventMessage(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             this.p_EventTransport = info.GetValue("evinvoke.transport", typeof(EventTransport)) as EventTransport;
-
-            this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -31,27 +27,9 @@ namespace Dx.Runtime
             info.AddValue("evinvoke.transport", this.p_EventTransport, typeof(EventTransport));
         }
 
-        /// <summary>
-        /// Sends the remove event message to it's recipient.
-        /// </summary>
-        public new RemoveEventMessage Send()
+        public override bool SendBasicConfirmation
         {
-            return base.Send(this.Target) as RemoveEventMessage;
-        }
-
-        /// <summary>
-        /// This event is raised when the DHT has received a message and we need to
-        /// parse it to see if it's relevant (i.e. confirmation).
-        /// </summary>
-        private void OnConfirm(object sender, MessageEventArgs e)
-        {
-            if (!this.Sent)
-                return;
-
-            e.SendConfirmation = true;
-
-            // The DHT will send our confirmation message for us as we do not
-            // need to return any additional information.
+            get { return true; }
         }
 
         /// <summary>

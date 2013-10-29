@@ -43,10 +43,19 @@ namespace Dx.Runtime
         {
             var syncProp = synchronised.GetType().GetProperty(name, BindingFlagsCombined.All);
             var storeProp = store.GetType().GetProperty(name, BindingFlagsCombined.All);
+            var syncValue = syncProp.GetGetMethod().Invoke(synchronised, new object[0]);
+            var storeValue = storeProp.GetGetMethod().Invoke(store, new object[0]);
             if (authoritive)
-                storeProp.GetSetMethod().Invoke(store, new object[] { syncProp.GetGetMethod().Invoke(synchronised, new object[0]) });
+            {
+                if ((storeValue != null && !storeValue.Equals(syncValue)) || (syncValue != null && !syncValue.Equals(storeValue)))
+                {
+                    Console.WriteLine(storeValue);
+                    Console.WriteLine(syncValue);
+                    storeProp.GetSetMethod().Invoke(store, new object[] { syncValue });
+                }
+            }
             else
-                syncProp.GetSetMethod().Invoke(synchronised, new object[] { storeProp.GetGetMethod().Invoke(store, new object[0]) });
+                syncProp.GetSetMethod().Invoke(synchronised, new object[] { storeValue });
         }
         
         private void PerformFieldAssignment(
@@ -58,10 +67,19 @@ namespace Dx.Runtime
         {
             var syncField = synchronised.GetType().GetField(name, BindingFlagsCombined.All);
             var storeProp = store.GetType().GetProperty(name, BindingFlagsCombined.All);
+            var syncValue = syncField.GetValue(synchronised);
+            var storeValue = storeProp.GetGetMethod().Invoke(store, new object[0]);
             if (authoritive)
-                storeProp.GetSetMethod().Invoke(store, new object[] { syncField.GetValue(synchronised) });
+            {
+                if ((storeValue != null && !storeValue.Equals(syncValue)) || (syncValue != null && !syncValue.Equals(storeValue)))
+                {
+                    Console.WriteLine(storeValue);
+                    Console.WriteLine(syncValue);
+                    storeProp.GetSetMethod().Invoke(store, new object[] { syncValue });
+                }
+            }
             else
-                syncField.SetValue(synchronised, storeProp.GetGetMethod().Invoke(store, new object[0]));
+                syncField.SetValue(synchronised, storeValue);
         }
     }
 }

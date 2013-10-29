@@ -45,7 +45,7 @@ namespace Dx.Runtime
             spm.ConfirmationReceived += ev;
 
             // Send the message.
-            spm.Send();
+            spm.Send(spm.Target);
 
             // Wait until we have received it.
             while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
@@ -81,7 +81,7 @@ namespace Dx.Runtime
             gpm.ResultReceived += ev;
 
             // Send the message.
-            gpm.Send();
+            gpm.Send(gpm.Target);
 
             // Wait until we have received it.
             while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
@@ -120,7 +120,7 @@ namespace Dx.Runtime
             aem.ConfirmationReceived += ev;
 
             // Send the message.
-            aem.Send();
+            aem.Send(aem.Target);
 
             // Wait until we have received it.
             while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
@@ -155,7 +155,7 @@ namespace Dx.Runtime
             aem.ConfirmationReceived += ev;
 
             // Send the message.
-            aem.Send();
+            aem.Send(aem.Target);
 
             // Wait until we have received it.
             while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
@@ -191,7 +191,7 @@ namespace Dx.Runtime
             fm.ResultReceived += ev;
 
             // Send the message.
-            fm.Send();
+            fm.Send(fm.Target);
 
             // Wait until we have received it.
             while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);
@@ -231,7 +231,7 @@ namespace Dx.Runtime
             fm.ConfirmationReceived += ev;
 
             // Send the message.
-            fm.Send();
+            fm.Send(fm.Target);
 
             // Wait until we have received it.
             while (!received && DateTime.Now.Subtract(start).TotalSeconds < Dht.TIMEOUT) Thread.Sleep(0);

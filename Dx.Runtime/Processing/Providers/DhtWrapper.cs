@@ -73,10 +73,6 @@ namespace Dx.Runtime
                 e.Message is RemoveEventMessage ||
                 e.Message is InvokeEventMessage)
             {
-                // Tell the DHT to not automatically send a confirmation message (we
-                // will do this ourselves as we need to attach data to it).
-                e.SendConfirmation = false;
-
                 // Handle each type of message.
                 if (e.Message is InvokeMessage)
                 {
@@ -86,7 +82,7 @@ namespace Dx.Runtime
                     InvokeConfirmationMessage icm = new InvokeConfirmationMessage(this.m_Dht, i, r);
                     try
                     {
-                        icm.Send();
+                        icm.Send(icm.Target);
                     }
                     catch (SocketException ex)
                     {
@@ -140,17 +136,11 @@ namespace Dx.Runtime
                             DpmEntrypoint.InvokeDynamic(obj.GetType(), mi, obj, new Type[0], new object[] { i.NewValue });
                             //mi.Invoke(obj, new object[] { i.NewValue });
                         }
-
-                        // The server doesn't care whether we got the message.
-                        e.SendConfirmation = false;
                     }
                     else
                     {
                         // Tell the node to set the property.
                         this.m_Node.SetProperty(i.ObjectID, i.ObjectProperty, i.NewValue);
-
-                        // We get the DHT to send a generic confirmation message for this.
-                        e.SendConfirmation = true;
                     }
                 }
                 else if (e.Message is GetPropertyMessage)
@@ -161,7 +151,7 @@ namespace Dx.Runtime
                     GetPropertyConfirmationMessage gpcm = new GetPropertyConfirmationMessage(this.m_Dht, i, r);
                     try
                     {
-                        gpcm.Send();
+                        gpcm.Send(gpcm.Target);
                     }
                     catch (SocketException ex)
                     {
@@ -178,27 +168,18 @@ namespace Dx.Runtime
                     // Tell the node to add the event.
                     AddEventMessage i = (e.Message as AddEventMessage);
                     this.m_Node.AddEvent(i.EventTransport);
-
-                    // We get the DHT to send a generic confirmation message for this.
-                    e.SendConfirmation = true;
                 }
                 else if (e.Message is RemoveEventMessage)
                 {
                     // Tell the node to remove the event.
                     RemoveEventMessage i = (e.Message as RemoveEventMessage);
                     this.m_Node.RemoveEvent(i.EventTransport);
-
-                    // We get the DHT to send a generic confirmation message for this.
-                    e.SendConfirmation = true;
                 }
                 else if (e.Message is InvokeEventMessage)
                 {
                     // Tell the node to invoke the event.
                     InvokeEventMessage i = (e.Message as InvokeEventMessage);
                     this.m_Node.InvokeEvent(i.EventTransport, i.EventSender, i.EventArgs);
-
-                    // We get the DHT to send a generic confirmation message for this.
-                    e.SendConfirmation = true;
                 }
             }
         }
@@ -337,7 +318,7 @@ namespace Dx.Runtime
                                 try
                                 {
                                     SetPropertyMessage spm = new SetPropertyMessage(this.Dht, c, id, property, value);
-                                    spm.Send();
+                                    spm.Send(spm.Target);
                                 }
                                 catch (SocketException ex)
                                 {

@@ -38,23 +38,13 @@ namespace Dx.Runtime
         }
 
         /// <summary>
-        /// Sends the invoke message to it's recipient.
-        /// </summary>
-        public new GetPropertyMessage Send()
-        {
-            return base.Send(this.Target) as GetPropertyMessage;
-        }
-
-        /// <summary>
         /// This event is raised when the DHT has received a message and we need to
         /// parse it to see if it's relevant (i.e. confirmation).
         /// </summary>
-        private void OnConfirm(object sender, MessageEventArgs e)
+        public override void OnConfirm(object sender, MessageEventArgs e)
         {
             if (!this.Sent)
                 return;
-
-            e.SendConfirmation = false;
 
             if (e.Message is GetPropertyConfirmationMessage && e.Message.Identifier == this.Identifier)
             {
@@ -72,6 +62,11 @@ namespace Dx.Runtime
         {
             GetPropertyMessage fm = new GetPropertyMessage(Dht, this.Target, this.p_ObjectID, this.p_ObjectProperty);
             return fm;
+        }
+        
+        public override bool ExpectsConfirmation
+        {
+            get { return true; }
         }
 
         /// <summary>

@@ -57,7 +57,7 @@ namespace Dx.Runtime
         /// </summary>
         /// <param name="target">The target to send the message to.</param>
         /// <returns>A new message that duplicates the properties of the one being sent.</returns>
-        protected Message Send(Contact target)
+        public void Send(Contact target)
         {
             if (this.Dht == null)
                 throw new InvalidOperationException("The message could not be sent because there is no DHT associated with the message.");
@@ -66,8 +66,12 @@ namespace Dx.Runtime
                 throw new InvalidOperationException("Messages can not be resent with Sent().  Use the duplicated message object from Sent() to resend a message.");
             this.p_Sent = true;
 
-            Message duplicate = this.Clone();
-
+            // Wait for confirmation if we need it.
+            if (this.ExpectsConfirmation)
+            {
+                this.Dht.AwaitForConfirmation(this);
+            }
+            
             // TODO: Give this more randomization to ensure a higher degree of uniqueness.
             if (this.m_Identifier == null)
                 this.m_Identifier = ID.NewRandom();
@@ -99,8 +103,6 @@ namespace Dx.Runtime
                     }
                 }
             }
-
-            return duplicate;
         }
 
         /// <summary>
@@ -112,7 +114,7 @@ namespace Dx.Runtime
         /// This event is raised when the Dht receives a message.  It is used by the
         /// Message class to detect confirmation replies.
         /// </summary>
-        private void OnConfirm(object sender, MessageEventArgs e)
+        public virtual void OnConfirm(object sender, MessageEventArgs e)
         {
             if (!this.p_Sent)
                 return;
@@ -142,14 +144,28 @@ namespace Dx.Runtime
         public Dht Dht
         {
             get { return this.p_Dht; }
-            set
-            {
-                if (this.p_Dht != null)
-                    this.p_Dht.OnReceived -= this.OnConfirm;
-                this.p_Dht = value;
-                if (this.p_Dht != null)
-                    this.p_Dht.OnReceived += this.OnConfirm;
-            }
+            set { this.p_Dht = value; }
+        }
+        
+        /// <summary>
+        /// Whether to send a basic "ConfirmationMessage" when this message type is received.  This
+        /// should only be set to true when messages are sending responses by themselves (e.g.
+        /// InvokeMessage sends back InvokeConfirmationMessage manually, so it would leave this
+        /// property as false).
+        /// </summary>
+        public virtual bool SendBasicConfirmation
+        {
+            get { return false; }
+        }
+        
+        /// <summary>
+        /// Whether this message type expects to receive confirmation at some point in time.  When
+        /// messages do not send basic confirmation, but instead send confirmation manually, this
+        /// property should be overridden to return true.
+        /// </summary>
+        public virtual bool ExpectsConfirmation
+        {
+            get { return this.SendBasicConfirmation; }
         }
 
         /// <summary>
@@ -221,7 +237,7 @@ namespace Dx.Runtime
 
         public override string ToString()
         {
-            return string.Format("[Message: Dht={0}, Source={1}, Seen={2}, Data={3}]", this.Dht, this.Source, this.Seen, this.Data);
+            return string.Format("[Message: Type={0}, Dht={1}, Source={2}, Seen={3}, Data={4}]", this.GetType().FullName, this.Dht, this.Source, this.Seen, this.Data);
         }
     }
 }

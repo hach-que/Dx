@@ -17,8 +17,6 @@ namespace Dx.Runtime
             this.p_EventTransport = transport;
             this.p_Sender = sender;
             this.p_EventArgs = e;
-
-            this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
         public InvokeEventMessage(SerializationInfo info, StreamingContext context)
@@ -27,8 +25,6 @@ namespace Dx.Runtime
             this.p_EventTransport = info.GetValue("evinvoke.transport", typeof(EventTransport)) as EventTransport;
             this.p_Sender = info.GetValue("evinvoke.sender", typeof(object)) as object;
             this.p_EventArgs = info.GetValue("evinvoke.args", typeof(EventArgs)) as EventArgs;
-
-            this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -42,27 +38,12 @@ namespace Dx.Runtime
                 info.AddValue("evinvoke.sender", null, typeof(object));
             info.AddValue("evinvoke.args", this.p_EventArgs, typeof(EventArgs));
         }
-
-        /// <summary>
-        /// Sends the invoke message to it's recipient.
-        /// </summary>
-        public new InvokeEventMessage Send()
+        
+        public override bool SendBasicConfirmation
         {
-            return base.Send(this.Target) as InvokeEventMessage;
+            get { return true; }
         }
-
-        /// <summary>
-        /// This event is raised when the DHT has received a message and we need to
-        /// parse it to see if it's relevant (i.e. confirmation).
-        /// </summary>
-        private void OnConfirm(object sender, MessageEventArgs e)
-        {
-            if (!this.Sent)
-                return;
-
-            e.SendConfirmation = true;
-        }
-
+        
         /// <summary>
         /// Clones the fetch message.
         /// </summary>

@@ -32,25 +32,20 @@ namespace Dx.Runtime
 
             info.AddValue("fetch.key", this.m_Key, typeof(ID));
         }
-
-        /// <summary>
-        /// Sends the fetch message to it's recipient.
-        /// </summary>
-        public new FetchMessage Send()
+        
+        public override bool ExpectsConfirmation
         {
-            return base.Send(this.Target) as FetchMessage;
+            get { return true; }
         }
 
         /// <summary>
         /// This event is raised when the DHT has received a message and we need to
         /// parse it to see if it's relevant (i.e. confirmation).
         /// </summary>
-        private void OnConfirm(object sender, MessageEventArgs e)
+        public override void OnConfirm(object sender, MessageEventArgs e)
         {
             if (!this.Sent)
                 return;
-
-            e.SendConfirmation = false;
 
             if (e.Message is FetchConfirmationMessage && e.Message.Identifier == this.Identifier)
             {

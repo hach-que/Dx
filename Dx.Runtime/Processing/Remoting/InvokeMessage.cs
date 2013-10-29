@@ -56,25 +56,20 @@ namespace Dx.Runtime
             info.AddValue("invoke.typearguments", this.p_TypeArguments.Select(x => x.AssemblyQualifiedName).ToArray(), typeof(string[]));
             info.AddValue("invoke.asynchronous", this.p_Asynchronous, typeof(bool));
         }
-
-        /// <summary>
-        /// Sends the invoke message to it's recipient.
-        /// </summary>
-        public new InvokeMessage Send()
+        
+        public override bool ExpectsConfirmation
         {
-            return base.Send(this.Target) as InvokeMessage;
+            get { return true; }
         }
 
         /// <summary>
         /// This event is raised when the DHT has received a message and we need to
         /// parse it to see if it's relevant (i.e. confirmation).
         /// </summary>
-        private void OnConfirm(object sender, MessageEventArgs e)
+        public override void OnConfirm(object sender, MessageEventArgs e)
         {
             if (!this.Sent)
                 return;
-
-            e.SendConfirmation = false;
 
             if (e.Message is InvokeConfirmationMessage && e.Message.Identifier == this.Identifier)
             {

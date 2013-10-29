@@ -15,8 +15,6 @@ namespace Dx.Runtime
             this.p_ObjectID = id;
             this.p_ObjectProperty = property;
             this.p_NewValue = value;
-
-            this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
         public SetPropertyMessage(SerializationInfo info, StreamingContext context)
@@ -25,8 +23,6 @@ namespace Dx.Runtime
             this.p_ObjectID = info.GetValue("setproperty.objid", typeof(string)) as string;
             this.p_ObjectProperty = info.GetValue("setproperty.objproperty", typeof(string)) as string;
             this.p_NewValue = info.GetValue("setproperty.value", typeof(object));
-
-            this.ConfirmationReceived += new EventHandler<MessageEventArgs>(this.OnConfirm);
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -37,28 +33,10 @@ namespace Dx.Runtime
             info.AddValue("setproperty.objproperty", this.p_ObjectProperty, typeof(string));
             info.AddValue("setproperty.value", this.p_NewValue, typeof(object));
         }
-
-        /// <summary>
-        /// Sends the set property message to it's recipient.
-        /// </summary>
-        public new SetPropertyMessage Send()
+        
+        public override bool SendBasicConfirmation
         {
-            return base.Send(this.Target) as SetPropertyMessage;
-        }
-
-        /// <summary>
-        /// This event is raised when the DHT has received a message and we need to
-        /// parse it to see if it's relevant (i.e. confirmation).
-        /// </summary>
-        private void OnConfirm(object sender, MessageEventArgs e)
-        {
-            if (!this.Sent)
-                return;
-
-            e.SendConfirmation = true;
-
-            // The DHT will send our confirmation message for us as we do not
-            // need to return any additional information.
+            get { return true; }
         }
 
         /// <summary>
