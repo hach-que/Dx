@@ -14,18 +14,19 @@ namespace Dx.Runtime
 {
     public class Dht
     {
-        private Contact p_Self = null;
-        private List<Contact> p_Contacts = new List<Contact>();
-        private IFormatter p_Formatter = null;
-        private TcpListener m_TcpListener = null;
-        private Thread m_TcpThread = null;
-        private bool p_ShowDebug = false;
-        private List<Entry> p_OwnedEntries = new List<Entry>();
-        private object p_OwnedEntriesLock = new object();
-        private object p_YieldingLock = new object();
-        private bool m_Stopping = false;
-        private List<Message> m_ExpectingConfirmation = new List<Message>();
-        private object m_ExpectingConfirmationLock = new object();
+        private readonly Contact p_Self;
+        private readonly List<Contact> p_Contacts = new List<Contact>();
+        private readonly IFormatter p_Formatter;
+        private readonly TcpListener m_TcpListener;
+        private readonly Thread m_TcpThread;
+        private bool p_ShowDebug;
+        private readonly List<Entry> p_OwnedEntries = new List<Entry>();
+        private readonly object p_OwnedEntriesLock = new object();
+        private readonly object p_YieldingLock = new object();
+        private bool m_Stopping;
+        private readonly List<MessageWithExpiry> m_ExpectingConfirmation = new List<MessageWithExpiry>();
+        private readonly object m_ExpectingConfirmationLock = new object();
+        private EventHandler<MessageEventArgs> m_CurrentOnReceived;
 
         // TODO: This is 60 seconds for the moment to account for large parameters or
         // result data.  When the data is being sent or received, this counts towards
@@ -34,7 +35,6 @@ namespace Dx.Runtime
         // completes.
         public const int TIMEOUT = 60;
 
-        public event EventHandler<MessageEventArgs> OnReceived;
         public event EventHandler<EntriesRequestedEventArgs> OnEntriesRequested;
 
         public Dht(ID identifier, IPEndPoint endpoint)
@@ -134,6 +134,11 @@ namespace Dx.Runtime
             if (this.p_ShowDebug)
                 Console.WriteLine("Dht node created with " + identifier.ToString() + " on " + endpoint.ToString());
         }
+        
+        public void SetOnReceivedHandler(EventHandler<MessageEventArgs> handler)
+        {
+            this.m_CurrentOnReceived = handler;
+        }
 
         private struct ThreadInformation
         {
@@ -141,11 +146,21 @@ namespace Dx.Runtime
             public byte[] Result;
         }
         
+        private class MessageWithExpiry
+        {
+            public Message Message;
+            public DateTime Expiry;
+        }
+        
         public void AwaitForConfirmation(Message message)
         {
             lock (this.m_ExpectingConfirmationLock)
             {
-                this.m_ExpectingConfirmation.Add(message);
+                this.m_ExpectingConfirmation.Add(new MessageWithExpiry
+                {
+                    Message = message,
+                    Expiry = DateTime.Now.AddSeconds(TIMEOUT)
+                });
             }
         }
 
@@ -157,7 +172,7 @@ namespace Dx.Runtime
         {
             lock (this.p_OwnedEntriesLock)
             {
-                Entry e = this.p_OwnedEntries.Where(v => v.Key == key).FirstOrDefault();
+                Entry e = this.p_OwnedEntries.FirstOrDefault(v => v.Key == key);
                 if (e == null)
                     this.p_OwnedEntries.Add(new Entry(this, this.p_Self, key, value));
                 else
@@ -274,15 +289,19 @@ namespace Dx.Runtime
                 // Check waiting confirmation messages.
                 if (message is ConfirmationMessage)
                 {
-                    var toRemove = new List<Message>();
+                    var toRemove = new List<MessageWithExpiry>();
                     lock (this.m_ExpectingConfirmationLock)
                     {
                         foreach (var confirm in this.m_ExpectingConfirmation)
                         {
-                            if (confirm.Identifier == message.Identifier)
+                            if (confirm.Message.Identifier == message.Identifier)
                             {
                                 toRemove.Add(confirm);
-                                confirm.OnConfirm(this, e);
+                                confirm.Message.OnConfirm(this, e);
+                            }
+                            else if (DateTime.Now > confirm.Expiry)
+                            {
+                                toRemove.Add(confirm);
                             }
                         }
                         foreach (var @remove in toRemove)
@@ -293,8 +312,8 @@ namespace Dx.Runtime
                 }
 
                 // Fire OnReceived event.
-                if (this.OnReceived != null)
-                    this.OnReceived(this, e);
+                if (this.m_CurrentOnReceived != null)
+                    this.m_CurrentOnReceived(this, e);
 
                 // If the remote host that sent the message disappears when sending
                 // the confirmation data then we don't really care, since we were only

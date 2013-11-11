@@ -33,7 +33,7 @@ namespace Dx.Runtime
 
             // Register the message listener on the DHT which we will use to
             // detect InvokeMessage, SetPropertyMessage and GetPropertyMessage.
-            this.m_Dht.OnReceived += new EventHandler<MessageEventArgs>(DhtOnReceived);
+            this.m_Dht.SetOnReceivedHandler(new EventHandler<MessageEventArgs>(DhtOnReceived));
             
             this.m_Started = true;
         }
