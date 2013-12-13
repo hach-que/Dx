@@ -35,7 +35,7 @@ namespace Dx.Process
                     Path.GetFileName(this.AssemblyFile),
                     new ReaderParameters
                     {
-                        ReadSymbols = File.Exists(this.AssemblyFile + ".mdb"),
+                        ReadSymbols = File.Exists(this.AssemblyFile + ".mdb") || File.Exists(this.AssemblyFile.Substring(0, this.AssemblyFile.Length - 4) + ".pdb"),
                     });
 
                 // Get all of the types in the assembly.
