@@ -15,6 +15,7 @@
     <Reference Include="Microsoft.Build.Utilites.v4.0" />
     <Reference Include="Dx.Runtime" />
     <Reference Include="Ninject" />
+    <Reference Include="precompiler" />
   </References>
   <Files>
     <Compile Include="AssemblyInfo.cs" />

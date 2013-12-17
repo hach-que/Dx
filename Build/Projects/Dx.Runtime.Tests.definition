@@ -8,6 +8,7 @@
     <Reference Include="Dx.Runtime" />
     <Reference Include="Dx.Process" />
     <Reference Include="Dx.Runtime.Tests.Data" />
+    <Reference Include="protobuf-net" />
   </References>
   <Files>
     <Compile Include="ConstructionTests.cs" />

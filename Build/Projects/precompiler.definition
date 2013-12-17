@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ExternalProject Name="precompiler">
+
+  <Binary
+    Name="protobuf-net"
+    Path="protobuf-net/protobuf-net.dll" />
+  <Binary
+    Name="IKVM.Reflection"
+    Path="protobuf-net/IKVM.Reflection.dll" />
+  <Binary
+    Name="precompile"
+    Path="protobuf-net/precompile.exe" />
+
+</ExternalProject>
