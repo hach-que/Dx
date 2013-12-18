@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ExternalProject Name="protobuf-net-client">
+
+  <Binary
+    Name="protobuf-net"
+    Path="protobuf-net-client/protobuf-net.dll" />
+
+</ExternalProject>

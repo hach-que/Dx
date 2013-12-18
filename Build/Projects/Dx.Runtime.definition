@@ -14,7 +14,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="protobuf-net" />
+    <Reference Include="protobuf-net-client" />
   </References>
   <Files>
     <Compile Include="AssemblyInfo.cs" />
