@@ -43,7 +43,7 @@ namespace Dx.Runtime
         /// <summary>
         /// The local, external IP address of the machine.
         /// </summary>
-        public IPAddress IPAddress
+        public IPAddress LocalIPAddress
         {
             get
             {
@@ -117,7 +117,7 @@ namespace Dx.Runtime
 
             // Send out a broadcast UDP signal on the local area network to get
             // a list of peers.
-            IPEndPoint local = new IPEndPoint(this.IPAddress, this.DiscoveryPort);
+            IPEndPoint local = new IPEndPoint(this.LocalIPAddress, this.DiscoveryPort);
             Console.WriteLine("LISTENING ON " + local.ToString());
             this.m_Udp = new UdpClient();
             try
@@ -208,7 +208,7 @@ namespace Dx.Runtime
                         if (!s.StartsWith("FORWARD|"))
                         {
                             foreach (KeyValuePair<UdpClient, int> cl in this.m_ForwardTargets)
-                                cl.Key.Send(bytes, bytes.Length, new IPEndPoint(this.IPAddress, cl.Value));
+                                cl.Key.Send(bytes, bytes.Length, new IPEndPoint(this.LocalIPAddress, cl.Value));
                         }
 
                         // Make sure it is a valid request.

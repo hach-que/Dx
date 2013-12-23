@@ -56,7 +56,7 @@ namespace Dx.Runtime.Tests
             }
         }
 
-        public IPAddress IPAddress
+        public IPAddress LocalIPAddress
         {
             get
             {

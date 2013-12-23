@@ -23,7 +23,7 @@ namespace Dx.Runtime
         /// <summary>
         /// The IP address that processing and storage services should bind on.
         /// </summary>
-        IPAddress IPAddress { get; }
+        IPAddress LocalIPAddress { get; }
 
         /// <summary>
         /// Whether this node was the first node to join the network.  This should return

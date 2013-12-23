@@ -29,7 +29,7 @@ namespace Dx.Runtime
         public void Start()
         {
             // Creates our new DHT node with the specified ID and endpoint.
-            this.m_Dht = new Dht(this.m_Node.ID, new IPEndPoint(this.m_Node.Network.IPAddress, this.m_Node.Network.MessagingPort));
+            this.m_Dht = new Dht(this.m_Node.ID, new IPEndPoint(this.m_Node.Network.LocalIPAddress, this.m_Node.Network.MessagingPort));
 
             // Register the message listener on the DHT which we will use to
             // detect InvokeMessage, SetPropertyMessage and GetPropertyMessage.
