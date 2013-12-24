@@ -12,7 +12,6 @@
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Build.Framework" />
-    <Reference Include="Microsoft.Build.Utilites.v4.0" />
     <Reference Include="Dx.Runtime" />
     <Reference Include="Ninject" />
     <Reference Include="precompiler" />
@@ -39,6 +38,7 @@
     <Compile Include="Statements\InitDelegateStatement.cs" />
     <Compile Include="Statements\Statement.cs" />
     <Compile Include="Utility.cs" />
+    <Compile Include="WrapContext.cs" />
     <Compile Include="Wrappers\ConstructorWrapper.cs" />
     <Compile Include="Wrappers\FieldWrapper.cs" />
     <Compile Include="Wrappers\MethodWrapper.cs" />

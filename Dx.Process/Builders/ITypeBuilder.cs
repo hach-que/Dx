@@ -1,5 +1,4 @@
 using Mono.Cecil;
-using System.Collections.Generic;
 
 namespace Dx.Process
 {

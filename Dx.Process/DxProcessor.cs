@@ -56,9 +56,11 @@ namespace Dx.Process
                         source.TraceEvent(TraceEventType.Information, 0, "Skipped {0} because it has already been processed", type.Name);
                         continue;
                     }
-                    
+
+                    var context = new WrapContext(0);
+
                     // Apply synchronisation wrapper.
-                    wrapperFactory.CreateSynchronisationWrapper(type).Wrap();
+                    wrapperFactory.CreateSynchronisationWrapper(type).Wrap(context);
 
                     // Check to see whether this type has a DistributedAttribute
                     // attached to it.
@@ -71,7 +73,7 @@ namespace Dx.Process
                     // This type is marked as distributed, so we need to perform
                     // wrapping on it.
                     source.TraceEvent(TraceEventType.Information, 0, "Starting processing of {0}", type.Name);
-                    new TypeWrapper(type).Wrap();
+                    new TypeWrapper(type).Wrap(context);
                     source.TraceEvent(TraceEventType.Information, 0, "Finished processing of {0}", type.Name);
                 }
 

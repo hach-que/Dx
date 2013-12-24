@@ -14,7 +14,6 @@
     <Compile Include="Bar.cs" />
     <Compile Include="BaseType.cs" />
     <Compile Include="Baz.cs" />
-    <Compile Include="EventTest.cs" />
     <Compile Include="Foo.cs" />
     <Compile Include="GenericMethod.cs" />
     <Compile Include="GenericType.cs" />
@@ -26,6 +25,7 @@
     <Compile Include="Preprocessed\PreprocessedGenericType.cs" />
     <Compile Include="Preprocessed\PreprocessedGenericTypeAndMethod.cs" />
     <Compile Include="Preprocessed\PreprocessedSynchronisedStore.cs" />
+    <Compile Include="Semantic.cs" />
     <Compile Include="SynchronisedSimpleFieldTest.cs" />
     <Compile Include="SynchronisedTest.cs" />
   </Files>

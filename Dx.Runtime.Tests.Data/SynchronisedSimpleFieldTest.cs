@@ -1,5 +1,3 @@
-using Dx.Runtime;
-
 namespace Dx.Runtime.Tests.Data
 {
     public class SynchronisedSimpleFieldTest

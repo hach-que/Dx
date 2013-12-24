@@ -1,9 +1,11 @@
-using System.Linq;
-using Dx.Runtime.Tests.Data;
-using Xunit;
-
 namespace Dx.Runtime.Tests
 {
+    using System.Linq;
+    using System.Net;
+    using System.Net.Sockets;
+    using Dx.Runtime.Tests.Data;
+    using Xunit;
+
     public class NetworkingTests
     {
         private struct TwoNodes
@@ -14,20 +16,44 @@ namespace Dx.Runtime.Tests
 
         private TwoNodes SetupNetwork()
         {
-            var id = ID.NewHash("test");
             var result = new TwoNodes();
-            var factory = new InternalDxFactory();
-            result.NodeA = factory.CreateLocalNode(InternalTestNetwork.NodeAID);
-            factory.CreateNodeB = true;
-            result.NodeB = factory.CreateLocalNode(InternalTestNetwork.NodeBID);
-            result.NodeA.Join(id);
-            result.NodeB.Join(id);
+            result.NodeA = new LocalNode();
+            result.NodeB = new LocalNode();
+            result.NodeA.Bind(IPAddress.Loopback, 12000);
+            result.NodeB.Bind(IPAddress.Loopback, 12001);
+            result.NodeB.GetService<IClientConnector>().Connect(IPAddress.Loopback, 12000);
             return result;
         }
 
         private void AssertNoActiveConnections()
         {
-            Assert.False(ContactPool.GetAllOpenClients().Any());
+            var listener = new TcpListener(IPAddress.Loopback, 12000);
+            Assert.DoesNotThrow(listener.Start);
+            listener.Stop();
+
+            listener = new TcpListener(IPAddress.Loopback, 12001);
+            Assert.DoesNotThrow(listener.Start);
+            listener.Stop();
+        }
+        
+        [Fact]
+        public void NodesKnowAboutEachOther()
+        {
+            this.AssertNoActiveConnections();
+
+            var network = this.SetupNetwork();
+            try
+            {
+                Assert.Equal(2, network.NodeA.GetService<IClientLookup>().GetAll().Count());
+                Assert.Equal(2, network.NodeB.GetService<IClientLookup>().GetAll().Count());
+            }
+            finally
+            {
+                network.NodeA.Close();
+                network.NodeB.Close();
+            }
+
+            this.AssertNoActiveConnections();
         }
 
         [Fact]
@@ -48,8 +74,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -77,8 +103,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -90,8 +116,8 @@ namespace Dx.Runtime.Tests
             this.AssertNoActiveConnections();
 
             var network = this.SetupNetwork();
-            network.NodeA.Leave();
-            network.NodeB.Leave();
+            network.NodeA.Close();
+            network.NodeB.Close();
 
             this.AssertNoActiveConnections();
         }
@@ -102,14 +128,14 @@ namespace Dx.Runtime.Tests
             this.AssertNoActiveConnections();
 
             var network = this.SetupNetwork();
-            network.NodeA.Leave();
-            network.NodeB.Leave();
+            network.NodeA.Close();
+            network.NodeB.Close();
 
             this.AssertNoActiveConnections();
 
             var network2 = this.SetupNetwork();
-            network2.NodeA.Leave();
-            network2.NodeB.Leave();
+            network2.NodeA.Close();
+            network2.NodeB.Close();
 
             this.AssertNoActiveConnections();
         }
@@ -129,8 +155,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -150,8 +176,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -170,8 +196,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -207,8 +233,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -261,8 +287,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -318,8 +344,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -346,41 +372,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
-            }
-
-            this.AssertNoActiveConnections();
-        }
-        
-        [Fact]
-        public void DistributedEventsFireCorrectly()
-        {
-            this.AssertNoActiveConnections();
-
-            var network = this.SetupNetwork();
-            try
-            {
-                // Create event test and store it on node A.
-                var hitA = false;
-                var eventA = (EventTest)new Distributed<EventTest>(network.NodeA, "event");
-                eventA.Test += (sender, e) => hitA = true;
-                eventA.Fire();
-                Assert.True(hitA);
-                hitA = false;
-                
-                // Retrieve the event test from node B.
-                var hitB = false;
-                var eventB = (EventTest)new Distributed<EventTest>(network.NodeB, "event");
-                eventB.Test += (sender, e) => hitB = true;
-                eventB.Fire();
-                Assert.True(hitB);
-                Assert.True(hitA);
-            }
-            finally
-            {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();
@@ -416,8 +409,8 @@ namespace Dx.Runtime.Tests
             }
             finally
             {
-                network.NodeA.Leave();
-                network.NodeB.Leave();
+                network.NodeA.Close();
+                network.NodeB.Close();
             }
 
             this.AssertNoActiveConnections();

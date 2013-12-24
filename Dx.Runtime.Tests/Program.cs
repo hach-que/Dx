@@ -4,8 +4,8 @@ namespace Dx.Runtime.Tests
     {
         public static void Main(string[] args)
         {
-            var networkingTests = new NetworkingTests();
-            networkingTests.SynchronisedFieldsBehaveCorrectly();
+            var networkingTests = new SemanticTests();
+            networkingTests.InvocationIsCorrectForServer();
         }
     }
 }

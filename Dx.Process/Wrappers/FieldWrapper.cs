@@ -26,7 +26,6 @@
 using System.Diagnostics;
 using System.Linq;
 using Mono.Cecil;
-using Dx.Process;
 
 namespace Dx.Process
 {
@@ -56,7 +55,7 @@ namespace Dx.Process
         /// <summary>
         /// Wraps the field.
         /// </summary>
-        public void Wrap()
+        public void Wrap(WrapContext context)
         {
             // Throw an exception if it's not a compiler generated field.
             if (this.m_Field.CustomAttributes.Count(c => c.AttributeType.Name == "CompilerGeneratedAttribute") == 0 &&
@@ -64,6 +63,19 @@ namespace Dx.Process
                 !Utility.HasAttribute(this.m_Field.CustomAttributes, "LocalAttribute") &&
                 !this.m_Field.IsLiteral)
                 throw new PostProcessingException(this.m_Type.FullName, this.m_Field.Name, "The field '" + this.m_Field.Name + "' was found.  Distributed types may not contain fields as they can not be hooked successfully.  Use auto-generated properties instead.");
+
+            if (this.IsEvent(this.m_Field.FieldType))
+            {
+                throw new PostProcessingException(
+                    this.m_Type.FullName,
+                    this.m_Field.Name,
+                    "Distributed events are no longer supported in version 3.");
+            }
+
+            if (this.m_Field.Name != "<Node>k__BackingField")
+            {
+                Utility.AddProtoMemberAttribute(this.m_Field, ++context.ProtoMemberCount);
+            }
         }
 
         /// <summary>

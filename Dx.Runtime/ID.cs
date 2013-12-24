@@ -4,21 +4,27 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
+using ProtoBuf;
 
 namespace Dx.Runtime
 {
-    [Serializable]
-    public class ID : ISerializable
+    [ProtoContract]
+    public class ID
     {
-        private byte[] m_Bytes;
+        [ProtoMember(1)]
+        public byte[] Bytes { get; set; }
+
+        public ID()
+        {
+        }
 
         public ID(IEnumerable<byte> bytes)
         {
             int i = 0;
-            this.m_Bytes = new byte[64];
+            this.Bytes = new byte[64];
             foreach (byte b in bytes)
             {
-                this.m_Bytes[i] = b;
+                this.Bytes[i] = b;
                 i += 1;
 
                 // Take only the first 64 bytes.
@@ -34,7 +40,7 @@ namespace Dx.Runtime
             bytes.AddRange(b.ToByteArray());
             bytes.AddRange(c.ToByteArray());
             bytes.AddRange(d.ToByteArray());
-            this.m_Bytes = bytes.ToArray();
+            this.Bytes = bytes.ToArray();
         }
 
         public ID(SerializationInfo info, StreamingContext context)
@@ -42,7 +48,7 @@ namespace Dx.Runtime
             var bytes = new List<byte>();
             for (int i = 0; i < 64; i += 1)
                 bytes.Add(info.GetByte("k" + i));
-            this.m_Bytes = bytes.ToArray();
+            this.Bytes = bytes.ToArray();
         }
 
         public static ID NewRandom()
@@ -59,13 +65,13 @@ namespace Dx.Runtime
             if (object.ReferenceEquals(b, null))
                 return false;
 
-            if (a.m_Bytes.Length != b.m_Bytes.Length)
+            if (a.Bytes.Length != b.Bytes.Length)
                 return false;
 
             bool same = true;
-            for (int i = 0; i < a.m_Bytes.Length; i += 1)
+            for (int i = 0; i < a.Bytes.Length; i += 1)
             {
-                if (a.m_Bytes[i] != b.m_Bytes[i])
+                if (a.Bytes[i] != b.Bytes[i])
                 {
                     same = false;
                     break;
@@ -84,13 +90,13 @@ namespace Dx.Runtime
             if (object.ReferenceEquals(b, null))
                 return true;
 
-            if (a.m_Bytes.Length != b.m_Bytes.Length)
+            if (a.Bytes.Length != b.Bytes.Length)
                 return true;
 
             bool same = true;
-            for (int i = 0; i < a.m_Bytes.Length; i += 1)
+            for (int i = 0; i < a.Bytes.Length; i += 1)
             {
-                if (a.m_Bytes[i] != b.m_Bytes[i])
+                if (a.Bytes[i] != b.Bytes[i])
                 {
                     same = false;
                     break;
@@ -102,8 +108,8 @@ namespace Dx.Runtime
 
         public static ID operator +(ID a, int value)
         {
-            var b = new byte[a.m_Bytes.Length];
-            a.m_Bytes.CopyTo(b, 0);
+            var b = new byte[a.Bytes.Length];
+            a.Bytes.CopyTo(b, 0);
 
             for (int i = b.Length - 1; i >= 0; i--)
             {
@@ -144,19 +150,19 @@ namespace Dx.Runtime
         
         public override string ToString()
         {
-            if (this.m_Bytes == null)
+            if (this.Bytes == null)
                 return new Guid() + " " + new Guid() + " " + new Guid() + " " + new Guid();
 
-            return new Guid(this.m_Bytes.Skip(0).Take(16).ToArray()) + " " +
-                new Guid(this.m_Bytes.Skip(16).Take(16).ToArray()) + " " +
-                new Guid(this.m_Bytes.Skip(32).Take(16).ToArray()) + " " +
-                new Guid(this.m_Bytes.Skip(48).Take(16).ToArray());
+            return new Guid(this.Bytes.Skip(0).Take(16).ToArray()) + " " +
+                new Guid(this.Bytes.Skip(16).Take(16).ToArray()) + " " +
+                new Guid(this.Bytes.Skip(32).Take(16).ToArray()) + " " +
+                new Guid(this.Bytes.Skip(48).Take(16).ToArray());
         }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             for (int i = 0; i < 64; i += 1)
-                info.AddValue("k" + i, this.m_Bytes[i]);
+                info.AddValue("k" + i, this.Bytes[i]);
         }
 
         public ID GetHashedKey()
@@ -167,26 +173,17 @@ namespace Dx.Runtime
             SHA512 hasher = SHA512.Create();
             byte[] b = hasher.ComputeHash(
                     this
-                    .GetBytes()
+                    .Bytes
                     .ToArray())
-                .Append(hasher.ComputeHash(unhashedKey1.GetBytes().ToArray()))
-                .Append(hasher.ComputeHash(unhashedKey2.GetBytes().ToArray()))
-                .Append(hasher.ComputeHash(unhashedKey3.GetBytes().ToArray()))
+                .Append(hasher.ComputeHash(unhashedKey1.Bytes.ToArray()))
+                .Append(hasher.ComputeHash(unhashedKey2.Bytes.ToArray()))
+                .Append(hasher.ComputeHash(unhashedKey3.Bytes.ToArray()))
                 .ToArray();
 
             if (b.Length * 8 < 512)
                 throw new Exception("Length of array should be " + 512 + " bits or more");
 
             return new ID(b.Take(512));
-        }
-
-        /// <summary>
-        /// Gets the bytes which make up this identifier
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerable<byte> GetBytes()
-        {
-            return this.m_Bytes;
         }
 
         public override bool Equals(object other)
@@ -200,7 +197,7 @@ namespace Dx.Runtime
         {
             unchecked
             {
-                return this.GetBytes().Sum(value => Convert.ToInt32(value));
+                return this.Bytes.Sum(value => Convert.ToInt32(value));
             }
         }
     }

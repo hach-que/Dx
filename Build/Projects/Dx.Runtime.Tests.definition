@@ -9,18 +9,26 @@
     <Reference Include="Dx.Process" />
     <Reference Include="Dx.Runtime.Tests.Data" />
     <Reference Include="protobuf-net-client" />
+    <Reference Include="Ninject" />
+    <Reference Include="System.Xml" />
   </References>
   <Files>
+    <Compile Include="BindingTests.cs" />
     <Compile Include="ConstructionTests.cs" />
     <Compile Include="ContactTests.cs" />
     <Compile Include="EnumerableExtensionsTests.cs" />
+    <Compile Include="HandlerTests.cs" />
     <Compile Include="IDTests.cs" />
-    <Compile Include="InternalDxFactory.cs" />
-    <Compile Include="InternalTestNetwork.cs" />
+    <Compile Include="InvokeTests.cs" />
     <Compile Include="NetworkingTests.cs" />
+    <Compile Include="ObjectWithTypeSerializerTests.cs" />
     <Compile Include="ProcessorTests.cs" />
     <Compile Include="ProcessorUtilities.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="SemanticTests.cs" />
+    <Compile Include="SerializationTests.cs" />
+    <None Include="Old\InternalDxFactory.cs" />
+    <None Include="Old\InternalTestNetwork.cs" />
     <None Include="packages.config" />
   </Files>
 </Project>

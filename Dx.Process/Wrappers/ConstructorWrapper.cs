@@ -56,7 +56,7 @@ namespace Dx.Process
         /// <summary>
         /// Wraps the method.
         /// </summary>
-        public void Wrap()
+        public void Wrap(WrapContext context)
         {
             this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Modifying {0} for distributed processing", this.m_Constructor.Name);
 

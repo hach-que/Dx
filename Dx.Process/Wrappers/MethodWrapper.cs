@@ -73,7 +73,7 @@ namespace Dx.Process
         /// <summary>
         /// Wraps the method.
         /// </summary>
-        public void Wrap()
+        public void Wrap(WrapContext context)
         {
             if (this.m_Method.CustomAttributes.Any(c => c.AttributeType.Name == "LocalAttribute"))
                 return;
@@ -168,16 +168,6 @@ namespace Dx.Process
             MethodReference invoke = new MethodReference("Invoke", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
             invoke.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
             invoke.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
-
-            // Create the Process4.Providers.DpmEntrypoint::AddEvent method reference.
-            MethodReference addevent = new MethodReference("AddEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
-            addevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
-            addevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
-
-            // Create the Process4.Providers.DpmEntrypoint::RemoveEvent method reference.
-            MethodReference removeevent = new MethodReference("RemoveEvent", this.m_Type.Module.Import(typeof(object)), this.m_Type.Module.Import(typeof(DpmEntrypoint)));
-            removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(Delegate))));
-            removeevent.Parameters.Add(new ParameterDefinition(this.m_Type.Module.Import(typeof(object[]))));
 
             // Generate the local variables like:
             // * 0 - MultitypeDelegate
@@ -277,14 +267,6 @@ namespace Dx.Process
             else if (this.m_Method.IsGetter)
             {
                 processor.Add(new CallStatement(getproperty, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
-            }
-            else if (this.m_Method.IsAddOn)
-            {
-                processor.Add(new CallStatement(addevent, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
-            }
-            else if (this.m_Method.IsRemoveOn)
-            {
-                processor.Add(new CallStatement(removeevent, new VariableDefinition[] { v_0, v_1 }, this.m_Method.ReturnType, v_2));
             }
             else
             {

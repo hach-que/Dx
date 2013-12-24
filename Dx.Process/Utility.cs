@@ -4,6 +4,7 @@ using Dx.Runtime;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Collections.Generic;
+using ProtoBuf;
 
 namespace Dx.Process
 {
@@ -34,12 +35,29 @@ namespace Dx.Process
         /// </summary>
         /// <param name="type">The type to add the attribute to.</param>
         /// <param name="attribute">The attribute to add.</param>
-        public static void AddAttribute(TypeDefinition type, Type attribute, ModuleDefinition module)
+        public static CustomAttribute AddAttribute(TypeDefinition type, Type attribute, ModuleDefinition module)
         {
             TypeDefinition tr = module.Import(attribute).Resolve();
             MethodDefinition mr = tr.Methods.First(value => value.IsConstructor);
             MethodReference rf = module.Import(mr);
-            type.CustomAttributes.Add(new CustomAttribute(rf));
+            var ca = new CustomAttribute(rf);
+            type.CustomAttributes.Add(ca);
+            return ca;
+        }
+
+        /// <summary>
+        /// Adds the specified attribute to the specified type.
+        /// </summary>
+        /// <param name="prop">The type to add the attribute to.</param>
+        /// <param name="attribute">The attribute to add.</param>
+        public static CustomAttribute AddAttribute(PropertyDefinition prop, Type attribute, ModuleDefinition module)
+        {
+            TypeDefinition tr = module.Import(attribute).Resolve();
+            MethodDefinition mr = tr.Methods.First(value => value.IsConstructor);
+            MethodReference rf = module.Import(mr);
+            var customAttribute = new CustomAttribute(rf);
+            prop.CustomAttributes.Add(customAttribute);
+            return customAttribute;
         }
 
         /// <summary>
@@ -48,12 +66,14 @@ namespace Dx.Process
         /// <param name="field">The field to add the attribute to.</param>
         /// <param name="attribute">The attribute to add.</param>
         /// <param name="module">The module the field is defined in.</param>
-        public static void AddAttribute(FieldDefinition field, Type attribute, ModuleDefinition module)
+        public static CustomAttribute AddAttribute(FieldDefinition field, Type attribute, ModuleDefinition module)
         {
             TypeDefinition tr = module.Import(attribute).Resolve();
             MethodDefinition mr = tr.Methods.First(value => value.IsConstructor);
             MethodReference rf = module.Import(mr);
-            field.CustomAttributes.Add(new CustomAttribute(rf));
+            var customAttribute = new CustomAttribute(rf);
+            field.CustomAttributes.Add(customAttribute);
+            return customAttribute;
         }
 
         /// <summary>
@@ -73,15 +93,15 @@ namespace Dx.Process
         /// <summary>
         /// Adds an automatic property to the specified class with the specified property name and type.
         /// </summary>
-        public static void AddAutoProperty(TypeDefinition t, string name, Type type)
+        public static void AddAutoProperty(TypeDefinition t, string name, Type type, int protoMember = 0)
         {
-            AddAutoProperty(t, name, t.Module.Import(type));
+            AddAutoProperty(t, name, t.Module.Import(type), protoMember);
         }
         
         /// <summary>
         /// Adds an automatic property to the specified class with the specified property name and type.
         /// </summary>
-        public static void AddAutoProperty(TypeDefinition t, string name, TypeReference typeRef)
+        public static void AddAutoProperty(TypeDefinition t, string name, TypeReference typeRef, int protoMember = 0)
         {
             // Create the field definition.
             FieldDefinition fd = new FieldDefinition("<" + name + ">k__BackingField", FieldAttributes.Private, typeRef);
@@ -127,70 +147,11 @@ namespace Dx.Process
             t.Methods.Add(mgd);
             t.Methods.Add(msd);
             t.Properties.Add(pd);
-        }
 
-        /// <summary>
-        /// Adds the deserialization constructor to the specified type.
-        /// </summary>
-        /// <param name="t">The type to add the deserialization constructor to.</param>
-        public static void AddDeserializationConstructor(TypeDefinition t)
-        {
-            // Create the Process4.Providers.DpmEntrypoint::Deserialize method reference.
-            MethodReference deserialize = new MethodReference("Deserialize", t.Module.Import(typeof(void)), t.Module.Import(typeof(DpmEntrypoint)));
-            deserialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(object))));
-            deserialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.SerializationInfo))));
-            deserialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.StreamingContext))));
-
-            // Define the method.
-            MethodAttributes attribs = MethodAttributes.Family | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName;
-            MethodDefinition ctor = new MethodDefinition(".ctor", attribs, t.Module.Import(typeof(void)));
-            ctor.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.SerializationInfo))));
-            ctor.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.StreamingContext))));
-
-            // Define the method body.
-            // FIXME: What is the right behaviour here?  We can't call the base constructor in
-            // case it calls DpmEntrypoint::Construct.  Unfortunately not calling the base
-            // constructor as the first instruction results in 'peverify' complaining about the
-            // deserialization constructor.
-            ILProcessor il = ctor.Body.GetILProcessor();
-            il.Append(Instruction.Create(OpCodes.Ldarg_0));
-            il.Append(Instruction.Create(OpCodes.Ldarg_1));
-            il.Append(Instruction.Create(OpCodes.Ldarg_2));
-            il.Append(Instruction.Create(OpCodes.Call, deserialize));
-            il.Append(Instruction.Create(OpCodes.Ret));
-
-            // Add the method.
-            t.Methods.Add(ctor);
-        }
-
-        /// <summary>
-        /// Adds the serialization method to the specified type.
-        /// </summary>
-        /// <param name="t">The type to add the serialization method to.</param>
-        internal static void AddSerializationMethod(TypeDefinition t)
-        {
-            // Create the Process4.Providers.DpmEntrypoint::Serialize method reference.
-            MethodReference serialize = new MethodReference("Serialize", t.Module.Import(typeof(void)), t.Module.Import(typeof(DpmEntrypoint)));
-            serialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(object))));
-            serialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.SerializationInfo))));
-            serialize.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.StreamingContext))));
-
-            // Define the method.
-            MethodAttributes attribs = MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual;
-            MethodDefinition getobjdata = new MethodDefinition("GetObjectData", attribs, t.Module.Import(typeof(void)));
-            getobjdata.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.SerializationInfo))));
-            getobjdata.Parameters.Add(new ParameterDefinition(t.Module.Import(typeof(System.Runtime.Serialization.StreamingContext))));
-
-            // Define the method body.
-            ILProcessor il = getobjdata.Body.GetILProcessor();
-            il.Append(Instruction.Create(OpCodes.Ldarg_0));
-            il.Append(Instruction.Create(OpCodes.Ldarg_1));
-            il.Append(Instruction.Create(OpCodes.Ldarg_2));
-            il.Append(Instruction.Create(OpCodes.Call, serialize));
-            il.Append(Instruction.Create(OpCodes.Ret));
-
-            // Add the method.
-            t.Methods.Add(getobjdata);
+            if (protoMember != 0)
+            {
+                Utility.AddProtoMemberAttribute(pd, protoMember);
+            }
         }
 
         /// <summary>
@@ -334,6 +295,18 @@ namespace Dx.Process
                 return (name == "Attribute");
             else
                 return AttributeMatches(type.Resolve().BaseType, name);
+        }
+
+        public static void AddProtoMemberAttribute(PropertyDefinition property, int i)
+        {
+            var customAttribute = Utility.AddAttribute(property, typeof(ProtoMemberAttribute), property.DeclaringType.Module);
+            customAttribute.ConstructorArguments.Add(new CustomAttributeArgument(property.DeclaringType.Module.TypeSystem.Int32, i));
+        }
+
+        public static void AddProtoMemberAttribute(FieldDefinition field, int i)
+        {
+            var customAttribute = Utility.AddAttribute(field, typeof(ProtoMemberAttribute), field.DeclaringType.Module);
+            customAttribute.ConstructorArguments.Add(new CustomAttributeArgument(field.DeclaringType.Module.TypeSystem.Int32, i));
         }
     }
 }

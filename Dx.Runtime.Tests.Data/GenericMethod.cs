@@ -1,5 +1,3 @@
-using System;
-
 namespace Dx.Runtime.Tests.Data
 {
     [Distributed]

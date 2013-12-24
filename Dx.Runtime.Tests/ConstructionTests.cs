@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using Dx.Runtime.Tests.Data;
 using Xunit;
 
@@ -20,8 +21,7 @@ namespace Dx.Runtime.Tests
         [Fact]
         public void ThrowsExceptionWhenNetworkIsNotJoined()
         {
-            var factory = new DefaultDxFactory();
-            var node = factory.CreateLocalNode();
+            var node = new LocalNode();
             
             Assert.Throws<InvalidOperationException>(() =>
             {
@@ -32,9 +32,8 @@ namespace Dx.Runtime.Tests
         [Fact]
         public void DoesNotThrowExceptionWhenDirectlyConstructingInsideDistributedContext()
         {
-            var factory = new DefaultDxFactory();
-            var node = factory.CreateLocalNode();
-            node.Join(ID.NewRandom());
+            var node = new LocalNode();
+            node.Bind(IPAddress.Loopback, 11001);
             
             Assert.DoesNotThrow(() =>
             {
@@ -45,9 +44,8 @@ namespace Dx.Runtime.Tests
         [Fact]
         public void DoesNotThrowExceptionWhenIndirectlyConstructingInsideDistributedContext()
         {
-            var factory = new DefaultDxFactory();
-            var node = factory.CreateLocalNode();
-            node.Join(ID.NewRandom());
+            var node = new LocalNode();
+            node.Bind(IPAddress.Loopback, 11002);
             
             Assert.DoesNotThrow(() =>
             {
@@ -59,9 +57,8 @@ namespace Dx.Runtime.Tests
         [Fact]
         public void BarReturnsCorrectString()
         {
-            var factory = new DefaultDxFactory();
-            var node = factory.CreateLocalNode();
-            node.Join(ID.NewRandom());
+            var node = new LocalNode();
+            node.Bind(IPAddress.Loopback, 11003);
             
             var foo = (Foo)new Distributed<Foo>(node, "foo");
             var bar = foo.ConstructBar();

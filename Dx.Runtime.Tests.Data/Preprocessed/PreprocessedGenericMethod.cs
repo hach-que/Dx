@@ -5,8 +5,7 @@ using System.Runtime.Serialization;
 namespace Dx.Runtime.Tests.Data
 {
     [Distributed, Processed]
-    [Serializable]
-    public class PreprocessedGenericMethod : ITransparent, ISerializable
+    public class PreprocessedGenericMethod : ITransparent
     {
         private class Return__InvokeDirect0<T, T2> : IDirectInvoke
         {
@@ -45,14 +44,6 @@ namespace Dx.Runtime.Tests.Data
         private T Return__Distributed0<T, T2>(T val, T2 second)
         {
             return val;
-        }
-        protected PreprocessedGenericMethod(SerializationInfo info, StreamingContext context) : this()
-        {
-            DpmEntrypoint.Deserialize(this, info, context);
-        }
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            DpmEntrypoint.Serialize(this, info, context);
         }
     }
 }

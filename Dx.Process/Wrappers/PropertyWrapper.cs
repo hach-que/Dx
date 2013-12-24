@@ -27,7 +27,6 @@ namespace Dx.Process
 {
     using System.Collections.Generic;
     using System.Diagnostics;
-    using Dx.Process;
     using Mono.Cecil;
 
     /// <summary>
@@ -70,7 +69,7 @@ namespace Dx.Process
         /// <summary>
         /// Wraps the property.
         /// </summary>
-        public void Wrap()
+        public void Wrap(WrapContext context)
         {
             // Check to ensure property type has a distributed attribute or is a value type.
             if (this.m_Property.PropertyType.Resolve() == null)

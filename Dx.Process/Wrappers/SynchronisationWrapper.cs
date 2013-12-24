@@ -45,8 +45,8 @@ namespace Dx.Process
             public FieldDefinition Field { get; set; }
             public bool IsField { get; set; }
         }
-        
-        public void Wrap()
+
+        public void Wrap(WrapContext context)
         {
             var synchronisedFieldsOrProperties = new List<FieldOrPropertyDefinition>();
             foreach (var property in this.m_Type.Properties)
@@ -290,7 +290,7 @@ namespace Dx.Process
             
             // Finally, apply distributed processing to the nested class!
             this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Starting processing of {0}", nestedClass.Name);
-            new TypeWrapper(nestedClass).Wrap();
+            new TypeWrapper(nestedClass).Wrap(new WrapContext(0));
             this.m_TraceSource.TraceEvent(TraceEventType.Information, 0, "Finished processing of {0}", nestedClass.Name);
         }
     }

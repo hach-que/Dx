@@ -2,6 +2,6 @@ namespace Dx.Process
 {
     internal interface IWrapper
     {
-        void Wrap();
+        void Wrap(WrapContext context);
     }
 }
