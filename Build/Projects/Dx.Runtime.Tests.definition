@@ -27,8 +27,6 @@
     <Compile Include="Program.cs" />
     <Compile Include="SemanticTests.cs" />
     <Compile Include="SerializationTests.cs" />
-    <None Include="Old\InternalDxFactory.cs" />
-    <None Include="Old\InternalTestNetwork.cs" />
     <None Include="packages.config" />
   </Files>
 </Project>
