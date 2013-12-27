@@ -1,22 +1,52 @@
 Distributed Extensions for .NET
 =====================================
 
+Version 3 Released
+-------------
+
+Version 3 has just been released.  This involves a completely rewritten runtime library, which now
+uses protocol buffers instead of .NET serialization.
+
+The main points are:
+
+  * Network messaging is now much more reliable.
+  * All messages are provided with a checksum to ensure integrity.
+  * .NET serialization has been completely replaced with protocol buffers.
+  * Network discovery is no longer coupled to the library; it is up to the developer to specify the remote nodes to connect to.
+  * Support for distributed events (`events with += and -= `) has been dropped due to non-usage.
+  * Various internals have been decoupled and seperated, providing a much better architecture for future improvements.
+  * Public APIs are now documented for most classes.
+
+Example Usage
+-----------------
+
 Automatically distribute your code with a single attribute, like so:
 
 ```csharp
 namespace Application.PeerToPeer
 {
-    [Distributed(Mode.PeerToPeer)]
     class Program
     {
         public static void Main(string[] args)
         {
-            // Set up distributed node.
-            LocalNode node = new LocalNode();
-            node.Join();
+			if (args.Length == 0)
+			{
+				Console.WriteLine("usage: Program.exe <local ip address> [<remote ip address>]");
+			}
+
+            // Create distributed node and listen on port 9000 for connections.
+            var node = new LocalNode();
+			node.Bind(IPAddress.Parse(args[0]), 9000);
+            
+			// If an argument has been supplied on the command line, connect
+			// to that remote node as well.
+			if (args.Length >= 2)
+			{
+				node.GetService<IClientConnector>().Connect(IPAddress.Parse(args[1]), 9000);
+			}
  
             // Get the universe and increase it's counter.
-            Universe universe = new Distributed<Universe>("universe");
+            Universe universe = new Distributed<Universe>(node, "universe");
             universe.Enter();
  
             // Output the counter.
@@ -28,7 +58,7 @@ namespace Application.PeerToPeer
             universe.Leave();
  
             // Quit.
-            node.Leave();
+            node.Close();
             return;
         }
     }
@@ -53,5 +83,3 @@ namespace Application.PeerToPeer
     }
 }
 ```
-
-More information can be found at http://dxlibrary.net.  Licensed under MIT.
