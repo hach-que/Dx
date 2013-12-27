@@ -415,6 +415,34 @@ namespace Dx.Runtime.Tests
 
             this.AssertNoActiveConnections();
         }
+
+        [Fact]
+        public void NodeIsReusable()
+        {
+            this.AssertNoActiveConnections();
+
+            var other = new LocalNode();
+            var node = new LocalNode();
+
+            try
+            {
+                other.Bind(IPAddress.Loopback, 12002);
+
+                node.Bind(IPAddress.Loopback, 12000);
+                node.GetService<IClientConnector>().Connect(IPAddress.Loopback, 12002);
+                Assert.Equal(2, node.GetService<IClientLookup>().GetAll().Count());
+                node.Close();
+                node.Bind(IPAddress.Loopback, 12001);
+                Assert.Equal(1, node.GetService<IClientLookup>().GetAll().Count());
+            }
+            finally
+            {
+                other.Close();
+                node.Close();
+            }
+
+            this.AssertNoActiveConnections();
+        }
     }
 }
 

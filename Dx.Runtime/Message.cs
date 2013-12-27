@@ -140,6 +140,12 @@ namespace Dx.Runtime
         public ID SetPropertyObjectID { get; set; }
 
         /// <summary>
+        /// Gets or sets the set property message id.
+        /// </summary>
+        [ProtoMember(21)]
+        public ID SetPropertyMessageID { get; set; }
+
+        /// <summary>
         /// Gets or sets the set property property name.
         /// </summary>
         [ProtoMember(17)]

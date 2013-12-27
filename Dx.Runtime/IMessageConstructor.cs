@@ -66,7 +66,7 @@ namespace Dx.Runtime
         /// <returns>
         /// The <see cref="Message"/>.
         /// </returns>
-        Message ConstructFetchConfirmationMessage(ID key, SerializedEntry[] results);
+        Message ConstructFetchResultMessage(ID key, SerializedEntry[] results);
 
         /// <summary>
         /// Construct a "fetch" message.
@@ -157,6 +157,17 @@ namespace Dx.Runtime
         /// The <see cref="Message"/>.
         /// </returns>
         Message ConstructSetPropertyMessage(ID objectID, string property, object value);
+
+        /// <summary>
+        /// Construct a "set property confirmation" message.
+        /// </summary>
+        /// <param name="messageID">
+        /// The message id.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Message"/>.
+        /// </returns>
+        Message ConstructSetPropertyConfirmationMessage(ID messageID);
 
         #endregion
     }

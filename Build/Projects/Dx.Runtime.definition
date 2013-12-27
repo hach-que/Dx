@@ -47,8 +47,8 @@
     <Compile Include="DpmEntrypoint.cs" />
     <Compile Include="DxNinjectModule.cs" />
     <Compile Include="EnumerableExtensions.cs" />
-    <Compile Include="FetchConfirmationMessageHandler.cs" />
     <Compile Include="FetchMessageHandler.cs" />
+    <Compile Include="FetchResultMessageHandler.cs" />
     <Compile Include="GetPropertyMessageHandler.cs" />
     <Compile Include="GetPropertyResultMessageHandler.cs" />
     <Compile Include="GraphWalker.cs" />
@@ -83,6 +83,7 @@
     <Compile Include="ProcessedAttribute.cs" />
     <Compile Include="SelfClientHandler.cs" />
     <Compile Include="SerializedEntry.cs" />
+    <Compile Include="SetPropertyConfirmationMessageHandler.cs" />
     <Compile Include="SetPropertyMessageHandler.cs" />
     <Compile Include="SynchronisationEngine.cs" />
     <Compile Include="SynchronisationStore.cs" />

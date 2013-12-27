@@ -51,9 +51,9 @@ namespace Dx.Runtime
         public const int Fetch = 1;
 
         /// <summary>
-        /// The "fetch confirmation" message type.
+        /// The "fetch result" message type.
         /// </summary>
-        public const int FetchConfirmation = 2;
+        public const int FetchResult = 2;
 
         /// <summary>
         /// The "get property" message type.
@@ -79,6 +79,11 @@ namespace Dx.Runtime
         /// The "set property" message type.
         /// </summary>
         public const int SetProperty = 8;
+
+        /// <summary>
+        /// The "set property confirmation" message type.
+        /// </summary>
+        public const int SetPropertyConfirmation = 13;
 
         #endregion
     }

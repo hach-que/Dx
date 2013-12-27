@@ -33,12 +33,6 @@ namespace Dx.Process
     {
         private readonly FieldDefinition m_Field = null;
         private readonly TypeDefinition m_Type = null;
-        private readonly ModuleDefinition m_Module = null;
-        
-        /// <summary>
-        /// The trace source on which logging will be done.
-        /// </summary>
-        private readonly TraceSource m_TraceSource;
 
         /// <summary>
         /// Creates a new field wrapper which will wrap the specified field.
@@ -48,8 +42,6 @@ namespace Dx.Process
         {
             this.m_Field = field;
             this.m_Type = field.DeclaringType;
-            this.m_Module = field.Module;
-            this.m_TraceSource = new TraceSource("FieldWrapper");
         }
 
         /// <summary>

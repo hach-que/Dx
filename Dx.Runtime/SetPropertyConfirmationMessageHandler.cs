@@ -1,17 +1,18 @@
 ﻿namespace Dx.Runtime
 {
-    class GetPropertyResultMessageHandler : IMessageHandler
+    class SetPropertyConfirmationMessageHandler : IMessageHandler
     {
         private readonly IMessageSideChannel m_MessageSideChannel;
 
-        public GetPropertyResultMessageHandler(IMessageSideChannel messageSideChannel)
+        public SetPropertyConfirmationMessageHandler(
+            IMessageSideChannel messageSideChannel)
         {
             this.m_MessageSideChannel = messageSideChannel;
         }
 
         public int GetMessageType()
         {
-            return MessageType.GetPropertyResult;
+            return MessageType.SetPropertyConfirmation;
         }
 
         public void Handle(Message message)

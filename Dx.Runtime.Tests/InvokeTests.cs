@@ -33,7 +33,7 @@ namespace Dx.Runtime.Tests
             second.Bind(IPAddress.Loopback, 9005);
 
             // Create the bar object in the first node.
-            var barFirst = (Bar)new Distributed<Bar>(first, "bar");
+            new Distributed<Bar>(first, "bar");
 
             // Retrieve it on the second node.
             var barSecond = (Bar)new Distributed<Bar>(second, "bar");

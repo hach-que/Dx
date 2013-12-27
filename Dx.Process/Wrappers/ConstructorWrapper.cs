@@ -34,7 +34,6 @@ namespace Dx.Process
     {
         private readonly MethodDefinition m_Constructor = null;
         private readonly TypeDefinition m_Type = null;
-        private readonly ModuleDefinition m_Module = null;
         
         /// <summary>
         /// The trace source on which logging will be done.
@@ -49,7 +48,6 @@ namespace Dx.Process
         {
             this.m_Constructor = constructor;
             this.m_Type = constructor.DeclaringType;
-            this.m_Module = constructor.Module;
             this.m_TraceSource = new TraceSource("ConstructorWrapper");
         }
 

@@ -96,7 +96,7 @@ namespace Dx.Runtime
         /// <returns>
         /// The <see cref="Message"/>.
         /// </returns>
-        public Message ConstructFetchConfirmationMessage(ID key, SerializedEntry[] results)
+        public Message ConstructFetchResultMessage(ID key, SerializedEntry[] results)
         {
             if (results == null)
             {
@@ -106,7 +106,7 @@ namespace Dx.Runtime
             return new Message
             {
                 ID = ID.NewRandom(), 
-                Type = MessageType.FetchConfirmation, 
+                Type = MessageType.FetchResult, 
                 FetchKey = key, 
                 FetchResult = results
             };
@@ -250,6 +250,25 @@ namespace Dx.Runtime
                 SetPropertyObjectID = objectID, 
                 SetPropertyPropertyName = property, 
                 SetPropertyPropertyValue = this.m_ObjectWithTypeSerializer.Serialize(value)
+            };
+        }
+
+        /// <summary>
+        /// Construct a "set property confirmation" message.
+        /// </summary>
+        /// <param name="messageID">
+        /// The message id.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Message"/>.
+        /// </returns>
+        public Message ConstructSetPropertyConfirmationMessage(ID messageID)
+        {
+            return new Message
+            {
+                ID = ID.NewRandom(),
+                Type = MessageType.SetPropertyConfirmation,
+                SetPropertyMessageID = messageID
             };
         }
 

@@ -45,7 +45,7 @@ namespace Dx.Runtime
                         Value = this.m_ObjectWithTypeSerializer.Serialize(x.Value)
                     }).ToArray();
 
-            var confirmationMessage = this.m_MessageConstructor.ConstructFetchConfirmationMessage(
+            var confirmationMessage = this.m_MessageConstructor.ConstructFetchResultMessage(
                 message.FetchKey,
                 serializedResults);
 

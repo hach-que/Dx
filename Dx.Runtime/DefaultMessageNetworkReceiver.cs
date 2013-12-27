@@ -163,6 +163,14 @@ namespace Dx.Runtime
                             return;
                         }
 
+                        // Try and convert the inner exception to a thread abort exception;
+                        // if it is, then the client is being terminated and we should return.
+                        var threadAbortException = innerException as ThreadAbortException;
+                        if (threadAbortException != null)
+                        {
+                            return;
+                        }
+
                         throw;
                     }
 
@@ -219,6 +227,9 @@ namespace Dx.Runtime
                 {
                 }
                 catch (ObjectDisposedException)
+                {
+                }
+                catch (ThreadAbortException)
                 {
                 }
                 catch (Exception exx)

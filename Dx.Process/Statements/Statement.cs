@@ -30,7 +30,6 @@ namespace Dx.Process
 {
     internal abstract class Statement
     {
-        private Stack<OpCode> m_Opcodes = new Stack<OpCode>();
         private VariableDefinition m_Result = null;
 
         protected Statement(VariableDefinition result)

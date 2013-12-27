@@ -33,10 +33,10 @@
 
                 var sideChannel = node.GetService<IMessageSideChannel>();
                 Assert.True(
-                    sideChannel.Has(x => x.Type == MessageType.FetchConfirmation),
+                    sideChannel.Has(x => x.Type == MessageType.FetchResult),
                     "side channel does not report message");
 
-                var result = sideChannel.WaitUntil(x => x.Type == MessageType.FetchConfirmation, 100);
+                var result = sideChannel.WaitUntil(x => x.Type == MessageType.FetchResult, 100);
 
                 Assert.Equal(1, result.FetchResult.Length);
 

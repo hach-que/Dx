@@ -66,7 +66,7 @@ namespace Dx.Runtime
                 {
                     var endpointCopy = endpoint;
                     if (this.m_MessageSideChannel.Has(x =>
-                            x.Type == MessageType.FetchConfirmation &&
+                            x.Type == MessageType.FetchResult &&
                             x.FetchKey == key && object.Equals(x.Sender.IPAddress, endpointCopy.Address)
                             && x.Sender.Port == endpointCopy.Port))
                     {

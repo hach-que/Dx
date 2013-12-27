@@ -56,9 +56,14 @@ namespace Dx.Runtime
         private readonly Caching m_Caching;
 
         /// <summary>
+        /// An action that is called when the kernel is being constructed.
+        /// </summary>
+        private readonly Action<IKernel> m_KernelRebinding;
+
+        /// <summary>
         /// The dependency injection kernel.
         /// </summary>
-        private readonly IKernel m_Kernel;
+        private IKernel m_Kernel;
 
         /// <summary>
         /// Whether the local node is bound to the network.
@@ -112,39 +117,9 @@ namespace Dx.Runtime
         {
             this.m_Architecture = architecture;
             this.m_Caching = caching;
+            this.m_KernelRebinding = rebinding;
 
-            this.m_Kernel = new StandardKernel();
-
-            this.m_Kernel.Bind<ILocalNode>().ToMethod(x => this);
-
-            this.m_Kernel.Bind<IObjectWithTypeSerializer>().To<DefaultObjectWithTypeSerializer>();
-            this.m_Kernel.Bind<IObjectLookup>().To<DefaultObjectLookup>();
-            this.m_Kernel.Bind<IClientHandlerFactory>().ToFactory();
-            this.m_Kernel.Bind<IMessageConstructor>().To<DefaultMessageConstructor>();
-            this.m_Kernel.Bind<IMessageIO>().To<DefaultMessageIO>();
-            this.m_Kernel.Bind<IMessageHandler>().To<FetchMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<FetchConfirmationMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<InvokeMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<InvokeResultMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<SetPropertyMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<GetPropertyMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<GetPropertyResultMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<ConnectionPingMessageHandler>();
-            this.m_Kernel.Bind<IMessageHandler>().To<ConnectionPongMessageHandler>();
-            this.m_Kernel.Bind<SynchronisationEngine>().ToSelf();
-            this.m_Kernel.Bind<IClientConnector>().To<DefaultClientConnector>();
-            this.m_Kernel.Bind<IMessageNetworkReceiver>().To<DefaultMessageNetworkReceiver>();
-            this.m_Kernel.Bind<IUnhandledExceptionLog>().To<ConsoleUnhandledExceptionLog>();
-
-            this.m_Kernel.Bind<IConnectionHandler>().To<DefaultConnectionHandler>().InSingletonScope();
-            this.m_Kernel.Bind<IClientLookup>().To<DefaultClientLookup>().InSingletonScope();
-            this.m_Kernel.Bind<IObjectStorage>().To<DefaultObjectStorage>().InSingletonScope();
-            this.m_Kernel.Bind<IMessageSideChannel>().To<DefaultMessageSideChannel>().InSingletonScope();
-
-            if (rebinding != null)
-            {
-                rebinding(this.m_Kernel);
-            }
+            this.ConstructKernel();
         }
 
         #endregion
@@ -224,7 +199,7 @@ namespace Dx.Runtime
 
             this.Self = null;
 
-            // TODO: Clean up kernel state.
+            this.ConstructKernel();
         }
 
         /// <summary>
@@ -241,7 +216,6 @@ namespace Dx.Runtime
             this.AssertBound();
 
             var objectLookup = this.GetService<IObjectLookup>();
-            var objectWithTypeSerializer = this.GetService<IObjectWithTypeSerializer>();
 
             var entry = objectLookup.GetFirst(ID.NewHash(id), 60000);
             if (entry == null)
@@ -293,7 +267,7 @@ namespace Dx.Runtime
                 var message =
                     messageSideChannel.WaitUntil(
                         x => x.Type == MessageType.GetPropertyResult && x.GetPropertyMessageID == getMessage.ID, 
-                        50000000);
+                        5000);
 
                 if (message == null)
                 {
@@ -501,6 +475,7 @@ namespace Dx.Runtime
             var objectStorage = this.GetService<IObjectStorage>();
             var clientLookup = this.GetService<IClientLookup>();
             var messageConstructor = this.GetService<IMessageConstructor>();
+            var messageSideChannel = this.GetService<IMessageSideChannel>();
 
             var entry = this.GetHandlerAndObjectByID(id);
             var obj = entry.Value;
@@ -521,7 +496,18 @@ namespace Dx.Runtime
                 }
 
                 var clientHandler = clientLookup.Lookup(entry.Owner.IPEndPoint);
-                clientHandler.Send(messageConstructor.ConstructSetPropertyMessage(ID.NewHash(id), property, value));
+                var setPropertyMessage = messageConstructor.ConstructSetPropertyMessage(ID.NewHash(id), property, value);
+                clientHandler.Send(setPropertyMessage);
+
+                var message = messageSideChannel.WaitUntil(
+                    x => x.Type == MessageType.SetPropertyConfirmation && x.SetPropertyMessageID == setPropertyMessage.ID, 
+                    5000);
+
+                if (message == null)
+                {
+                    throw new InvalidOperationException("No response");
+                }
+
                 return;
             }
 
@@ -565,7 +551,6 @@ namespace Dx.Runtime
         {
             this.AssertBound();
 
-            var objectWithTypeSerializer = this.GetService<IObjectWithTypeSerializer>();
             var objectStorage = this.GetService<IObjectStorage>();
 
             objectStorage.Put(new LiveEntry { Key = ID.NewHash(id), Value = data, Owner = this.Self });
@@ -635,7 +620,6 @@ namespace Dx.Runtime
         {
             var objectLookup = this.GetService<IObjectLookup>();
             var clientLookup = this.GetService<IClientLookup>();
-            var objectWithTypeSerializer = this.GetService<IObjectWithTypeSerializer>();
 
             var entry = objectLookup.GetFirst(ID.NewHash(id), 60000);
             if (entry == null)
@@ -650,6 +634,49 @@ namespace Dx.Runtime
             }
 
             return new ObjectEntry { ClientHandler = clientHandler, Owner = entry.Owner, Value = entry.Value };
+        }
+
+        private void ConstructKernel()
+        {
+            if (this.m_Kernel != null)
+            {
+                this.m_Kernel.Dispose();
+                this.m_Kernel = null;
+            }
+
+            this.m_Kernel = new StandardKernel();
+
+            this.m_Kernel.Bind<ILocalNode>().ToMethod(x => this);
+
+            this.m_Kernel.Bind<IObjectWithTypeSerializer>().To<DefaultObjectWithTypeSerializer>();
+            this.m_Kernel.Bind<IObjectLookup>().To<DefaultObjectLookup>();
+            this.m_Kernel.Bind<IClientHandlerFactory>().ToFactory();
+            this.m_Kernel.Bind<IMessageConstructor>().To<DefaultMessageConstructor>();
+            this.m_Kernel.Bind<IMessageIO>().To<DefaultMessageIO>();
+            this.m_Kernel.Bind<IMessageHandler>().To<FetchMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<FetchResultMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<InvokeMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<InvokeResultMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<SetPropertyMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<SetPropertyConfirmationMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<GetPropertyMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<GetPropertyResultMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<ConnectionPingMessageHandler>();
+            this.m_Kernel.Bind<IMessageHandler>().To<ConnectionPongMessageHandler>();
+            this.m_Kernel.Bind<SynchronisationEngine>().ToSelf();
+            this.m_Kernel.Bind<IClientConnector>().To<DefaultClientConnector>();
+            this.m_Kernel.Bind<IMessageNetworkReceiver>().To<DefaultMessageNetworkReceiver>();
+            this.m_Kernel.Bind<IUnhandledExceptionLog>().To<ConsoleUnhandledExceptionLog>();
+
+            this.m_Kernel.Bind<IConnectionHandler>().To<DefaultConnectionHandler>().InSingletonScope();
+            this.m_Kernel.Bind<IClientLookup>().To<DefaultClientLookup>().InSingletonScope();
+            this.m_Kernel.Bind<IObjectStorage>().To<DefaultObjectStorage>().InSingletonScope();
+            this.m_Kernel.Bind<IMessageSideChannel>().To<DefaultMessageSideChannel>().InSingletonScope();
+
+            if (this.m_KernelRebinding != null)
+            {
+                this.m_KernelRebinding(this.m_Kernel);
+            }
         }
 
         #endregion

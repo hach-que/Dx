@@ -1,6 +1,6 @@
 ﻿namespace Dx.Runtime
 {
-    class FetchConfirmationMessageHandler : IMessageHandler
+    class FetchResultMessageHandler : IMessageHandler
     {
         private readonly IMessageSideChannel m_MessageSideChannel;
 
@@ -8,7 +8,7 @@
 
         private readonly IObjectWithTypeSerializer m_ObjectWithTypeSerializer;
 
-        public FetchConfirmationMessageHandler(
+        public FetchResultMessageHandler(
             IMessageSideChannel messageSideChannel,
             IObjectStorage objectLookup,
             IObjectWithTypeSerializer objectWithTypeSerializer)
@@ -20,7 +20,7 @@
 
         public int GetMessageType()
         {
-            return MessageType.FetchConfirmation;
+            return MessageType.FetchResult;
         }
 
         public void Handle(Message message)

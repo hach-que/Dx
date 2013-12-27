@@ -7,30 +7,26 @@ namespace Dx.Runtime
     {
         private readonly ILocalNode m_LocalNode;
 
-        private readonly IObjectStorage m_Lookup;
+        private readonly IObjectStorage m_ObjectStorage;
+
+        private readonly IObjectWithTypeSerializer m_ObjectWithTypeSerializer;
 
         private readonly IMessageConstructor m_MessageConstructor;
 
         private readonly IClientLookup m_ClientLookup;
 
-        private readonly IObjectStorage m_ObjectStorage;
-
-        private readonly IObjectWithTypeSerializer m_ObjectWithTypeSerializer;
-
         public SetPropertyMessageHandler(
             ILocalNode localNode,
-            IObjectStorage lookup,
-            IMessageConstructor messageConstructor,
-            IClientLookup clientLookup,
             IObjectStorage objectStorage,
-            IObjectWithTypeSerializer objectWithTypeSerializer)
+            IObjectWithTypeSerializer objectWithTypeSerializer,
+            IMessageConstructor messageConstructor,
+            IClientLookup clientLookup)
         {
             this.m_LocalNode = localNode;
-            this.m_Lookup = lookup;
-            this.m_MessageConstructor = messageConstructor;
-            this.m_ClientLookup = clientLookup;
             this.m_ObjectStorage = objectStorage;
             this.m_ObjectWithTypeSerializer = objectWithTypeSerializer;
+            this.m_MessageConstructor = messageConstructor;
+            this.m_ClientLookup = clientLookup;
         }
 
         public int GetMessageType()
@@ -64,6 +60,9 @@ namespace Dx.Runtime
                     Value = obj, 
                     Owner = this.m_LocalNode.Self
                 });
+
+            var client = this.m_ClientLookup.Lookup(message.Sender.IPEndPoint);
+            client.Send(this.m_MessageConstructor.ConstructSetPropertyConfirmationMessage(message.ID));
         }
     }
 }
