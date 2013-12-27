@@ -133,6 +133,8 @@ namespace Dx.Runtime
             this.m_Kernel.Bind<IMessageHandler>().To<ConnectionPongMessageHandler>();
             this.m_Kernel.Bind<SynchronisationEngine>().ToSelf();
             this.m_Kernel.Bind<IClientConnector>().To<DefaultClientConnector>();
+            this.m_Kernel.Bind<IMessageNetworkReceiver>().To<DefaultMessageNetworkReceiver>();
+            this.m_Kernel.Bind<IUnhandledExceptionLog>().To<ConsoleUnhandledExceptionLog>();
 
             this.m_Kernel.Bind<IConnectionHandler>().To<DefaultConnectionHandler>().InSingletonScope();
             this.m_Kernel.Bind<IClientLookup>().To<DefaultClientLookup>().InSingletonScope();

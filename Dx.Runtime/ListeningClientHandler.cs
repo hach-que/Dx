@@ -59,6 +59,11 @@ namespace Dx.Runtime
         private readonly IMessageIO m_MessageIo;
 
         /// <summary>
+        /// The <see cref="IMessageNetworkReceiver"/> interface, which is used to safely receive messages.
+        /// </summary>
+        private readonly IMessageNetworkReceiver m_MessageNetworkReceiver;
+
+        /// <summary>
         /// The thread on which messages are received.
         /// </summary>
         private readonly Thread m_ReceiveThread;
@@ -73,6 +78,9 @@ namespace Dx.Runtime
         /// <param name="messageIo">
         /// The <see cref="IMessageIO"/> interface.
         /// </param>
+        /// <param name="messageNetworkReceiver">
+        /// The <see cref="IMessageNetworkReceiver"/> interface.
+        /// </param>
         /// <param name="client">
         /// The TCP client that is associated with this handler.
         /// </param>
@@ -80,11 +88,13 @@ namespace Dx.Runtime
         /// The message handlers.
         /// </param>
         public ListeningClientHandler(
-            IMessageIO messageIo, 
+            IMessageIO messageIo,
+            IMessageNetworkReceiver messageNetworkReceiver,
             TcpClient client, 
             IEnumerable<IMessageHandler> messageHandlers)
         {
             this.m_MessageIo = messageIo;
+            this.m_MessageNetworkReceiver = messageNetworkReceiver;
             this.m_Client = client;
             this.m_ReceiveThread = new Thread(this.Run) { Name = "Receive Thread for " + client.Client.RemoteEndPoint };
 
@@ -153,32 +163,7 @@ namespace Dx.Runtime
         /// </summary>
         private void Run()
         {
-            try
-            {
-                while (this.m_Client.Connected)
-                {
-                    try
-                    {
-                        var message = this.m_MessageIo.Receive(this.m_Client.GetStream());
-                        if (message == null)
-                        {
-                            continue;
-                        }
-
-                        var endpoint = (IPEndPoint)this.m_Client.Client.RemoteEndPoint;
-                        message.Sender = new Contact { IPAddress = endpoint.Address, Port = endpoint.Port };
-                        this.Receive(message);
-                    }
-                    catch (IOException)
-                    {
-                        // TODO: We should probably try reconnecting depending
-                        // on what the socket exception is.
-                    }
-                }
-            }
-            catch (ObjectDisposedException)
-            {
-            }
+            this.m_MessageNetworkReceiver.Run(this.m_Client, this.Receive);
         }
 
         #endregion

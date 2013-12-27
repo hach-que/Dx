@@ -43,7 +43,17 @@ namespace Dx.Runtime
             }
 
             // Retrieve the client.
-            var client = this.m_Listener.EndAcceptTcpClient(ar);
+            TcpClient client;
+            try
+            {
+                client = this.m_Listener.EndAcceptTcpClient(ar);
+            }
+            catch (ObjectDisposedException)
+            {
+                // We encounter this situation if the listener has been closed, in which case
+                // there is no client to handle anyway.
+                return;
+            }
 
             // Use the IClientHandlerFactory to create a new client handler.
             var handler = this.m_ClientHandlerFactory.CreateListeningClientHandler(client);

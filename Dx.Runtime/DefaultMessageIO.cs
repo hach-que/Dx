@@ -10,6 +10,11 @@ namespace Dx.Runtime
     {
         public Message Receive(Stream stream)
         {
+            if (!stream.CanRead)
+            {
+                return null;
+            }
+
             var reader = new BinaryReader(stream);
             var length = reader.ReadInt32();
             var checksum = reader.ReadInt32();
@@ -30,6 +35,11 @@ namespace Dx.Runtime
 
         public void Send(Stream stream, Message message)
         {
+            if (!stream.CanWrite)
+            {
+                return;
+            }
+
             if (message.ID == null)
             {
                 throw new InvalidOperationException("Can not serialize a message without an ID!");

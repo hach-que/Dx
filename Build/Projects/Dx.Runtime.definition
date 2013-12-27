@@ -28,12 +28,14 @@
     <Compile Include="ClientIgnorableAttribute.cs" />
     <Compile Include="ConnectionPingMessageHandler.cs" />
     <Compile Include="ConnectionPongMessageHandler.cs" />
+    <Compile Include="ConsoleUnhandledExceptionLog.cs" />
     <Compile Include="Contact.cs" />
     <Compile Include="DefaultClientConnector.cs" />
     <Compile Include="DefaultClientLookup.cs" />
     <Compile Include="DefaultConnectionHandler.cs" />
     <Compile Include="DefaultMessageConstructor.cs" />
     <Compile Include="DefaultMessageIO.cs" />
+    <Compile Include="DefaultMessageNetworkReceiver.cs" />
     <Compile Include="DefaultMessageSideChannel.cs" />
     <Compile Include="DefaultObjectLookup.cs" />
     <Compile Include="DefaultObjectStorage.cs" />
@@ -61,6 +63,7 @@
     <Compile Include="IMessageConstructor.cs" />
     <Compile Include="IMessageHandler.cs" />
     <Compile Include="IMessageIO.cs" />
+    <Compile Include="IMessageNetworkReceiver.cs" />
     <Compile Include="IMessageSideChannel.cs" />
     <Compile Include="InvokeMessageHandler.cs" />
     <Compile Include="InvokeResultMessageHandler.cs" />
@@ -69,6 +72,7 @@
     <Compile Include="IObjectWithTypeSerializer.cs" />
     <Compile Include="ISynchronised.cs" />
     <Compile Include="ITransparent.cs" />
+    <Compile Include="IUnhandledExceptionLog.cs" />
     <Compile Include="ListeningClientHandler.cs" />
     <Compile Include="LiveEntry.cs" />
     <Compile Include="LocalAttribute.cs" />
