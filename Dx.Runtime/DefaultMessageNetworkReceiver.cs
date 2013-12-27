@@ -155,6 +155,14 @@ namespace Dx.Runtime
                             }
                         }
 
+                        // Try and convert the inner exception to an object disposed exception;
+                        // if it is, then the client has been disposed and we should return.
+                        var objectDisposedException = innerException as ObjectDisposedException;
+                        if (objectDisposedException != null)
+                        {
+                            return;
+                        }
+
                         throw;
                     }
 
