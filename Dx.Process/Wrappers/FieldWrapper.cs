@@ -56,7 +56,8 @@ namespace Dx.Process
                 !this.m_Field.IsLiteral)
                 throw new PostProcessingException(this.m_Type.FullName, this.m_Field.Name, "The field '" + this.m_Field.Name + "' was found.  Distributed types may not contain fields as they can not be hooked successfully.  Use auto-generated properties instead.");
 
-            if (this.IsEvent(this.m_Field.FieldType))
+            if (this.IsEvent(this.m_Field.FieldType) &&
+                !Utility.HasAttribute(this.m_Field.CustomAttributes, "LocalAttribute"))
             {
                 throw new PostProcessingException(
                     this.m_Type.FullName,
@@ -64,7 +65,10 @@ namespace Dx.Process
                     "Distributed events are no longer supported in version 3.");
             }
 
-            if (this.m_Field.Name != "<Node>k__BackingField")
+            // Apply the ProtoMember attribute if this is not a local field, constant or the Node field.
+            if (this.m_Field.Name != "<Node>k__BackingField" &&
+                !Utility.HasAttribute(this.m_Field.CustomAttributes, "LocalAttribute") &&
+                !this.m_Field.IsLiteral)
             {
                 Utility.AddProtoMemberAttribute(this.m_Field, ++context.ProtoMemberCount);
             }
