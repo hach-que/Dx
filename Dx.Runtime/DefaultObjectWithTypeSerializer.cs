@@ -54,17 +54,7 @@ namespace Dx.Runtime
 
             using (var memory = new MemoryStream(owt.SerializedObject))
             {
-                object instance;
-                if (type == typeof(string))
-                {
-                    instance = string.Empty;
-                }
-                else
-                {
-                    instance = FormatterServices.GetUninitializedObject(type);
-                }
-                
-                var value = RuntimeTypeModel.Default.Deserialize(memory, instance, type);
+                var value = RuntimeTypeModel.Default.Deserialize(memory, null, type);
                 GraphWalker.Apply(value, this.m_LocalNode);
                 return value;
             }
