@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using ProtoBuf;
@@ -20,7 +19,6 @@ namespace Dx.Runtime
             var checksum = reader.ReadInt32();
             var bytes = reader.ReadBytes(length);
 
-            Debugger.Log(1, "receive", "Got     message with length " + length + " and checksum " + checksum + "\r\n");
 
             if (this.CalculateChecksum(length, bytes) != checksum)
             {
@@ -57,7 +55,6 @@ namespace Dx.Runtime
                 var bytes = reader.ReadBytes(length);
                 var checksum = this.CalculateChecksum(length, bytes);
 
-                Debugger.Log(1, "send", "Sending message with length " + length + " and checksum " + checksum + "\r\n");
 
                 writer.Write(length);
                 writer.Write(checksum);
