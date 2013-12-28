@@ -51,6 +51,8 @@ namespace Dx.Runtime
         /// </summary>
         private readonly IUnhandledExceptionLog m_UnhandledExceptionLog;
 
+        private readonly IClientLookup m_ClientLookup;
+
         #endregion
 
         #region Constructors and Destructors
@@ -64,10 +66,14 @@ namespace Dx.Runtime
         /// <param name="unhandledExceptionLog">
         /// The <see cref="IUnhandledExceptionLog"/> interface.
         /// </param>
-        public DefaultMessageNetworkReceiver(IMessageIO messageIo, IUnhandledExceptionLog unhandledExceptionLog)
+        public DefaultMessageNetworkReceiver(
+            IMessageIO messageIo,
+            IUnhandledExceptionLog unhandledExceptionLog,
+            IClientLookup clientLookup)
         {
             this.m_MessageIo = messageIo;
             this.m_UnhandledExceptionLog = unhandledExceptionLog;
+            this.m_ClientLookup = clientLookup;
         }
 
         #endregion
@@ -86,6 +92,8 @@ namespace Dx.Runtime
         /// </param>
         public void Run(TcpClient client, Action<Message> callback)
         {
+            var remoteEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
+
             try
             {
                 while (client.Connected)
@@ -190,14 +198,19 @@ namespace Dx.Runtime
                     // interface.
                     try
                     {
+                        NetworkThreadContext.EnterNetworkContext(
+                            message.SentFromReceivingThread,
+                            (IPEndPoint)client.Client.RemoteEndPoint);
                         callback(message);
                     }
                     catch (Exception ex)
                     {
-                        this.m_UnhandledExceptionLog.Log(
-                            "user code",
-                            ex);
+                        this.m_UnhandledExceptionLog.Log("user code", ex);
                         throw;
+                    }
+                    finally
+                    {
+                        NetworkThreadContext.ExitNetworkContext();
                     }
                 }
             }
@@ -239,6 +252,21 @@ namespace Dx.Runtime
                         exx);
                 }
             }
+
+            // Try and remove ourselves from the client handler list.  This is not
+            // always possible to do.
+            try
+            {
+                this.m_ClientLookup.Remove(remoteEndpoint);
+            }
+            catch (Exception ex)
+            {
+                this.m_UnhandledExceptionLog.Log(
+                    "while removing client from lookup",
+                    ex);
+            }
+
+            Console.WriteLine(Thread.CurrentThread.Name + " has ended");
         }
 
         #endregion
