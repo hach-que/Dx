@@ -134,6 +134,12 @@ namespace Dx.Runtime
         public Contact Sender { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether it was sent from a receiving thread.
+        /// </summary>
+        [ProtoMember(22)]
+        public bool SentFromReceivingThread { get; set; }
+
+        /// <summary>
         /// Gets or sets the set property object id.
         /// </summary>
         [ProtoMember(16)]

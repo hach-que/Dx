@@ -40,6 +40,14 @@ namespace Dx.Runtime
                 return cached;
             }
 
+            if (this.m_LocalNode.Architecture == Architecture.ServerClient && this.m_LocalNode.IsServer)
+            {
+                // In the server-client architecture, the server will never ask remote clients whether
+                // they have an object since the server is the authority on all things.  If the server
+                // doesn't have an object in it's storage, then it doesn't exist in the network.
+                return null;
+            }
+
             var fetchMessage = this.m_MessageConstructor.ConstructFetchMessage(key);
 
             var waitFor = new List<IPEndPoint>();

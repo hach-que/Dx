@@ -125,9 +125,19 @@ namespace Dx.Runtime
         /// </param>
         public void Send(Message message)
         {
-            lock (this.m_Client)
+            try
             {
-                this.m_MessageIo.Send(this.m_Client.GetStream(), message);
+                NetworkThreadContext.AssertSendIsValid((IPEndPoint)this.m_Client.Client.RemoteEndPoint);
+
+                lock (this.m_Client)
+                {
+                    this.m_MessageIo.Send(this.m_Client.GetStream(), message);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // The client is no longer available.
+                // TODO: Remove the client from the lookup list.
             }
         }
 

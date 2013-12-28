@@ -30,6 +30,7 @@
     <Compile Include="ConnectionPongMessageHandler.cs" />
     <Compile Include="ConsoleUnhandledExceptionLog.cs" />
     <Compile Include="Contact.cs" />
+    <Compile Include="DeadlockDetectedException.cs" />
     <Compile Include="DefaultClientConnector.cs" />
     <Compile Include="DefaultClientLookup.cs" />
     <Compile Include="DefaultConnectionHandler.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="LocalNode.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="MessageType.cs" />
+    <Compile Include="NetworkThreadContext.cs" />
     <Compile Include="ObjectWithType.cs" />
     <Compile Include="ProcessedAttribute.cs" />
     <Compile Include="SelfClientHandler.cs" />

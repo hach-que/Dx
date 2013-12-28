@@ -45,6 +45,8 @@ namespace Dx.Runtime
                 throw new InvalidOperationException("Can not serialize a message without an ID!");
             }
 
+            message.SentFromReceivingThread = NetworkThreadContext.IsSentFromReceivingThread();
+
             var writer = new BinaryWriter(stream);
             using (var memory = new MemoryStream())
             {
