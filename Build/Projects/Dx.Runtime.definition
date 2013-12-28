@@ -31,6 +31,7 @@
     <Compile Include="ConsoleUnhandledExceptionLog.cs" />
     <Compile Include="Contact.cs" />
     <Compile Include="DeadlockDetectedException.cs" />
+    <Compile Include="DefaultAutomaticRetry.cs" />
     <Compile Include="DefaultClientConnector.cs" />
     <Compile Include="DefaultClientLookup.cs" />
     <Compile Include="DefaultConnectionHandler.cs" />
@@ -53,6 +54,7 @@
     <Compile Include="GetPropertyMessageHandler.cs" />
     <Compile Include="GetPropertyResultMessageHandler.cs" />
     <Compile Include="GraphWalker.cs" />
+    <Compile Include="IAutomaticRetry.cs" />
     <Compile Include="IClientConnector.cs" />
     <Compile Include="IClientHandler.cs" />
     <Compile Include="IClientHandlerFactory.cs" />

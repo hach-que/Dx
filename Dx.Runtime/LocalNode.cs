@@ -119,6 +119,9 @@ namespace Dx.Runtime
             this.m_Caching = caching;
             this.m_KernelRebinding = rebinding;
 
+            this.Timeout = 5000;
+            this.Retries = 5;
+
             this.ConstructKernel();
         }
 
@@ -146,6 +149,24 @@ namespace Dx.Runtime
             {
                 return this.m_Caching;
             }
+        }
+
+        /// <summary>
+        /// Gets or sets the timeout for network operations.
+        /// </summary>
+        public int Timeout
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gets or sets the number of retries before failure.
+        /// </summary>
+        public int Retries
+        {
+            get;
+            set;
         }
 
         /// <summary>
@@ -192,7 +213,7 @@ namespace Dx.Runtime
 
             this.m_ConnectionHandler.Stop();
 
-            foreach (var handler in this.GetService<IClientLookup>().GetAll().Select(x => x.Value))
+            foreach (var handler in this.GetService<IClientLookup>().GetAll().Select(x => x.Value).ToArray())
             {
                 handler.Stop();
             }
@@ -252,8 +273,8 @@ namespace Dx.Runtime
             this.AssertBound();
 
             var messageConstructor = this.GetService<IMessageConstructor>();
-            var messageSideChannel = this.GetService<IMessageSideChannel>();
             var objectWithTypeSerializer = this.GetService<IObjectWithTypeSerializer>();
+            var automaticRetry = this.GetService<IAutomaticRetry>();
 
             var entry = this.GetHandlerAndObjectByID(id);
             var obj = entry.Value;
@@ -262,17 +283,13 @@ namespace Dx.Runtime
             {
                 // We need to request the value from the node that owns it.
                 var getMessage = messageConstructor.ConstructGetPropertyMessage(ID.NewHash(id), property);
-                entry.ClientHandler.Send(getMessage);
 
-                var message =
-                    messageSideChannel.WaitUntil(
-                        x => x.Type == MessageType.GetPropertyResult && x.GetPropertyMessageID == getMessage.ID, 
-                        5000);
-
-                if (message == null)
-                {
-                    throw new InvalidOperationException("No response");
-                }
+                var message = automaticRetry.SendWithRetry(
+                    entry.ClientHandler,
+                    getMessage,
+                    x => x.Type == MessageType.GetPropertyResult && x.GetPropertyMessageID == getMessage.ID,
+                    this.Timeout,
+                    this.Retries);
 
                 return objectWithTypeSerializer.Deserialize(message.GetPropertyResult);
             }
@@ -284,17 +301,13 @@ namespace Dx.Runtime
                     // We are the client, but we need to request the value
                     // from the server.
                     var getMessage = messageConstructor.ConstructGetPropertyMessage(ID.NewHash(id), property);
-                    entry.ClientHandler.Send(getMessage);
 
-                    var message =
-                        messageSideChannel.WaitUntil(
-                            x => x.Type == MessageType.GetPropertyResult && x.InvokeMessageID == getMessage.ID, 
-                            5000);
-
-                    if (message == null)
-                    {
-                        throw new InvalidOperationException("No response");
-                    }
+                    var message = automaticRetry.SendWithRetry(
+                        entry.ClientHandler,
+                        getMessage,
+                        x => x.Type == MessageType.GetPropertyResult && x.GetPropertyMessageID == getMessage.ID,
+                        this.Timeout,
+                        this.Retries);
 
                     return objectWithTypeSerializer.Deserialize(message.GetPropertyResult);
                 }
@@ -373,8 +386,8 @@ namespace Dx.Runtime
             this.AssertBound();
 
             var messageConstructor = this.GetService<IMessageConstructor>();
-            var messageSideChannel = this.GetService<IMessageSideChannel>();
             var objectWithTypeSerializer = this.GetService<IObjectWithTypeSerializer>();
+            var automaticRetry = this.GetService<IAutomaticRetry>();
 
             var entry = this.GetHandlerAndObjectByID(id);
             var obj = entry.Value;
@@ -408,7 +421,7 @@ namespace Dx.Runtime
                 {
                     // We must see if the client is permitted to call the specified method.
                     var mi = obj.GetType()
-                        .GetMethod(method.Substring(0, method.IndexOf("__Distributed0")), BindingFlagsCombined.All);
+                        .GetMethod(method.Substring(0, method.IndexOf("__Distributed0", System.StringComparison.Ordinal)), BindingFlagsCombined.All);
                     if (mi == null)
                     {
                         throw new MissingMethodException(obj.GetType().FullName, method);
@@ -428,17 +441,13 @@ namespace Dx.Runtime
                     // If we get to here, then we're permitted to call the method, but we still need
                     // to remote it to the server.
                     var invokeMessage = messageConstructor.ConstructInvokeMessage(ID.NewHash(id), method, targs, args);
-                    entry.ClientHandler.Send(invokeMessage);
 
-                    var message =
-                        messageSideChannel.WaitUntil(
-                            x => x.Type == MessageType.InvokeResult && x.InvokeMessageID == invokeMessage.ID, 
-                            5000);
-
-                    if (message == null)
-                    {
-                        throw new InvalidOperationException("No response");
-                    }
+                    var message = automaticRetry.SendWithRetry(
+                        entry.ClientHandler,
+                        invokeMessage,
+                        x => x.Type == MessageType.InvokeResult && x.InvokeMessageID == invokeMessage.ID,
+                        this.Timeout,
+                        this.Retries);
 
                     return objectWithTypeSerializer.Deserialize(message.InvokeResult);
                 }
@@ -475,7 +484,7 @@ namespace Dx.Runtime
             var objectStorage = this.GetService<IObjectStorage>();
             var clientLookup = this.GetService<IClientLookup>();
             var messageConstructor = this.GetService<IMessageConstructor>();
-            var messageSideChannel = this.GetService<IMessageSideChannel>();
+            var automaticRetry = this.GetService<IAutomaticRetry>();
 
             var entry = this.GetHandlerAndObjectByID(id);
             var obj = entry.Value;
@@ -497,16 +506,14 @@ namespace Dx.Runtime
 
                 var clientHandler = clientLookup.Lookup(entry.Owner.IPEndPoint);
                 var setPropertyMessage = messageConstructor.ConstructSetPropertyMessage(ID.NewHash(id), property, value);
-                clientHandler.Send(setPropertyMessage);
 
-                var message = messageSideChannel.WaitUntil(
-                    x => x.Type == MessageType.SetPropertyConfirmation && x.SetPropertyMessageID == setPropertyMessage.ID, 
-                    5000);
-
-                if (message == null)
-                {
-                    throw new InvalidOperationException("No response");
-                }
+                automaticRetry.SendWithRetry(
+                    clientHandler,
+                    setPropertyMessage,
+                    x =>
+                    x.Type == MessageType.SetPropertyConfirmation && x.SetPropertyMessageID == setPropertyMessage.ID,
+                    this.Timeout,
+                    this.Retries);
 
                 return;
             }
@@ -525,7 +532,7 @@ namespace Dx.Runtime
                 if (this.Caching == Caching.PushOnChange)
                 {
                     // We need to push the new value out to clients.
-                    foreach (var client in clientLookup.GetAll().Where(x => x.Key != this.Self.IPEndPoint))
+                    foreach (var client in clientLookup.GetAll().Where(x => !object.Equals(x.Key, this.Self.IPEndPoint)))
                     {
                         client.Value.Send(
                             messageConstructor.ConstructSetPropertyMessage(ID.NewHash(id), property, value));
@@ -593,6 +600,7 @@ namespace Dx.Runtime
         /// Assert that the current node is bound to the network before continuing.
         /// </summary>
         /// <exception cref="InvalidOperationException">
+        /// The node has not been bound.
         /// </exception>
         private void AssertBound()
         {
@@ -613,8 +621,10 @@ namespace Dx.Runtime
         /// The <see cref="ObjectEntry"/>.
         /// </returns>
         /// <exception cref="NullReferenceException">
+        /// The object could not be found.
         /// </exception>
         /// <exception cref="InvalidOperationException">
+        /// The client owning the object could not be found.
         /// </exception>
         private ObjectEntry GetHandlerAndObjectByID(string id)
         {
@@ -636,6 +646,9 @@ namespace Dx.Runtime
             return new ObjectEntry { ClientHandler = clientHandler, Owner = entry.Owner, Value = entry.Value };
         }
 
+        /// <summary>
+        /// Construct the dependency injection kernel.
+        /// </summary>
         private void ConstructKernel()
         {
             if (this.m_Kernel != null)
@@ -667,6 +680,7 @@ namespace Dx.Runtime
             this.m_Kernel.Bind<IClientConnector>().To<DefaultClientConnector>();
             this.m_Kernel.Bind<IMessageNetworkReceiver>().To<DefaultMessageNetworkReceiver>();
             this.m_Kernel.Bind<IUnhandledExceptionLog>().To<ConsoleUnhandledExceptionLog>();
+            this.m_Kernel.Bind<IAutomaticRetry>().To<DefaultAutomaticRetry>();
 
             this.m_Kernel.Bind<IConnectionHandler>().To<DefaultConnectionHandler>().InSingletonScope();
             this.m_Kernel.Bind<IClientLookup>().To<DefaultClientLookup>().InSingletonScope();
