@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Ninject.Planning.Targets;
 
 namespace Dx.Runtime
 {
@@ -36,6 +37,16 @@ namespace Dx.Runtime
 
         public void Handle(Message message)
         {
+            if (message.InvokeTypeArguments == null)
+            {
+                message.InvokeTypeArguments = new string[0];
+            }
+
+            if (message.InvokeArguments == null)
+            {
+                message.InvokeArguments = new ObjectWithType[0];
+            }
+
             var entry = this.m_ObjectStorage.Find(message.InvokeObjectID).FirstOrDefault();
 
             if (entry == null)
@@ -70,8 +81,11 @@ namespace Dx.Runtime
                 }
                 else
                 {
+                    var originalName = mi.Name.Substring(0, mi.Name.Length - "__Distributed0".Length);
+                    var originalMethod = obj.GetType().GetMethod(originalName, BindingFlagsCombined.All);
+
                     // The client is calling this method, ensure they are allowed to call it.
-                    allowed = mi.GetCustomAttributes(typeof(ClientCallableAttribute), false).Any();
+                    allowed = originalMethod.GetCustomAttributes(typeof(ClientCallableAttribute), false).Any();
                 }
             }
 
@@ -80,7 +94,7 @@ namespace Dx.Runtime
                 // If the sender is not permitted to call this method, we just return (we
                 // don't even bother giving them a response since they're either using an
                 // out-of-date client or attempting to bypass security).
-                return;
+                throw new InvalidOperationException("Received a call to invoke " + message.InvokeMethod + " on " + obj.GetType());
             }
 
             var result = DpmEntrypoint.InvokeDynamic(
